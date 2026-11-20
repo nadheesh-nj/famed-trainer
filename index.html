@@ -55,6 +55,17 @@ main{padding:clamp(18px,3vw,40px);max-width:1240px;width:100%}
 .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@media(max-width:600px){.two{grid-template-columns:minmax(0,1fr)}}
 .sm{min-height:38px;padding:6px 14px;font-size:14px;margin-top:10px}.trout{white-space:pre-line;font-size:15px;margin-top:8px;color:var(--ink);border-left:3px solid var(--teal);padding-left:10px}.trout:empty{display:none}
 .en{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:var(--bg);font-size:15px;color:var(--mute)}
+#modal{position:fixed;inset:0;background:rgba(5,20,22,.55);display:grid;place-items:center;padding:16px;z-index:50}
+.mcard{background:var(--bg);color:var(--ink);border-radius:18px;padding:clamp(20px,3vw,32px);width:min(560px,100%);max-height:90vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.mic.muted{background:var(--line);color:var(--mute)}
+.lvlrow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center;margin:14px 0 24px}
+.lvl{width:130px;height:130px;border:6px solid;border-radius:22px;display:grid;place-items:center;align-content:center;text-align:center;gap:2px}
+.lvl b{font:700 52px/1 "Inter Tight",sans-serif}.lvl small{font-size:13px;color:var(--mute)}
+.judge h3{font-size:21px}.judge .op{margin:0 0 10px;font-size:15px}
+.item{padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}.item:last-child{border:0}
+.mis,.sol{display:flex;gap:8px}.mis span{color:var(--coral);font-weight:700}.sol{margin-top:4px;color:var(--ok)}.sol span{font-weight:700}
+@media(max-width:600px){.lvlrow{grid-template-columns:minmax(0,1fr)}}
+@media print{aside,.acts,.hint,#modal{display:none!important}.app{display:block}main{padding:0;max-width:none}body{background:#fff;color:#000}details{display:block}details>*{display:block}.card{break-inside:avoid}}
 .hist{width:100%;border-collapse:collapse;font-size:15px}.hist td,.hist th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}.hist .r{text-align:right;white-space:nowrap}
 /* reading */
 .task{max-width:720px;margin:6vh auto 0;background:var(--panel);border-radius:18px;padding:clamp(22px,4vw,40px);border-top:6px solid var(--teal)}
@@ -141,7 +152,8 @@ summary{cursor:pointer;font-weight:600;min-height:28px}
  <div class="role lang" aria-label="Sprache / Language" style="margin:0"><button data-l="de">Deutsch</button><button data-l="en">English</button></div>
  <button class="rnd" id="rand">Zufälliger Fall</button>
  <nav id="nav" aria-label="Fälle"></nav>
- <div class="role" aria-label="Ich bin"><button data-r="m">Arzt</button><button data-r="f">Ärztin</button></div>
+ <button class="rnd" id="gear" style="margin-top:auto">⚙ Einstellungen</button>
+ <div class="role" aria-label="Ich bin" style="margin-top:6px"><button data-r="m">Arzt</button><button data-r="f">Ärztin</button></div>
 </aside>
 <main id="main"></main>
 </div>
@@ -568,77 +580,101 @@ function germanVoice(){
 }
 if(window.speechSynthesis){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();}
 function talking(on){const av=$('svg.av');if(av)av.classList.toggle('talking',on)}
-let keepU=[];
-function browserSpeak(text){
-  const fake=()=>{talking(true);clearTimeout(S.mt);S.mt=setTimeout(()=>talking(false),Math.min(12000,text.length*65))};
+let keepU=[],sayId=0;
+function browserSpeak(text,done){
+  let fin=false;const finish=()=>{if(fin)return;fin=true;clearTimeout(S.safety);talking(false);done()};
+  const fake=()=>{talking(true);clearTimeout(S.mt);S.mt=setTimeout(finish,Math.min(12000,Math.max(1500,text.length*65)))};
+  S.safety=setTimeout(finish,Math.max(5000,text.length*110));
   if(!window.speechSynthesis){fake();return}
   const ss=speechSynthesis;
   const go=()=>{
-    const parts=text.match(/[^.!?…]+[.!?…]*/g)||[text];
-    keepU=parts.map(p=>p.trim()).filter(Boolean).map((p,i,arr)=>{
+    const parts=(text.match(/[^.!?…]+[.!?…]*/g)||[text]).map(p=>p.trim()).filter(Boolean);
+    keepU=parts.map((p,i)=>{
       const u=new SpeechSynthesisUtterance(p);u.lang='de-DE';const v=germanVoice();if(v)u.voice=v;
       u.pitch=S.c.sex==='f'?1.1:0.85;u.rate=1;
       u.onstart=()=>{S.spoke=true;talking(true)};
-      u.onend=u.onerror=()=>{if(i===arr.length-1)talking(false)};
+      u.onend=u.onerror=()=>{if(i===parts.length-1)finish()};
       return u});
     S.spoke=false;keepU.forEach(u=>ss.speak(u));
-    clearTimeout(S.chk);S.chk=setTimeout(()=>{if(!S.spoke&&S.view==='call'){fake();setStatus(L('Keine Stimme? Lautstärke prüfen oder Chrome/Edge nutzen','No voice? Check the volume or use Chrome/Edge'))}},1800);
+    clearTimeout(S.chk);S.chk=setTimeout(()=>{if(!S.spoke&&S.view==='call'&&!fin){fake();setStatus(L('Keine Stimme? Lautstärke prüfen oder Chrome/Edge nutzen','No voice? Check the volume or use Chrome/Edge'))}},1800);
   };
   if(ss.speaking||ss.pending){ss.cancel();setTimeout(go,150)}else{ss.resume();go()}
 }
-function speak(text){stopVoice();browserSpeak(text)}
-function stopVoice(){try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}if(audio){try{audio.pause()}catch(e){}audio=null}talking(false)}
+function speak(text,done){stopVoice();const id=++sayId;browserSpeak(text,()=>{if(id===sayId&&done)done()})}
+function stopVoice(){sayId++;try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}if(audio){try{audio.pause()}catch(e){}audio=null}if(S){clearTimeout(S.safety);clearTimeout(S.mt);clearTimeout(S.chk)}talking(false)}
 
 /* ---------- sidebar ---------- */
-function bestOf(id){const h=ls.get('famed-hist',[]).filter(x=>x.id===id);return h.length?Math.max(...h.map(x=>x.score)):null}
+const LEVELS=['A2','B1','B2','C1','C2'];
+function bestOf(id){const h=ls.get('famed-hist',[]).filter(x=>x.id===id&&x.level);if(!h.length)return null;return h.map(x=>x.level).sort((a,b)=>LEVELS.indexOf(b)-LEVELS.indexOf(a))[0]}
 function nav(){
   let n=0;
   $('#nav').innerHTML=SECTIONS.map(sec=>'<div class="sec">'+esc(L(sec.name,SEC_EN[sec.id]))+'</div>'+CASES.filter(c=>c.sec===sec.id).map(c=>{n++;const b=bestOf(c.id);c.num=n;
-    return `<button class="tbtn${S&&S.c===c?' on':''}" data-id="${c.id}"><span class="tnum">${n}</span><span class="tt">Test ${n}<small>${esc(lang==='en'?TITLE_EN[c.id]:c.title)}</small></span>${b!=null?`<span class="best">${b}</span>`:''}</button>`}).join('')).join('');
+    return `<button class="tbtn${S&&S.c===c?' on':''}" data-id="${c.id}"><span class="tnum">${n}</span><span class="tt">Test ${n}<small>${esc(lang==='en'?TITLE_EN[c.id]:c.title)}</small></span>${b?`<span class="best">${b}</span>`:''}</button>`}).join('')).join('');
   document.querySelectorAll('.role:not(.lang) button').forEach(b=>{b.classList.toggle('on',b.dataset.r===role);b.textContent=b.dataset.r==='m'?L('Arzt','Male doctor'):L('Ärztin','Female doctor')});
   document.querySelectorAll('.lang button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
   $('#rand').textContent=L('Zufälliger Fall','Random case');
+  $('#gear').textContent='⚙ '+L('Einstellungen','Settings');
   $('.brand small').textContent=L('Videosprechstunde · 11 Minuten','Video consultation · 11 minutes');
   document.documentElement.lang=lang;
 }
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('.tbtn');if(b)startCase(CASES.find(c=>c.id===b.dataset.id))});
 $('#rand').addEventListener('click',()=>startCase(CASES[Math.floor(Math.random()*CASES.length)]));
+$('#gear').addEventListener('click',()=>openSettings());
 document.querySelector('.role:not(.lang)').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;role=b.dataset.r;ls.set('famed-role',role);nav()});
 document.querySelector('.lang').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.l===lang)return;lang=b.dataset.l;ls.set('famed-lang',lang);nav();
-  if(!S||S.view==='home')home();else if(S.view==='read')readView();else if(S.view==='call')callLabels();else if(S.view==='fb'&&S.fbDone)renderFeedback(S.f)});
+  if($('#modal'))openSettings(S&&S.after);
+  if(!S||S.view==='home')home();else if(S.view==='read')readView();else if(S.view==='call'){callLabels();micUI()}else if(S.view==='done')doneView();else if(S.view==='eval'&&S.ev)renderEval(S.ev)});
+
+/* ---------- settings (hidden in a dialog) ---------- */
+function openSettings(after){
+  closeSettings();if(S)S.after=after;
+  const cap=(ok,t)=>`<span class="cap ${ok?'y':'n'}">${t}</span>`;
+  document.body.insertAdjacentHTML('beforeend',`<div id="modal" role="dialog" aria-modal="true"><div class="mcard">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="font-size:24px">${L('Einstellungen','Settings')}</h2><button class="btn ghost sm" id="mclose" style="margin:0">✕</button></div>
+   ${after?`<p class="lead" style="margin-top:8px">${L('Vor dem ersten Test: einmalig einen kostenlosen Gemini-Schlüssel eintragen.','Before the first test: add a free Gemini key once.')}</p>`:''}
+   <ol style="margin:12px 0 4px;padding-left:20px;font-size:15px">${L('<li>Öffne <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> und melde dich mit einem Google-Konto an.</li><li>Klicke auf „API-Schlüssel erstellen“ und kopiere ihn.</li><li>Füge ihn hier ein und klicke auf „Speichern & testen“.</li>','<li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with a Google account.</li><li>Click “Create API key” and copy it.</li><li>Paste it here and click “Save & test”.</li>')}</ol>
+   <label class="fl">${L('Gemini-API-Schlüssel','Gemini API key')}<input id="k" type="password" autocomplete="off" placeholder="AIza…" value="${esc(cfg.key)}"></label>
+   <label class="fl">${L('Modell','Model')}<input id="mdl" value="${esc(cfg.model)}"></label>
+   <div class="acts" style="margin-top:14px"><button class="btn" id="save">${L('Speichern & testen','Save & test')}</button><span id="tst" class="lead" style="align-self:center;font-size:15px"></span></div>
+   <p class="hint">${L('Der Schlüssel bleibt nur in diesem Browser. Mikrofon und Stimme: am besten Chrome oder Edge am Computer.','The key stays only in this browser. For microphone and voice, use Chrome or Edge on a computer.')}</p>
+   <div class="caps">${cap(hasKey(),L('Gemini-Schlüssel','Gemini key'))+cap(!!SR,L('Mikrofon','Microphone'))+cap(!!window.speechSynthesis,L('Stimme','Voice'))}</div>
+  </div></div>`);
+  $('#mclose').onclick=closeSettings;
+  $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeSettings()});
+  $('#save').onclick=async()=>{cfg.key=$('#k').value.trim();cfg.model=$('#mdl').value.trim()||'gemini-3.6-flash';saveCfg();
+    const t=$('#tst');if(!hasKey()){t.textContent=L('Bitte den Schlüssel einfügen.','Please paste the key.');return}
+    t.textContent=L('Teste…','Testing…');
+    try{await aiChat([{role:'user',content:'Antworte nur mit: OK'}]);t.textContent=L('✓ Verbunden (','✓ Connected (')+cfg.model+')';
+      setTimeout(()=>{const a=S&&S.after;closeSettings();if(a)a();else if(!S||S.view==='home')home()},900)}
+    catch(e){t.textContent='✗ '+errText(e)}};
+  setTimeout(()=>$('#k')&&$('#k').focus(),50);
+}
+function closeSettings(){const m=$('#modal');if(m)m.remove()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings()});
 
 /* ---------- home ---------- */
 function home(){
   stopAll();S={view:'home'};nav();
-  const hist=ls.get('famed-hist',[]).slice(-8).reverse();
-  const cap=(ok,t)=>`<span class="cap ${ok?'y':'n'}">${t}</span>`;
+  const hist=ls.get('famed-hist',[]).filter(h=>h.level).slice(-8).reverse();
   main.innerHTML=`<h1 style="font-size:clamp(32px,4.4vw,48px);max-width:16ch">${L('Anamnese üben wie in der echten Prüfung','Practise the history-taking exam, just like the real one')}</h1>
-  <p class="lead" style="margin-top:14px">${L('Wähle links einen Test. Der Fall startet sofort: 30 Sekunden Aufgabenstellung, dann 11 Minuten Videosprechstunde mit einem Patienten, der nur antwortet, was du fragst. Danach bekommst du eine Auswertung nach deinen Checklisten.','Pick a test on the left. It starts straight away: 30 seconds to read the task, then an 11-minute video consultation with a patient who only answers what is asked. The patient always speaks German, as in the exam. Afterwards you get a scored evaluation based on the checklists.')}</p>
+  <p class="lead" style="margin-top:14px">${L('Wähle links einen Test. 30 Sekunden Aufgabenstellung, dann 11 Minuten Videosprechstunde – du sprichst einfach, der Patient antwortet. Danach werten ein Chefarzt und eine Sprachprüferin dein Gespräch aus.','Pick a test on the left. 30 seconds to read the task, then an 11-minute video consultation – just talk, the patient answers in German. Afterwards a chief physician and a language examiner evaluate the conversation.')}</p>
   <div class="steps">
-   <div class="step"><b>30 s</b>${L('Aufgabenstellung lesen. Du bist Allgemeinarzt bzw. Allgemeinärztin, der Name des Patienten ist vorgegeben.','Read the task. The candidate is a GP (family doctor); only the patient’s name is given.')}</div>
-   <div class="step"><b>11:00</b>${L('Gespräch per Sprache oder Tastatur. Notizblock daneben, Restzeit immer sichtbar.','The conversation, by voice or keyboard. Notepad alongside, time left always visible.')}</div>
-   <div class="step"><b>Feedback</b>${L('Fehlende Fragen, Reaktionen auf den Patienten, Sprachkorrekturen und ein Musterabschluss.','Missed questions, reactions to the patient, German corrections and a model closing.')}</div>
+   <div class="step"><b>30 s</b>${L('Aufgabenstellung lesen. Du bist Allgemeinarzt bzw. Allgemeinärztin.','Read the task. The candidate is a GP (family doctor).')}</div>
+   <div class="step"><b>11:00</b>${L('Freies Gespräch wie am Telefon: sprechen, kurz pausieren, der Patient antwortet.','A free conversation, like a phone call: speak, pause briefly, the patient answers.')}</div>
+   <div class="step"><b>B1–C2</b>${L('Auswertung: Sprachniveau, Sicht des Chefarztes und der Sprachprüferin, als PDF speicherbar.','Evaluation: language level, chief physician’s and language examiner’s view, savable as PDF.')}</div>
   </div>
-  <div class="card" style="max-width:680px;margin-bottom:22px"><h3>${L('Einrichtung (einmalig, kostenlos)','Setup (once, free)')}</h3>
-   <ol style="margin:0 0 4px;padding-left:20px;font-size:15px">${L('<li>Öffne <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> und melde dich mit einem Google-Konto an.</li><li>Klicke auf „API-Schlüssel erstellen“ und kopiere ihn.</li><li>Füge ihn hier ein und klicke auf „Speichern & testen“.</li>','<li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with a Google account.</li><li>Click “Create API key” and copy it.</li><li>Paste it here and click “Save & test”.</li>')}</ol>
-   <label class="fl">${L('Gemini-API-Schlüssel','Gemini API key')}<input id="k" type="password" autocomplete="off" placeholder="AIza…" value="${esc(cfg.key)}"></label>
-   <label class="fl">${L('Modell','Model')}<input id="mdl" value="${esc(cfg.model)}"></label>
-   <div class="acts" style="margin-top:12px"><button class="btn ghost" id="save">${L('Speichern & testen','Save & test')}</button><span id="tst" class="lead" style="align-self:center;font-size:15px"></span></div>
-   <p class="hint">${L('Der Schlüssel bleibt nur in diesem Browser. Mikrofon und Stimme: am besten Chrome oder Edge am Computer.','The key stays only in this browser. For microphone and voice, use Chrome or Edge on a computer.')}</p>
-   <div class="caps">${cap(hasKey(),L('Gemini-Schlüssel','Gemini key'))+cap(!!SR,L('Mikrofon','Microphone'))+cap(!!window.speechSynthesis,L('Stimme','Voice'))}</div>
-  </div>
+  ${hasKey()?'':`<div class="card" style="max-width:680px;margin-bottom:22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 260px">${L('Noch nicht eingerichtet: einmalig einen kostenlosen Gemini-Schlüssel eintragen.','Not set up yet: add a free Gemini key once.')}</span><button class="btn ghost" id="setup">⚙ ${L('Einrichten','Set up')}</button></div>`}
   <button class="btn" id="go1">${L('Mit Test 1 beginnen','Start with Test 1')}</button>
-  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Versuche','Recent attempts')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id);return `<tr><td>${esc(c?(lang==='en'?TITLE_EN[c.id]:c.title):h.id)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r"><b>${h.score}</b> / 100</td></tr>`}).join('')}</tbody></table>`:''}`;
+  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id);return `<tr><td>${esc(c?(lang==='en'?TITLE_EN[c.id]:c.title):h.id)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r"><b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
   $('#go1').onclick=()=>startCase(CASES[0]);
-  $('#save').onclick=async()=>{cfg.key=$('#k').value.trim();cfg.model=$('#mdl').value.trim()||'gemini-3.6-flash';saveCfg();
-    const t=$('#tst');if(!hasKey()){t.textContent=L('Bitte den Schlüssel einfügen.','Please paste the key.');return}
-    t.textContent=L('Teste…','Testing…');try{const r=await aiChat([{role:'user',content:'Antworte nur mit: OK'}]);t.textContent=L('✓ Verbunden (','✓ Connected (')+cfg.model+')';setTimeout(home,900)}catch(e){t.textContent='✗ '+errText(e)}};
+  if($('#setup'))$('#setup').onclick=()=>openSettings();
 }
 
 /* ---------- reading phase ---------- */
 function startCase(c){
-  stopAll();
-  S={view:'read',c,msgs:[],buf:'',partial:'',listening:false,busy:false,left:CALL_SECONDS,notes:''};nav();
+  if(!hasKey()){openSettings(()=>startCase(c));return}
+  stopAll();closeSettings();
+  S={view:'read',c,msgs:[],buf:'',partial:'',busy:false,left:CALL_SECONDS,notes:'',hf:!!SR,phase:'idle'};nav();
   S.r=READ_SECONDS;readView();
   clock=setInterval(()=>{S.r--;const el=$('#rc');if(el)el.textContent='0:'+String(Math.max(S.r,0)).padStart(2,'0');if(S.r<=0)beginCall()},1000);
 }
@@ -650,13 +686,14 @@ function readView(){
    <p style="font-size:18px;margin:16px 0 0">${de}</p>
    <p class="lead" style="margin-top:10px">Sie haben 11 Minuten Zeit. Ein Notizblock steht Ihnen zur Verfügung.</p>
    ${lang==='en'?`<p class="en">English: “You are a GP. <b>${esc(c.anrede)}</b> is seeing you today by video call. Take the patient’s history: introduce yourself, take a complete history, summarise the complaints, explain the next steps and answer the patient’s questions. You have 11 minutes and a notepad.”</p>`:''}
-   <div class="count" id="rc">0:${String(Math.max(r,0)).padStart(2,'0')}</div><div class="lead">${L('bis der Anruf startet','until the call starts')}</div>
+   <div class="count" id="rc">0:${String(Math.max(r,0)).padStart(2,'0')}</div><div class="lead">${L('bis der Anruf startet – danach einfach sprechen','until the call starts – then just talk')}</div>
    <div class="acts"><button class="btn" id="now">${L('Jetzt verbinden','Connect now')}</button><button class="btn ghost" id="back">${L('Zurück','Back')}</button></div></div>`;
   $('#now').onclick=()=>beginCall();$('#back').onclick=home;
 }
 
-/* ---------- call ---------- */
+/* ---------- call: hands-free conversation ---------- */
 const MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const MICOFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M3 3l18 18"/></svg>';
 function beginCall(){
   clearInterval(clock);const c=S.c;S.view='call';S.start=Date.now();
   main.innerHTML=`<div class="call"><div>
@@ -667,8 +704,8 @@ function beginCall(){
     <div class="cc" id="cc"></div>
    </div>
    <div class="controls">
-    <button class="mic" id="mic" aria-label="Sprechen">${MIC}</button><button class="btn ghost" id="again2" title="Play again">🔊</button>
-    <div class="say"><textarea id="txt"></textarea><button class="btn" id="send"></button></div>
+    <button class="mic" id="mic"></button><button class="btn ghost" id="again2" title="Play again">🔊</button>
+    <div class="say"><textarea id="txt"></textarea><button class="btn ghost" id="send"></button></div>
     <button class="btn danger" id="end"></button>
    </div>
    <div class="hint" id="hint"></div>
@@ -678,28 +715,28 @@ function beginCall(){
    <div class="pane" id="pt"><div id="log"><p class="lead" style="font-size:14px" id="lognote"></p></div><div id="trbox"></div></div>
   </div></div>`;
   if(!SR)$('#mic').style.display='none';
-  callLabels();setStatus(L('Verbunden','Connected'));
+  callLabels();micUI();
   $('#mic').onclick=micClick;
-  $('#again2').onclick=()=>{const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(last)speak(last.text)};
-  $('#send').onclick=()=>{const t=$('#txt').value.trim();if(t){$('#txt').value='';doctorSays(t)}};
+  $('#again2').onclick=()=>{const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(!last||S.busy)return;stopListening();S.phase='speaking';micUI();speak(last.text,()=>{S.phase='idle';listen()})};
+  $('#send').onclick=()=>{const t=$('#txt').value.trim();if(t){$('#txt').value='';S.buf='';S.partial='';doctorSays(t)}};
   $('#txt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#send').click()}});
   $('#end').onclick=()=>endCall(false);
   $('#notes').addEventListener('input',e=>S.notes=e.target.value);
   document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p))});
   clock=setInterval(tick,1000);tick();
-  setTimeout(()=>{if(S&&S.view==='call'&&!S.msgs.length)patientLine('Hallo? Ja, ich kann Sie hören. Guten Tag.')},1200);
+  setTimeout(()=>{if(S&&S.view==='call'&&!S.msgs.length)patientLine('Hallo? Ja, ich kann Sie hören. Guten Tag.',()=>listen())},1000);
 }
 function callLabels(){
   if(!$('#end'))return;
   $('#lbl-call').textContent=L('Videosprechstunde','Video consultation');
   $('#self').textContent=L('Sie','You');
-  $('#txt').placeholder=(SR?L('Mikrofon antippen und sprechen – oder hier tippen','Tap the microphone and speak – or type here'):L('Frage hier eintippen','Type your question here'))+L(' (Enter = senden)',' (Enter = send)');
+  $('#txt').placeholder=SR?L('Optional: hier tippen statt sprechen (Enter = senden)','Optional: type here instead of speaking (Enter = send)'):L('Frage hier eintippen (Enter = senden)','Type your question here (Enter = send)');
   $('#send').textContent=L('Senden','Send');$('#end').textContent=L('Beenden','End');
-  $('#hint').textContent=(SR?L('Mikrofon antippen und Frage stellen – nach einer kurzen Pause wird sie automatisch gesendet. 🔊 spielt die letzte Antwort nochmal ab.','Tap the microphone and ask your question in German – it is sent automatically when you pause. 🔊 replays the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'))+(hasKey()?'':L(' Kein API-Schlüssel gespeichert – zurück zur Startseite.',' No API key saved – go back to the start page.'));
+  $('#hint').textContent=(SR?L('Einfach sprechen wie in einem echten Gespräch. Nach einer kurzen Pause antwortet der Patient, danach hört das Mikrofon automatisch wieder zu. Mikrofon-Knopf = stumm schalten. 🔊 = letzte Antwort nochmal.','Just talk, like a real conversation. After a short pause the patient answers, then the microphone listens again automatically. Microphone button = mute. 🔊 = replay the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'));
   $('#tab-n').textContent=L('Notizblock','Notepad');$('#tab-t').textContent=L('Mitschrift','Transcript');
   $('#notes').placeholder=L('Notizen wie im Prüfungsraum…','Notes, like in the exam room…');
   const ln=$('#lognote');if(ln)ln.textContent=L('Die Mitschrift erscheint hier. In der echten Prüfung gibt es sie nicht – nutze sie nur zur Kontrolle.','The transcript appears here. There is none in the real exam – use it only to check.');
-  const tb=$('#trbox');if(tb)tb.innerHTML=lang==='en'&&hasKey()?'<button class="btn ghost sm" id="trlog">Translate transcript to English</button><div class="trout" id="trlogout"></div>':'';
+  const tb=$('#trbox');if(tb)tb.innerHTML=lang==='en'?'<button class="btn ghost sm" id="trlog">Translate transcript to English</button><div class="trout" id="trlogout"></div>':'';
   const bt=$('#trlog');if(bt)bt.onclick=async()=>{const txt=S.msgs.map(m=>(m.who==='doc'?'Doctor: ':'Patient: ')+m.text).join('\n');if(!txt)return;bt.disabled=true;bt.textContent='Translating…';try{$('#trlogout').textContent=await translateEN(txt)}catch(e){$('#trlogout').textContent=errText(e)}bt.disabled=false;bt.textContent='Translate again (updated)'};
 }
 function tick(){
@@ -711,27 +748,42 @@ function tick(){
 }
 function setStatus(s){const e=$('#st');if(e)e.textContent=s}
 function showDraft(){const t=$('#txt');if(t)t.value=(S.buf+' '+(S.partial||'')).trim()}
-function micUI(){const m=$('#mic');if(!m)return;m.classList.toggle('on',!!S.listening);$('#self')?.classList.toggle('live',!!S.listening);if(S.listening)setStatus(L('Sie sprechen…','You are speaking…'))}
+function micUI(){
+  const m=$('#mic');if(!m||!S)return;
+  m.innerHTML=S.hf?MIC:MICOFF;m.classList.toggle('on',!!S.recOn);m.classList.toggle('muted',!S.hf);
+  m.setAttribute('aria-label',S.hf?L('Mikrofon stumm schalten','Mute microphone'):L('Mikrofon einschalten','Unmute microphone'));
+  $('#self')?.classList.toggle('live',!!S.recOn);
+  if(S.phase==='thinking')setStatus(S.c.anrede+L(' überlegt…',' is thinking…'));
+  else if(S.phase==='speaking')setStatus(S.c.anrede+L(' spricht…',' is speaking…'));
+  else if(!S.hf)setStatus(SR?L('Mikrofon aus','Microphone muted'):L('Verbunden','Connected'));
+  else if(S.recOn)setStatus(L('Ich höre zu – sprechen Sie','Listening – speak now'));
+  else setStatus(L('Verbunden','Connected'));
+}
+function listen(){
+  if(!SR||!S||S.view!=='call'||!S.hf||S.busy||S.phase==='speaking'||S.phase==='thinking'||S.recOn)return;
+  S.buf='';S.partial='';S.sending=false;
+  rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
+  rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
+    if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft();
+    clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},1600)};
+  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){S.hf=false;$('#hint').textContent=L('Mikrofon nicht erlaubt – bitte im Browser erlauben oder tippen.','Microphone not allowed – allow it in the browser, or type.')}};
+  rec.onend=()=>{S.recOn=false;clearTimeout(S.sil);
+    if(S.sending){S.sending=false;sendBuf();return}
+    micUI();if(S.hf&&S.view==='call'&&S.phase==='idle')setTimeout(listen,250)};
+  try{rec.start();S.recOn=true;S.phase='idle'}catch(e){S.recOn=false}
+  micUI();
+}
+function sendBuf(){
+  const t=(S.buf+' '+(S.partial||'')).trim();S.buf='';S.partial='';const tx=$('#txt');if(tx)tx.value='';
+  if(t)doctorSays(t);else listen();
+}
+function stopListening(){clearTimeout(S&&S.sil);if(rec&&S&&S.recOn){S.sending=false;try{rec.abort()}catch(e){}}if(S)S.recOn=false}
 function micClick(){
   if(!SR||!S||S.view!=='call')return;
-  if(!S.listening){
-    stopVoice();
-    S.buf=$('#txt').value.trim();S.partial='';
-    rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
-    rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
-      if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft();
-      clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.listening&&(S.buf||S.partial)){S.autoSend=true;try{rec.stop()}catch(err){S.autoSend=false;flushSpeech()}}},1700)};
-    rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){$('#mic').style.display='none';$('#hint').textContent=L('Mikrofon nicht erlaubt – bitte tippen.','Microphone not allowed – please type.')}};
-    rec.onend=()=>{const wasAuto=S.autoSend;S.autoSend=false;if(S.listening&&!wasAuto){try{rec.start();return}catch(e){}}S.listening=false;micUI();if(wasAuto)flushSpeech()};
-    try{rec.start();S.listening=true;micUI()}catch(e){}
-  }else{
-    S.autoSend=true;try{rec.stop()}catch(e){flushSpeech()}
-  }
-}
-function flushSpeech(){
-  clearTimeout(S.sil);S.listening=false;micUI();
-  const t=(S.buf+' '+(S.partial||'')).trim();S.buf='';S.partial='';$('#txt').value='';
-  if(t)doctorSays(t);else setStatus(L('Verbunden','Connected'));
+  S.hf=!S.hf;
+  if(!S.hf){const t=(S.buf+' '+(S.partial||'')).trim();stopListening();if(t)$('#txt').value=t}
+  else listen();
+  micUI();
 }
 function logMsg(who,text){
   const log=$('#log');if(!log)return;if(S.msgs.length===1&&log.querySelector('.lead'))log.innerHTML='';
@@ -739,35 +791,39 @@ function logMsg(who,text){
   log.parentElement.scrollTop=1e6;
 }
 function caption(t){const cc=$('#cc');if(cc)cc.innerHTML=t?'<span>'+esc(t)+'</span>':''}
-function patientLine(text){
-  S.msgs.push({who:'pat',text});logMsg('pat',text);caption(text);speak(text);
+function patientLine(text,done){
+  S.msgs.push({who:'pat',text});logMsg('pat',text);caption(text);
+  stopListening();S.phase='speaking';micUI();
+  speak(text,()=>{if(S.view!=='call')return;S.phase='idle';micUI();if(done)done()});
 }
 async function doctorSays(text){
   if(!S||S.view!=='call')return;
   const me=S;
+  stopListening();
   S.msgs.push({who:'doc',text});logMsg('doc',text);
-  if(!hasKey()){setStatus(L('Kein API-Schlüssel – bitte auf der Startseite eintragen','No API key – add it on the start page'));return}
-  if(S.busy)return; // reply will include it
-  S.busy=true;
+  if(!hasKey()){openSettings();return}
+  if(S.busy)return;
+  S.busy=true;S.phase='thinking';caption('');micUI();
   try{
     while(true){
-      const n=S.msgs.length;setStatus(S.c.anrede+L(' überlegt…',' is thinking…'));caption('');
+      const n=S.msgs.length;
       const ctrl=new AbortController();S.ctrl=ctrl;
       const res=await aiChat(patientInput(),{signal:ctrl.signal});
       if(S!==me||me.view!=='call')return;
-      if(S.msgs.length!==n&&S.msgs[S.msgs.length-1].who==='doc'){continue} // doctor added more while thinking
+      if(S.msgs.length!==n&&S.msgs[S.msgs.length-1].who==='doc')continue;
       const reply=clean(res.text)||'Entschuldigung, wie bitte?';
-      patientLine(reply);setStatus(L('Verbunden','Connected'));break;
+      me.busy=false;
+      patientLine(reply,()=>listen());return;
     }
   }catch(e){
-    if(S===me&&me.view==='call'){if(e&&e.name!=='AbortError')setStatus(errText(e))}
+    if(S===me&&me.view==='call'&&!(e&&e.name==='AbortError')){me.busy=false;S.phase='idle';setStatus(errText(e));setTimeout(()=>{if(S===me){micUI();listen()}},2500)}
   }finally{me.busy=false}
 }
 function clean(t){return String(t||'').replace(/\*[^*]*\*/g,'').replace(/\[[^\]]*\]/g,'').replace(/^(Patient(in)?|[A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+)\s*:\s*/,'').replace(/^["„]|["“]$/g,'').trim()}
 function patientInput(){
   const c=S.c,dr=role==='f'?'Frau Doktor':'Herr Doktor';
   const elapsed=Math.round((Date.now()-S.start)/60000);
-  const sys=`Du spielst in einer Übungssimulation der FaMed-Fachsprachprüfung den Patienten / die Patientin in einer Videosprechstunde bei einer Hausarztpraxis. Der Nutzer ist ${role==='f'?'die Ärztin':'der Arzt'} (Prüfling, Deutsch ist nicht die Muttersprache). Sprich ${role==='f'?'sie':'ihn'} mit "${dr}" an.
+  const sys=`Du spielst in einer Übungssimulation der FaMed-Fachsprachprüfung den Patienten / die Patientin in einer Videosprechstunde bei einer Hausarztpraxis. Der Nutzer ist ${role==='f'?'die Ärztin':'der Arzt'} (Prüfling, Deutsch ist nicht die Muttersprache). Sprich ${role==='f'?'sie':'ihn'} mit "${dr}" an. Die Fragen kommen über Spracherkennung: ignoriere fehlende Satzzeichen und kleine Erkennungsfehler.
 REGELN:
 - Bleib immer in der Rolle. Natürliches, gesprochenes Alltagsdeutsch, Laiensprache, kurze Antworten (meist 1–2 Sätze, höchstens 3).
 - Beantworte nur genau das, was gefragt wird. Erzähle nichts ungefragt (Ausnahme: die Hauptbeschwerde, wenn nach dem Grund des Besuchs gefragt wird, und die MOMENTE unten).
@@ -789,83 +845,128 @@ ${c.cues}`;
   return arr;
 }
 
-/* ---------- end & feedback ---------- */
+/* ---------- end, evaluate, PDF ---------- */
 function stopAll(){
   clearInterval(clock);
-  if(S){if(S.ctrl)try{S.ctrl.abort()}catch(e){};if(S.listening&&rec){S.listening=false;try{rec.abort()}catch(e){}}S.listening=false}
+  if(S){if(S.ctrl)try{S.ctrl.abort()}catch(e){};stopListening();S.hf=false}
   stopVoice();
 }
 function endCall(timeUp){
   if(!S||S.view!=='call')return;
-  stopAll();S.view='fb';S.timeUp=timeUp;S.dur=Math.min(CALL_SECONDS,Math.round((Date.now()-S.start)/1000));
-  const doc=S.msgs.filter(m=>m.who==='doc').length;
-  main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">${timeUp?L('Die Zeit ist abgelaufen.','Time is up.'):L('Gespräch beendet.','Conversation ended.')}</h2><p class="lead" style="margin:8px auto">${L('Die Prüferin wertet dein Gespräch aus…','The examiner is evaluating the conversation…')}</p></div>`;
-  if(!hasKey()||doc<2){renderFeedback(null);return}
-  S.fbLang=lang;feedback().then(renderFeedback).catch(()=>renderFeedback(null));
+  stopAll();S.view='done';S.timeUp=timeUp;S.dur=Math.min(CALL_SECONDS,Math.round((Date.now()-S.start)/1000));S.date=new Date();
+  doneView();
 }
-const GENERAL=['Begrüßung & Vorstellung','Persönliche Daten','Hauptbeschwerde','Aktuelle Anamnese / Schmerzanamnese','Vegetative Anamnese','Gynäkologische Anamnese','Zusammenfassung der Beschwerden','Vorerkrankungen & Operationen','Medikation','Allergien','Impfungen','Noxen','Familienanamnese','Sozialanamnese','Psyche','Abschluss & nächste Schritte'];
-async function feedback(){
-  const c=S.c,gen=GENERAL.filter(g=>c.sex==='f'||!g.startsWith('Gyn'));
-  const conv=S.msgs.map(m=>(m.who==='doc'?'ARZT: ':'PATIENT: ')+m.text).join('\n');
-  const p=`Du bist erfahrene Prüferin der FaMed-Fachsprachprüfung (Teil Anamnese: 11 Minuten, Videosprechstunde, Prüfling ist Allgemeinarzt). Bewerte dieses Anamnesegespräch eines Prüflings mit Deutsch als Fremdsprache. Kriterien: Vollständigkeit und Struktur, Gesprächsführung (Vorstellung, Laiensprache statt Fachbegriffen, Empathie, Reaktionen auf Patientenäußerungen, Zusammenfassung, Abschluss mit nächsten Schritten, konkretes Eingehen auf Patientenfragen) und sprachliche Korrektheit. Fachwissen ist zweitrangig. Sei ehrlich und streng, aber ermutigend.
-
-FALL (nur für dich):
-${c.story}
-Verdachtsdiagnose: ${c.dx}
-Momente des Patienten: ${c.cues}
-
-FALLSPEZIFISCHE CHECKLISTE:
-- ${TOPICS[c.topic].join('\n- ')}
-
-ALLGEMEINE STRUKTUR: ${gen.join('; ')}.
-Persönliche Daten = Name, Alter/Geburtsdatum, ggf. Größe/Gewicht. Abschluss = körperliche Untersuchung, Blutabnahme, Rücksprache mit Oberarzt, "Haben Sie noch Fragen?".
-
-ERWARTETE REAKTIONEN: Schmerzen → Schmerzmittel anbieten und vorher nach Allergien fragen; Luftnot → Sauerstoff / Sättigung messen anbieten; Übelkeit → Mittel oder Brechbeutel anbieten; Angst / Krebsangst → beruhigen, keine Diagnose versprechen; Rauchen → kurze Beratung und Hilfe anbieten; verstorbene Eltern → Beileid; Selbstmedikation → freundlich auf ärztliche Rücksprache hinweisen; Patientenfragen → konkret beantworten.
-
-GESPRÄCH (Dauer ${Math.round(S.dur/60)} Min., ${S.timeUp?'Zeit abgelaufen':'vom Prüfling beendet'}):
-${conv}
-
-${S.fbLang==='en'?'WICHTIG: Der Leser spricht kein Deutsch. Schreibe "summary", "strengths", "note", "why", "moment" und "next" auf ENGLISCH, und den Bereichsnamen "name" auf Englisch. "missed", "said", "better" (in reactions und language) bleiben auf DEUTSCH, mit der englischen Übersetzung in Klammern dahinter. "verdict" bleibt exakt einer der deutschen Werte.':''}
-Antworte NUR mit gültigem JSON, alle Texte (außer wie oben angegeben) auf Deutsch und knapp:
-{"score":0-100,"verdict":"Bestanden"|"Knapp"|"Nicht bestanden","summary":"2–3 Sätze","strengths":["…"],"sections":[{"name":"<Bereich aus der allgemeinen Struktur, alle in Reihenfolge>","status":"ok"|"teilweise"|"fehlt","note":"kurz"}],"missed":["fehlende fallspezifische Frage, als Frage an den Patienten formuliert"],"reactions":[{"moment":"was der Patient sagte","done":true|false,"better":"Mustersatz für die Reaktion"}],"language":[{"said":"Originalsatz des Prüflings","better":"korrigierte Version","why":"kurze Erklärung"}],"next":"wichtigster Tipp für den nächsten Versuch"}
-"language": höchstens 6 der wichtigsten Fehler (Grammatik, Wortwahl, Fachbegriffe ohne Erklärung). Diktierfehler der Spracherkennung (Groß-/Kleinschreibung, fehlende Satzzeichen) nicht bewerten.`;
-  const r=await aiChat([{role:'system',content:'Du bist eine strenge, faire Prüferin. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true});
-  const m=r.text.match(/\{[\s\S]*\}/);const v=JSON.parse(m?m[0]:r.text);
-  return v;
-}
-function ring(score){
-  const r=62,C=2*Math.PI*r,col=score>=70?'var(--ok)':score>=55?'var(--mid)':'var(--coral)';
-  return `<svg class="ring" viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="75" cy="75" r="${r}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*score/100} ${C}" transform="rotate(-90 75 75)"/><text x="75" y="84" text-anchor="middle" font-family="Inter Tight" font-weight="700" font-size="38" fill="currentColor">${score}</text></svg>`;
-}
-function renderFeedback(f){
-  const c=S.c;S.f=f;S.fbDone=true;
-  if(f&&typeof f.score==='number'&&!S.saved){S.saved=true;
-    const h=ls.get('famed-hist',[]);h.push({id:c.id,score:Math.round(f.score),t:Date.now()});ls.set('famed-hist',h.slice(-60));nav();
-  }
-  const vcol=f?(f.verdict==='Bestanden'?'var(--ok)':f.verdict==='Knapp'?'var(--mid)':'var(--coral)'):'';
-  const list=(a,fn)=>(Array.isArray(a)&&a.length)?a.map(fn).join(''):'<p class="lead" style="font-size:15px">—</p>';
-  const transcript=S.msgs.map(m=>(m.who==='doc'?'Arzt: ':'Patient: ')+m.text).join('\n');
-  const VD={Bestanden:L('Bestanden','Pass'),Knapp:L('Knapp','Borderline'),'Nicht bestanden':L('Nicht bestanden','Fail')};
-  main.innerHTML=`<div style="color:var(--mute);font-size:14px;margin-bottom:8px">Test ${c.num} · ${esc(ctitle(c))} · ${esc(c.name)}, ${c.age} ${L('J.','yrs')}</div>
-  ${f?`<div class="fhead">${ring(Math.round(f.score))}<div><span class="vd" style="background:${vcol}">${esc(VD[f.verdict]||f.verdict)}</span><h1 style="font-size:clamp(28px,3.6vw,40px)">${L('Auswertung deiner Anamnese','Evaluation of the history-taking')}</h1><p style="margin:10px 0 0;max-width:68ch">${esc(f.summary)}</p>${f.next?`<p style="margin:10px 0 0"><b>${L('Nächstes Mal:','Next time:')}</b> ${esc(f.next)}</p>`:''}</div></div>
-  <div class="grid2">
-   ${S.fbLang!==lang?`<p class="hint" style="margin:-12px 0 16px">${L('Diese Auswertung wurde auf Englisch erstellt.','This evaluation was written in German – switch language before the next attempt for English explanations.')}</p>`:''}<div class="card"><h3>${L('Struktur','Structure')}</h3>${list(f.sections,s=>`<div class="row"><span class="chip c-${esc(s.status)}">${s.status==='ok'?'✓':s.status==='fehlt'?L('fehlt','missing'):L('teilw.','partly')}</span><span><b>${esc(S.fbLang==='de'&&lang==='en'&&GEN_EN[s.name]?GEN_EN[s.name]:s.name)}</b>${s.note?' – '+esc(s.note):''}</span></div>`)}</div>
-   <div>
-    <div class="card"><h3>${L('Diese Fragen fehlten','Questions that were missed (in German)')}</h3><ul class="clean">${list(f.missed,q=>`<li>${esc(q)}</li>`)}</ul></div>
-    <div class="card" style="margin-top:18px"><h3>${L('Reaktionen auf den Patienten','Reactions to the patient')}</h3>${list(f.reactions,r=>`<div class="fix"><span class="chip ${r.done?'c-ok':'c-fehlt'}">${r.done?'✓':L('verpasst','missed')}</span> „${esc(r.moment)}“<ins>${esc(r.better)}</ins></div>`)}</div>
-   </div>
-   <div class="card"><h3>${L('Sprache','German language corrections')}</h3>${list(f.language,l=>`<div class="fix"><s>${esc(l.said)}</s><ins>${esc(l.better)}</ins><small>${esc(l.why)}</small></div>`)}</div>
-   <div class="card"><h3>${L('Stärken','Strengths')}</h3><ul class="clean">${list(f.strengths,s=>`<li>${esc(s)}</li>`)}</ul></div>
-  </div>`:`<h1 style="font-size:clamp(28px,3.6vw,40px)">${L('Gespräch beendet','Conversation ended')}</h1><p class="lead" style="margin-top:10px">${S.msgs.filter(m=>m.who==='doc').length<2?L('Das Gespräch war zu kurz für eine Auswertung.','The conversation was too short to evaluate.'):L('Die automatische Auswertung war gerade nicht möglich.','The automatic evaluation was not possible just now.')} ${L('Unten findest du die Checkliste, den Musterabschluss und den Fall zum Vergleich.','Below are the checklist, the model closing and the case for comparison.')}</p>`}
-  <details ${f?'':'open'}><summary>${L('Checkliste','Checklist (German questions)')}: ${esc(ctitle(c))}</summary><ul class="clean" style="margin-top:10px" id="src-check">${TOPICS[c.topic].map(q=>`<li>${esc(q)}</li>`).join('')}</ul>${trBtn('check','Translate checklist to English')}</details>
-  <details><summary>${L('Musterabschluss','Model closing (German)')}</summary><div id="src-close"><p>Von meiner Seite war das alles. Jetzt würde ich nochmal kurz zusammenfassen: … Habe ich alles richtig verstanden?</p><p>${esc(CLOSE[c.close])}</p><p>Außerdem werde ich Ihnen ein bisschen Blut abnehmen. Sobald alle Ergebnisse vorliegen, halte ich Rücksprache mit meinem Oberarzt und komme wieder zu Ihnen. Haben Sie noch Fragen an mich?</p></div>${trBtn('close','Translate to English')}</details>
-  <details><summary>${L('Der Fall (Lösung)','The case (solution)')}</summary><p><b>${L('Verdachtsdiagnose','Suspected diagnosis')}:</b> ${esc(L(c.dx,DX_EN[c.id]))}</p><p style="white-space:pre-line;font-size:15px" id="src-case">${esc(c.story)}</p>${trBtn('case','Translate case to English')}</details>
-  ${S.notes?`<details><summary>${L('Deine Notizen','Notes')}</summary><p style="white-space:pre-line">${esc(S.notes)}</p></details>`:''}
-  ${S.msgs.length?`<details><summary>${L('Mitschrift','Transcript')}</summary><p style="white-space:pre-line;font-size:15px" id="src-log">${esc(transcript)}</p>${trBtn('log','Translate transcript to English')}</details>`:''}
-  <div class="acts"><button class="btn" id="again">${L('Nochmal versuchen','Try again')}</button>${c.num<CASES.length?`<button class="btn ghost" id="nxt">${L('Weiter mit Test','Next: Test')} ${c.num+1}</button>`:''}<button class="btn ghost" id="cp">${L('Mitschrift kopieren','Copy transcript')}</button></div>`;
+const fmtDur=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+const transcriptOf=()=>S.msgs.map(m=>(m.who==='doc'?L('Arzt','Doctor')+': ':S.c.anrede+': ')+m.text).join('\n');
+function doneView(err){
+  const c=S.c,nq=S.msgs.filter(m=>m.who==='doc').length,ok=nq>=2;
+  main.innerHTML=`<div class="task" style="max-width:760px">
+   <div style="color:var(--mute);font-size:14px">Test ${c.num} · ${esc(ctitle(c))} · ${esc(c.anrede)}</div>
+   <h1 style="font-size:clamp(28px,3.6vw,40px);margin-top:8px">${S.timeUp?L('Die Zeit ist abgelaufen','Time is up'):L('Gespräch beendet','Conversation ended')}</h1>
+   <p class="lead" style="margin-top:10px">${L('Dauer','Duration')} ${fmtDur(S.dur)} · ${nq} ${L('Äußerungen des Arztes','doctor turns')}</p>
+   ${err?`<p style="color:var(--coral);margin-top:10px">${esc(err)}</p>`:''}
+   ${ok?`<p style="margin-top:14px">${L('Lass das Gespräch jetzt von einem Chefarzt und einer Sprachprüferin auswerten.','Have the conversation evaluated by a chief physician and a language examiner.')}</p>`:`<p style="margin-top:14px">${L('Das Gespräch ist zu kurz für eine Auswertung.','The conversation is too short to evaluate.')}</p>`}
+   <div class="acts">${ok?`<button class="btn" id="eval">${L('Auswerten','Evaluate')}</button>`:''}<button class="btn ghost" id="again">${L('Nochmal versuchen','Try again')}</button>${c.num<CASES.length?`<button class="btn ghost" id="nxt">${L('Weiter mit Test','Next: Test')} ${c.num+1}</button>`:''}</div>
+   ${S.msgs.length?`<details><summary>${L('Mitschrift','Transcript')}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf())}</p></details>`:''}
+  </div>`;
+  if($('#eval'))$('#eval').onclick=runEval;
   $('#again').onclick=()=>startCase(c);
   if($('#nxt'))$('#nxt').onclick=()=>startCase(CASES[c.num]);
-  $('#cp').onclick=e=>{navigator.clipboard.writeText(transcript).then(()=>e.target.textContent=L('Kopiert','Copied'),()=>e.target.textContent=L('Kopieren nicht möglich','Copy not possible'))};
+}
+const GENERAL=['Begrüßung & Vorstellung','Persönliche Daten','Hauptbeschwerde','Aktuelle Anamnese / Schmerzanamnese','Vegetative Anamnese','Gynäkologische Anamnese','Zusammenfassung der Beschwerden','Vorerkrankungen & Operationen','Medikation','Allergien','Impfungen','Noxen','Familienanamnese','Sozialanamnese','Psyche','Abschluss & nächste Schritte'];
+async function runEval(){
+  if(!hasKey()){openSettings(runEval);return}
+  S.view='eval';S.evLang=lang;
+  main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">${L('Chefarzt und Sprachprüferin werten aus…','The chief physician and the language examiner are evaluating…')}</h2><p class="lead" style="margin:8px auto">${L('Das dauert etwa 10–30 Sekunden.','This takes about 10–30 seconds.')}</p></div>`;
+  try{
+    const ev=await evaluate();
+    if(!ev||!ev.level)throw new Error('empty');
+    S.ev=ev;
+    const h=ls.get('famed-hist',[]);h.push({id:S.c.id,level:ev.level,verdict:ev.verdict,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
+    renderEval(ev);
+  }catch(e){S.view='done';doneView(L('Auswertung fehlgeschlagen: ','Evaluation failed: ')+(e&&e.status?errText(e):L('bitte nochmal versuchen.','please try again.')))}
+}
+async function evaluate(){
+  const c=S.c,gen=GENERAL.filter(g=>c.sex==='f'||!g.startsWith('Gyn'));
+  const en=S.evLang==='en';
+  const conv=S.msgs.map(m=>(m.who==='doc'?'ARZT: ':'PATIENT: ')+m.text).join('\n');
+  const p=`Bewerte dieses simulierte Anamnesegespräch aus der FaMed-Fachsprachprüfung (Teil Anamnese, 11 Minuten, Videosprechstunde, der Prüfling ist Allgemeinarzt, Deutsch ist nicht seine Muttersprache). Die Äußerungen des Arztes stammen aus einer Spracherkennung: bewerte KEINE fehlenden Satzzeichen, Groß-/Kleinschreibung oder offensichtliche Erkennungsfehler.
+
+Zwei Prüfer bewerten unabhängig:
+1) CHEFARZT (ärztliche Sicht): Struktur und Vollständigkeit der Anamnese, fehlende wichtige Fragen, Gesprächsführung, Empathie und Reaktionen auf den Patienten, Laiensprache statt Fachbegriffen, Zusammenfassung, Abschluss mit nächsten Schritten, Eingehen auf Patientenfragen.
+2) SPRACHPRÜFERIN (sprachliche Sicht): Grammatik, Satzbau, Wortschatz, medizinische Fachsprache vs. Laiensprache, Höflichkeitsform (Sie), Verständlichkeit, Flüssigkeit.
+Gemeinsam bestimmen sie das kommunikative Sprachniveau nach GER (A2, B1, B2, C1 oder C2). Für die Fachsprachprüfung wird C1 erwartet.
+
+FALL (nur für die Prüfer): ${c.story}
+Verdachtsdiagnose: ${c.dx}
+Momente des Patienten: ${c.cues}
+Fallspezifische Checkliste: ${TOPICS[c.topic].join('; ')}
+Allgemeine Struktur: ${gen.join('; ')}.
+Erwartete Reaktionen: Schmerzen → Schmerzmittel anbieten und vorher nach Allergien fragen; Luftnot → Sauerstoff/Sättigung anbieten; Übelkeit → Mittel/Brechbeutel anbieten; Angst → beruhigen ohne Diagnose zu versprechen; Rauchen → kurze Beratung; verstorbene Eltern → Beileid; Selbstmedikation → auf ärztliche Rücksprache hinweisen; Patientenfragen → konkret beantworten.
+
+GESPRÄCH (Dauer ${fmtDur(S.dur)}, ${S.timeUp?'Zeit abgelaufen':'vom Prüfling beendet'}):
+${conv}
+
+${en?'SPRACHE DER AUSGABE: Der Leser spricht kein Deutsch. Schreibe "levelReason", "opinion" und "mistake" auf ENGLISCH. In "solution": zuerst der korrekte deutsche Satz bzw. die deutsche Frage, danach in Klammern die englische Übersetzung und eine kurze englische Erklärung.':'SPRACHE DER AUSGABE: alles auf Deutsch.'}
+Antworte NUR mit gültigem JSON in genau diesem Format:
+{"level":"A2|B1|B2|C1|C2","verdict":"Bestanden|Knapp|Nicht bestanden","levelReason":"1–2 Sätze","chief":{"opinion":"2–4 Sätze","mistakes":[{"mistake":"was falsch war oder fehlte","solution":"wie man es richtig macht, mit Mustersatz"}]},"linguist":{"opinion":"2–4 Sätze","mistakes":[{"mistake":"Originalsatz oder Fehler des Prüflings","solution":"korrigierte Version und kurze Erklärung"}]}}
+Je Prüfer 4–8 der wichtigsten Punkte, nach Wichtigkeit sortiert. Sei ehrlich und streng, aber ermutigend.`;
+  const r=await aiChat([{role:'system',content:'Du bist ein Prüfungsgremium aus einem Chefarzt und einer Sprachprüferin. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true});
+  const m=r.text.match(/\{[\s\S]*\}/);return JSON.parse(m?m[0]:r.text);
+}
+const VDL=v=>({Bestanden:L('Bestanden','Pass'),Knapp:L('Knapp','Borderline'),'Nicht bestanden':L('Nicht bestanden','Fail')}[v]||v||'');
+const lvlCol=l=>({C2:'var(--ok)',C1:'var(--ok)',B2:'var(--mid)'}[l]||'var(--coral)');
+function itemsHTML(list){return (Array.isArray(list)&&list.length)?list.map(x=>`<div class="item"><div class="mis"><span>✗</span>${esc(x.mistake)}</div><div class="sol"><span>✓</span>${esc(x.solution)}</div></div>`).join(''):'<p class="lead">—</p>'}
+function renderEval(ev){
+  const c=S.c,d=S.date||new Date();
+  main.innerHTML=`<div id="report">
+   <div style="color:var(--mute);font-size:14px">FaMed Anamnese · Test ${c.num} · ${esc(ctitle(c))} · ${esc(c.name)}, ${c.age} ${L('J.','yrs')} · ${d.toLocaleDateString(L('de-DE','en-GB'))} · ${L('Dauer','Duration')} ${fmtDur(S.dur)}</div>
+   <div class="lvlrow">
+    <div class="lvl" style="border-color:${lvlCol(ev.level)}"><small>${L('Sprachniveau','Level')}</small><b style="color:${lvlCol(ev.level)}">${esc(ev.level)}</b><small>${L('Ziel: C1','Target: C1')}</small></div>
+    <div><span class="vd" style="background:${ev.verdict==='Bestanden'?'var(--ok)':ev.verdict==='Knapp'?'var(--mid)':'var(--coral)'}">${esc(VDL(ev.verdict))}</span>
+     <h1 style="font-size:clamp(26px,3.4vw,38px)">${L('Auswertung des Anamnesegesprächs','Evaluation of the history-taking')}</h1>
+     <p style="margin:10px 0 0;max-width:70ch">${esc(ev.levelReason)}</p></div>
+   </div>
+   <div class="grid2">
+    <div class="card judge"><h3>👨‍⚕️ ${L('Chefarzt','Chief physician')}</h3><p class="op">${esc(ev.chief&&ev.chief.opinion)}</p>${itemsHTML(ev.chief&&ev.chief.mistakes)}</div>
+    <div class="card judge"><h3>🗣️ ${L('Sprachprüferin','Language examiner')}</h3><p class="op">${esc(ev.linguist&&ev.linguist.opinion)}</p>${itemsHTML(ev.linguist&&ev.linguist.mistakes)}</div>
+   </div>
+   ${S.evLang!==lang?`<p class="hint">${L('Diese Auswertung wurde auf Englisch erstellt.','This evaluation was written in German. Switch to English before evaluating to get English explanations.')}</p>`:''}
+   <details><summary>${L('Mitschrift','Transcript')}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf())}</p></details>
+  </div>
+  <div class="acts"><button class="btn" id="pdf">⬇ ${L('Als PDF speichern','Save as PDF')}</button><button class="btn ghost" id="again">${L('Nochmal versuchen','Try again')}</button>${c.num<CASES.length?`<button class="btn ghost" id="nxt">${L('Weiter mit Test','Next: Test')} ${c.num+1}</button>`:''}</div>`;
+  $('#pdf').onclick=savePDF;
+  $('#again').onclick=()=>startCase(c);
+  if($('#nxt'))$('#nxt').onclick=()=>startCase(CASES[c.num]);
+}
+function loadScript(src){return new Promise((res,rej)=>{if(window.html2pdf)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+function pdfHTML(ev){
+  const c=S.c,d=S.date||new Date();
+  const items=list=>(list||[]).map(x=>`<div style="padding:7px 0;border-bottom:1px solid #e3e8e8;page-break-inside:avoid"><div style="color:#b3361f"><b>✗</b> ${esc(x.mistake)}</div><div style="color:#1f6b45;margin-top:3px"><b>✓</b> ${esc(x.solution)}</div></div>`).join('');
+  const box=(t,o)=>`<div style="margin-top:16px;border:1px solid #cfdcdc;border-radius:8px;padding:12px 14px"><div style="font-size:16px;font-weight:700;color:#0b5d63">${t}</div><p style="margin:6px 0 4px">${esc(o.opinion)}</p>${items(o.mistakes)}</div>`;
+  return `<div style="font-family:Inter,Arial,sans-serif;color:#11191b;font-size:12px;line-height:1.45;width:720px;padding:6px">
+   <div style="border-bottom:3px solid #0b5d63;padding-bottom:8px"><div style="font-size:20px;font-weight:700">${L('FaMed Anamnese – Auswertung','FaMed history-taking – evaluation')}</div>
+   <div style="color:#5b6b6e">Test ${c.num}: ${esc(ctitle(c))} · ${L('Patient','Patient')}: ${esc(c.name)}, ${c.age} · ${d.toLocaleString(L('de-DE','en-GB'))} · ${L('Dauer','Duration')} ${fmtDur(S.dur)}</div></div>
+   <div style="display:flex;gap:16px;align-items:center;margin-top:12px"><div style="border:3px solid #0b5d63;border-radius:10px;padding:6px 14px;text-align:center"><div style="font-size:10px;color:#5b6b6e">${L('Sprachniveau','Level')}</div><div style="font-size:30px;font-weight:700;color:#0b5d63">${esc(ev.level)}</div><div style="font-size:10px;color:#5b6b6e">${L('Ziel: C1','Target: C1')}</div></div>
+   <div><div style="font-weight:700">${esc(VDL(ev.verdict))}</div><div>${esc(ev.levelReason)}</div></div></div>
+   ${box('👨‍⚕️ '+L('Chefarzt','Chief physician'),ev.chief||{})}
+   ${box('🗣️ '+L('Sprachprüferin','Language examiner'),ev.linguist||{})}
+   <div style="margin-top:16px;page-break-before:auto"><div style="font-size:14px;font-weight:700;color:#0b5d63">${L('Mitschrift','Transcript')}</div><div style="white-space:pre-line;margin-top:4px">${esc(transcriptOf())}</div></div>
+  </div>`;
+}
+async function savePDF(){
+  const b=$('#pdf');const t=b.textContent;b.disabled=true;b.textContent=L('PDF wird erstellt…','Creating PDF…');
+  const d=S.date||new Date();
+  const name=`FaMed_Test${S.c.num}_${(lang==='en'?TITLE_EN[S.c.id]:S.c.title).replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,'-')}_${d.toISOString().slice(0,10)}.pdf`;
+  try{
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+    const wrap=document.createElement('div');wrap.style.cssText='position:fixed;left:-10000px;top:0;background:#fff';wrap.innerHTML=pdfHTML(S.ev);document.body.appendChild(wrap);
+    await html2pdf().set({margin:[12,10,12,10],filename:name,image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(wrap.firstElementChild).save();
+    wrap.remove();
+  }catch(e){
+    try{window.print()}catch(err){}
+  }
+  b.disabled=false;b.textContent=t;
 }
 
 /* ---------- avatar ---------- */
