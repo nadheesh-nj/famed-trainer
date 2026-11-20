@@ -571,7 +571,7 @@ async function aiChat(messages,{json=false,signal,fast=false,think}={}){
     }
     if(r.ok){if(!fast&&main.includes(model)&&model!==cfg.model){cfg.model=model;saveCfg()}lastErr=null;break}
     lastErr=new Error((d.error&&d.error.message)||('HTTP '+r.status));lastErr.status=r.status;
-    if(r.status===404||(fast&&r.status===429))continue;
+    if(r.status===404||r.status===429||r.status===503)continue;
     break;
   }
   if(lastErr)throw lastErr;
