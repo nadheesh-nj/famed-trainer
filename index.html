@@ -524,7 +524,7 @@ const DX_EN={kolon:'Suspected colon cancer (weight loss, night sweats, changed b
 const ctitle=c=>lang==='en'?TITLE_EN[c.id]+' · '+c.title:c.title;
 const GEN_EN={'Begrüßung & Vorstellung':'Greeting & introduction','Persönliche Daten':'Personal details','Hauptbeschwerde':'Main complaint','Aktuelle Anamnese / Schmerzanamnese':'Current history / pain history','Vegetative Anamnese':'General symptoms (fever, appetite, weight, sleep, bowels, urine)','Gynäkologische Anamnese':'Gynaecological history','Zusammenfassung der Beschwerden':'Summary of complaints','Vorerkrankungen & Operationen':'Previous illnesses & operations','Medikation':'Medication','Allergien':'Allergies','Impfungen':'Vaccinations','Noxen':'Smoking, alcohol, drugs','Familienanamnese':'Family history','Sozialanamnese':'Social history','Psyche':'Mental health / stress','Abschluss & nächste Schritte':'Closing & next steps'};
 async function translateEN(text){
-  const r=await aiChat([{role:'system',content:'Translate the following German text into clear, simple English. Keep the line structure and speaker labels. Output only the translation.'},{role:'user',content:text}]);
+  const r=await aiChat([{role:'system',content:'Translate the following German text into clear, simple English. Keep the line structure and speaker labels. Output only the translation.'},{role:'user',content:text}],{fast:true});
   return r.text.trim();
 }
 function trBtn(id,label){return lang==='en'&&hasKey()?`<button class="btn ghost sm" data-tr="${id}">${label}</button><div class="trout" id="tr-${id}"></div>`:''}
@@ -542,23 +542,37 @@ const cfg=Object.assign({key:'',model:'gemini-3.6-flash',voice:'browser'},ls.get
 const saveCfg=()=>ls.set('famed-gemini',cfg);
 const hasKey=()=>cfg.key.trim().length>20;
 let rec=null,audio=null;
-async function aiChat(messages,{json=false,signal}={}){
+const FAST_MODELS=['gemini-3.5-flash-lite','gemini-3.1-flash-lite'];
+let noThinkCfg=false;
+async function aiChat(messages,{json=false,signal,fast=false,think}={}){
   const sys=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
   const contents=[];
   for(const m of messages.filter(m=>m.role!=='system')){const r=m.role==='assistant'?'model':'user';const l=contents[contents.length-1];
     if(l&&l.role===r)l.parts[0].text+='\n'+m.content;else contents.push({role:r,parts:[{text:m.content}]})}
   if(!contents.length||contents[0].role!=='user')contents.unshift({role:'user',parts:[{text:'(Gespräch beginnt)'}]});
-  const body={contents,generationConfig:{temperature:json?0.3:0.8}};
-  if(sys)body.systemInstruction={parts:[{text:sys}]};
-  if(json)body.generationConfig.responseMimeType='application/json';
-  const tryModels=[cfg.model.trim(),'gemini-3.6-flash','gemini-3.8-flash','gemini-flash-latest','gemini-3.5-flash-lite'].filter((m,i,a)=>m&&a.indexOf(m)===i);
+  const gc={temperature:json?0.3:0.8};
+  if(fast)gc.maxOutputTokens=300;
+  if(json)gc.responseMimeType='application/json';
+  const level=think||(fast?'minimal':null);
+  const main=[cfg.model.trim(),'gemini-3.6-flash','gemini-3.8-flash','gemini-flash-latest'];
+  const tryModels=(fast?[...FAST_MODELS,...main]:[...main,...FAST_MODELS]).filter((m,i,a)=>m&&a.indexOf(m)===i);
   let d,lastErr;
   for(const model of tryModels){
-    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key.trim()},body:JSON.stringify(body)});
+    const body={contents,generationConfig:Object.assign({},gc)};
+    if(sys)body.systemInstruction={parts:[{text:sys}]};
+    let lv=level;if(lv==='minimal'&&/3\.8/.test(model))lv='low';
+    if(lv&&!noThinkCfg)body.generationConfig.thinkingConfig={thinkingLevel:lv};
+    let r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key.trim()},body:JSON.stringify(body)});
     d=await r.json().catch(()=>({}));
-    if(r.ok){if(model!==cfg.model){cfg.model=model;saveCfg()}lastErr=null;break}
+    if(!r.ok&&r.status===400&&body.generationConfig.thinkingConfig&&/think/i.test((d.error&&d.error.message)||'')){
+      noThinkCfg=true;delete body.generationConfig.thinkingConfig;
+      r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key.trim()},body:JSON.stringify(body)});
+      d=await r.json().catch(()=>({}));
+    }
+    if(r.ok){if(!fast&&main.includes(model)&&model!==cfg.model){cfg.model=model;saveCfg()}lastErr=null;break}
     lastErr=new Error((d.error&&d.error.message)||('HTTP '+r.status));lastErr.status=r.status;
-    if(r.status!==404)break;
+    if(r.status===404||(fast&&r.status===429))continue;
+    break;
   }
   if(lastErr)throw lastErr;
   const c=d.candidates&&d.candidates[0];
@@ -644,7 +658,7 @@ function openSettings(after){
   $('#save').onclick=async()=>{cfg.key=$('#k').value.trim();cfg.model=$('#mdl').value.trim()||'gemini-3.6-flash';saveCfg();
     const t=$('#tst');if(!hasKey()){t.textContent=L('Bitte den Schlüssel einfügen.','Please paste the key.');return}
     t.textContent=L('Teste…','Testing…');
-    try{await aiChat([{role:'user',content:'Antworte nur mit: OK'}]);t.textContent=L('✓ Verbunden (','✓ Connected (')+cfg.model+')';
+    try{await aiChat([{role:'user',content:'Antworte nur mit: OK'}],{fast:true});t.textContent=L('✓ Verbunden (','✓ Connected (')+cfg.model+')';
       setTimeout(()=>{const a=S&&S.after;closeSettings();if(a)a();else if(!S||S.view==='home')home()},900)}
     catch(e){t.textContent='✗ '+errText(e)}};
   setTimeout(()=>$('#k')&&$('#k').focus(),50);
@@ -765,7 +779,7 @@ function listen(){
   rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
   rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
     if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft();
-    clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},1600)};
+    clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},1300)};
   rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){S.hf=false;$('#hint').textContent=L('Mikrofon nicht erlaubt – bitte im Browser erlauben oder tippen.','Microphone not allowed – allow it in the browser, or type.')}};
   rec.onend=()=>{S.recOn=false;clearTimeout(S.sil);
     if(S.sending){S.sending=false;sendBuf();return}
@@ -808,7 +822,7 @@ async function doctorSays(text){
     while(true){
       const n=S.msgs.length;
       const ctrl=new AbortController();S.ctrl=ctrl;
-      const res=await aiChat(patientInput(),{signal:ctrl.signal});
+      const res=await aiChat(patientInput(),{signal:ctrl.signal,fast:true});
       if(S!==me||me.view!=='call')return;
       if(S.msgs.length!==n&&S.msgs[S.msgs.length-1].who==='doc')continue;
       const reply=clean(res.text)||'Entschuldigung, wie bitte?';
@@ -911,7 +925,7 @@ ${en?'SPRACHE DER AUSGABE: Der Leser spricht kein Deutsch. Schreibe "levelReason
 Antworte NUR mit gültigem JSON in genau diesem Format:
 {"level":"A2|B1|B2|C1|C2","verdict":"Bestanden|Knapp|Nicht bestanden","levelReason":"1–2 Sätze","chief":{"opinion":"2–4 Sätze","mistakes":[{"mistake":"was falsch war oder fehlte","solution":"wie man es richtig macht, mit Mustersatz"}]},"linguist":{"opinion":"2–4 Sätze","mistakes":[{"mistake":"Originalsatz oder Fehler des Prüflings","solution":"korrigierte Version und kurze Erklärung"}]}}
 Je Prüfer 4–8 der wichtigsten Punkte, nach Wichtigkeit sortiert. Sei ehrlich und streng, aber ermutigend.`;
-  const r=await aiChat([{role:'system',content:'Du bist ein Prüfungsgremium aus einem Chefarzt und einer Sprachprüferin. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true});
+  const r=await aiChat([{role:'system',content:'Du bist ein Prüfungsgremium aus einem Chefarzt und einer Sprachprüferin. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true,think:'low'});
   const m=r.text.match(/\{[\s\S]*\}/);return JSON.parse(m?m[0]:r.text);
 }
 const VDL=v=>({Bestanden:L('Bestanden','Pass'),Knapp:L('Knapp','Borderline'),'Nicht bestanden':L('Nicht bestanden','Fail')}[v]||v||'');
