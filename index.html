@@ -57,6 +57,7 @@ main{padding:clamp(18px,3vw,40px);max-width:1240px;width:100%}
 .en{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:var(--bg);font-size:15px;color:var(--mute)}
 #modal{position:fixed;inset:0;background:rgba(5,20,22,.55);display:grid;place-items:center;padding:16px;z-index:50}
 .mcard{background:var(--bg);color:var(--ink);border-radius:18px;padding:clamp(20px,3vw,32px);width:min(560px,100%);max-height:90vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.mic.wait{opacity:.45}.mic,.self{transition:background .25s,box-shadow .25s,opacity .25s}
 .mic.muted{background:var(--line);color:var(--mute)}
 .lvlrow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center;margin:14px 0 24px}
 .lvl{width:130px;height:130px;border:6px solid;border-radius:22px;display:grid;place-items:center;align-content:center;text-align:center;gap:2px}
@@ -597,8 +598,10 @@ function talking(on){const av=$('svg.av');if(av)av.classList.toggle('talking',on
 let keepU=[],sayId=0;
 function browserSpeak(text,done){
   let fin=false;const finish=()=>{if(fin)return;fin=true;clearTimeout(S.safety);talking(false);done()};
-  const fake=()=>{talking(true);clearTimeout(S.mt);S.mt=setTimeout(finish,Math.min(12000,Math.max(1500,text.length*65)))};
-  S.safety=setTimeout(finish,Math.max(5000,text.length*110));
+  const fake=()=>{talking(true);clearTimeout(S.mt);S.mt=setTimeout(()=>safe(),Math.min(12000,Math.max(1500,text.length*65)))};
+  const busyVoice=()=>window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending);
+  const safe=()=>{if(fin)return;if(busyVoice()){S.safety=setTimeout(safe,500);return}finish()};
+  S.safety=setTimeout(safe,Math.max(6000,text.length*120));
   if(!window.speechSynthesis){fake();return}
   const ss=speechSynthesis;
   const go=()=>{
@@ -610,7 +613,7 @@ function browserSpeak(text,done){
       u.onend=u.onerror=()=>{if(i===parts.length-1)finish()};
       return u});
     S.spoke=false;keepU.forEach(u=>ss.speak(u));
-    clearTimeout(S.chk);S.chk=setTimeout(()=>{if(!S.spoke&&S.view==='call'&&!fin){fake();setStatus(L('Keine Stimme? Lautstärke prüfen oder Chrome/Edge nutzen','No voice? Check the volume or use Chrome/Edge'))}},1800);
+    clearTimeout(S.chk);S.chk=setTimeout(()=>{if(!S.spoke&&S.view==='call'&&!fin&&!busyVoice()){fake();setStatus(L('Keine Stimme? Lautstärke prüfen oder Chrome/Edge nutzen','No voice? Check the volume or use Chrome/Edge'))}},1800);
   };
   if(ss.speaking||ss.pending){ss.cancel();setTimeout(go,150)}else{ss.resume();go()}
 }
@@ -764,17 +767,23 @@ function setStatus(s){const e=$('#st');if(e)e.textContent=s}
 function showDraft(){const t=$('#txt');if(t)t.value=(S.buf+' '+(S.partial||'')).trim()}
 function micUI(){
   const m=$('#mic');if(!m||!S)return;
-  m.innerHTML=S.hf?MIC:MICOFF;m.classList.toggle('on',!!S.recOn);m.classList.toggle('muted',!S.hf);
+  m.innerHTML=S.hf?MIC:MICOFF;m.classList.toggle('on',!!S.recOn&&S.phase==='idle');m.classList.toggle('wait',S.hf&&(S.phase==='speaking'||S.phase==='thinking'));m.classList.toggle('muted',!S.hf);
   m.setAttribute('aria-label',S.hf?L('Mikrofon stumm schalten','Mute microphone'):L('Mikrofon einschalten','Unmute microphone'));
-  $('#self')?.classList.toggle('live',!!S.recOn);
+  $('#self')?.classList.toggle('live',!!S.recOn&&S.phase==='idle');
   if(S.phase==='thinking')setStatus(S.c.anrede+L(' überlegt…',' is thinking…'));
   else if(S.phase==='speaking')setStatus(S.c.anrede+L(' spricht…',' is speaking…'));
   else if(!S.hf)setStatus(SR?L('Mikrofon aus','Microphone muted'):L('Verbunden','Connected'));
   else if(S.recOn)setStatus(L('Ich höre zu – sprechen Sie','Listening – speak now'));
   else setStatus(L('Verbunden','Connected'));
 }
+function voiceBusy(){return window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending)}
+const norm=t=>String(t||'').toLowerCase().replace(/[^a-zäöüß ]/g,' ').split(/\s+/).filter(w=>w.length>2);
+function isEcho(t){const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(!last)return false;const a=norm(t),b=new Set(norm(last.text));if(a.length<2)return false;return a.filter(w=>b.has(w)).length/a.length>=0.7}
 function listen(){
   if(!SR||!S||S.view!=='call'||!S.hf||S.busy||S.phase==='speaking'||S.phase==='thinking'||S.recOn)return;
+  if(voiceBusy()){clearTimeout(S.lw);S.lw=setTimeout(listen,300);return}
+  const since=Date.now()-(S.lastVoiceEnd||0);if(since<450){clearTimeout(S.lw);S.lw=setTimeout(listen,450-since);return}
+  S.startedAt=Date.now();
   S.buf='';S.partial='';S.sending=false;
   rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
   rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
@@ -783,15 +792,17 @@ function listen(){
   rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){S.hf=false;$('#hint').textContent=L('Mikrofon nicht erlaubt – bitte im Browser erlauben oder tippen.','Microphone not allowed – allow it in the browser, or type.')}};
   rec.onend=()=>{S.recOn=false;clearTimeout(S.sil);
     if(S.sending){S.sending=false;sendBuf();return}
-    micUI();if(S.hf&&S.view==='call'&&S.phase==='idle')setTimeout(listen,250)};
+    const quick=Date.now()-(S.startedAt||0)<1500;S.fails=quick?(S.fails||0)+1:0;
+    const wait=S.fails>2?Math.min(4000,600*S.fails):300;
+    micUI();if(S.hf&&S.view==='call'&&S.phase==='idle'){clearTimeout(S.lw);S.lw=setTimeout(listen,wait)}};
   try{rec.start();S.recOn=true;S.phase='idle'}catch(e){S.recOn=false}
   micUI();
 }
 function sendBuf(){
   const t=(S.buf+' '+(S.partial||'')).trim();S.buf='';S.partial='';const tx=$('#txt');if(tx)tx.value='';
-  if(t)doctorSays(t);else listen();
+  if(t&&!isEcho(t))doctorSays(t);else listen();
 }
-function stopListening(){clearTimeout(S&&S.sil);if(rec&&S&&S.recOn){S.sending=false;try{rec.abort()}catch(e){}}if(S)S.recOn=false}
+function stopListening(){clearTimeout(S&&S.sil);clearTimeout(S&&S.lw);if(rec&&S&&S.recOn){S.sending=false;try{rec.abort()}catch(e){}}if(S)S.recOn=false}
 function micClick(){
   if(!SR||!S||S.view!=='call')return;
   S.hf=!S.hf;
@@ -808,7 +819,7 @@ function caption(t){const cc=$('#cc');if(cc)cc.innerHTML=t?'<span>'+esc(t)+'</sp
 function patientLine(text,done){
   S.msgs.push({who:'pat',text});logMsg('pat',text);caption(text);
   stopListening();S.phase='speaking';micUI();
-  speak(text,()=>{if(S.view!=='call')return;S.phase='idle';micUI();if(done)done()});
+  speak(text,()=>{if(S.view!=='call')return;S.lastVoiceEnd=Date.now();S.phase='idle';micUI();if(done)done()});
 }
 async function doctorSays(text){
   if(!S||S.view!=='call')return;
