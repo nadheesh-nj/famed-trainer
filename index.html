@@ -57,6 +57,7 @@ main{padding:clamp(18px,3vw,40px);max-width:1240px;width:100%}
 .en{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:var(--bg);font-size:15px;color:var(--mute)}
 #modal{position:fixed;inset:0;background:rgba(5,20,22,.55);display:grid;place-items:center;padding:16px;z-index:50}
 .mcard{background:var(--bg);color:var(--ink);border-radius:18px;padding:clamp(20px,3vw,32px);width:min(560px,100%);max-height:90vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.hint.warn{color:var(--coral);font-weight:600;font-size:15px}
 .mic.wait{opacity:.45}.mic,.self{transition:background .25s,box-shadow .25s,opacity .25s}
 .mic.muted{background:var(--line);color:var(--mute)}
 .lvlrow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center;margin:14px 0 24px}
@@ -539,6 +540,8 @@ let clock=null;
 
 /* ---------- engine: Google Gemini API + browser speech ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const IS_BRAVE=!!(navigator.brave&&navigator.brave.isBrave);
+const BRAVE_MSG=()=>L('Brave unterstützt die Spracherkennung nicht. Bitte die Seite in Google Chrome oder Microsoft Edge öffnen – oder hier tippen.','Brave does not support speech recognition. Please open this page in Google Chrome or Microsoft Edge – or type here.');
 const cfg=Object.assign({key:'',model:'gemini-3.6-flash',voice:'browser'},ls.get('famed-gemini',{}));
 const saveCfg=()=>ls.set('famed-gemini',cfg);
 const hasKey=()=>cfg.key.trim().length>20;
@@ -600,7 +603,8 @@ function browserSpeak(text,done){
   let fin=false;const finish=()=>{if(fin)return;fin=true;clearTimeout(S.safety);talking(false);done()};
   const fake=()=>{talking(true);clearTimeout(S.mt);S.mt=setTimeout(()=>safe(),Math.min(12000,Math.max(1500,text.length*65)))};
   const busyVoice=()=>window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending);
-  const safe=()=>{if(fin)return;if(busyVoice()){S.safety=setTimeout(safe,500);return}finish()};
+  const t0=Date.now(),maxMs=Math.max(8000,text.length*140);
+  const safe=()=>{if(fin)return;if(busyVoice()&&Date.now()-t0<maxMs){S.safety=setTimeout(safe,500);return}finish()};
   S.safety=setTimeout(safe,Math.max(6000,text.length*120));
   if(!window.speechSynthesis){fake();return}
   const ss=speechSynthesis;
@@ -733,6 +737,7 @@ function beginCall(){
   </div></div>`;
   if(!SR)$('#mic').style.display='none';
   callLabels();micUI();
+  if(IS_BRAVE){S.hf=false;$('#hint').textContent=BRAVE_MSG();$('#hint').classList.add('warn');micUI()}
   $('#mic').onclick=micClick;
   $('#again2').onclick=()=>{const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(!last||S.busy)return;stopListening();S.phase='speaking';micUI();speak(last.text,()=>{S.phase='idle';listen()})};
   $('#send').onclick=()=>{const t=$('#txt').value.trim();if(t){$('#txt').value='';S.buf='';S.partial='';doctorSays(t)}};
@@ -767,21 +772,23 @@ function setStatus(s){const e=$('#st');if(e)e.textContent=s}
 function showDraft(){const t=$('#txt');if(t)t.value=(S.buf+' '+(S.partial||'')).trim()}
 function micUI(){
   const m=$('#mic');if(!m||!S)return;
-  m.innerHTML=S.hf?MIC:MICOFF;m.classList.toggle('on',!!S.recOn&&S.phase==='idle');m.classList.toggle('wait',S.hf&&(S.phase==='speaking'||S.phase==='thinking'));m.classList.toggle('muted',!S.hf);
+  m.innerHTML=S.hf?MIC:MICOFF;m.classList.toggle('on',S.hf&&S.phase==='idle');m.classList.toggle('wait',S.hf&&(S.phase==='speaking'||S.phase==='thinking'));m.classList.toggle('muted',!S.hf);
   m.setAttribute('aria-label',S.hf?L('Mikrofon stumm schalten','Mute microphone'):L('Mikrofon einschalten','Unmute microphone'));
-  $('#self')?.classList.toggle('live',!!S.recOn&&S.phase==='idle');
+  $('#self')?.classList.toggle('live',S.hf&&S.phase==='idle');
   if(S.phase==='thinking')setStatus(S.c.anrede+L(' überlegt…',' is thinking…'));
   else if(S.phase==='speaking')setStatus(S.c.anrede+L(' spricht…',' is speaking…'));
   else if(!S.hf)setStatus(SR?L('Mikrofon aus','Microphone muted'):L('Verbunden','Connected'));
-  else if(S.recOn)setStatus(L('Ich höre zu – sprechen Sie','Listening – speak now'));
-  else setStatus(L('Verbunden','Connected'));
+  else setStatus(L('Ich höre zu – sprechen Sie','Listening – speak now'));
 }
 function voiceBusy(){return window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending)}
 const norm=t=>String(t||'').toLowerCase().replace(/[^a-zäöüß ]/g,' ').split(/\s+/).filter(w=>w.length>2);
 function isEcho(t){const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(!last)return false;const a=norm(t),b=new Set(norm(last.text));if(a.length<2)return false;return a.filter(w=>b.has(w)).length/a.length>=0.7}
 function listen(){
   if(!SR||!S||S.view!=='call'||!S.hf||S.busy||S.phase==='speaking'||S.phase==='thinking'||S.recOn)return;
-  if(voiceBusy()){clearTimeout(S.lw);S.lw=setTimeout(listen,300);return}
+  if(voiceBusy()){if(!S.vbSince)S.vbSince=Date.now();
+    if(Date.now()-S.vbSince<1500){clearTimeout(S.lw);S.lw=setTimeout(listen,300);return}
+    try{speechSynthesis.cancel()}catch(e){}}
+  S.vbSince=0;
   const since=Date.now()-(S.lastVoiceEnd||0);if(since<450){clearTimeout(S.lw);S.lw=setTimeout(listen,450-since);return}
   S.startedAt=Date.now();
   S.buf='';S.partial='';S.sending=false;
@@ -789,7 +796,14 @@ function listen(){
   rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
     if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft();
     clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},1300)};
-  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){S.hf=false;$('#hint').textContent=L('Mikrofon nicht erlaubt – bitte im Browser erlauben oder tippen.','Microphone not allowed – allow it in the browser, or type.')}};
+  rec.onerror=e=>{
+    const er=e.error;if(er==='no-speech'||er==='aborted')return;
+    let msg='';
+    if(er==='not-allowed'||er==='service-not-allowed')msg=L('Mikrofon nicht erlaubt – bitte im Browser erlauben (Schloss-Symbol in der Adresszeile) oder tippen.','Microphone not allowed – allow it in the browser (lock icon in the address bar), or type.');
+    else if(er==='network')msg=IS_BRAVE?BRAVE_MSG():L('Die Spracherkennung ist nicht erreichbar. Bitte Chrome oder Edge verwenden (Internet nötig) – oder tippen.','Speech recognition is not reachable. Please use Chrome or Edge (needs internet) – or type.');
+    else if(er==='audio-capture')msg=L('Kein Mikrofon gefunden oder von einer anderen App belegt (z. B. Zoom/Teams). Bitte prüfen – oder tippen.','No microphone found, or it is used by another app (e.g. Zoom/Teams). Please check – or type.');
+    else if(er==='language-not-supported')msg=L('Deutsche Spracherkennung wird in diesem Browser nicht unterstützt – bitte Chrome oder Edge.','German speech recognition is not supported in this browser – please use Chrome or Edge.');
+    if(msg){S.hf=false;S.recErr=er;$('#hint').textContent=msg;$('#hint').classList.add('warn');micUI()}};
   rec.onend=()=>{S.recOn=false;clearTimeout(S.sil);
     if(S.sending){S.sending=false;sendBuf();return}
     const quick=Date.now()-(S.startedAt||0)<1500;S.fails=quick?(S.fails||0)+1:0;
@@ -806,6 +820,7 @@ function stopListening(){clearTimeout(S&&S.sil);clearTimeout(S&&S.lw);if(rec&&S&
 function micClick(){
   if(!SR||!S||S.view!=='call')return;
   S.hf=!S.hf;
+  if(S.hf&&S.recErr){S.recErr=null;S.fails=0;const h=$('#hint');h.classList.remove('warn');callLabels()}
   if(!S.hf){const t=(S.buf+' '+(S.partial||'')).trim();stopListening();if(t)$('#txt').value=t}
   else listen();
   micUI();
