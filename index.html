@@ -566,15 +566,25 @@ function germanVoice(){
   const want=S&&S.c&&S.c.sex==='f'?/(female|anna|petra|katja|hedda|marlene|vicki|helena|google deutsch)/i:/(male|markus|yannick|stefan|conrad|hans|google deutsch)/i;
   return vs.find(v=>want.test(v.name))||vs.find(v=>/google/i.test(v.name))||vs[0]||null;
 }
-if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{};
+if(window.speechSynthesis){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();}
 function talking(on){const av=$('svg.av');if(av)av.classList.toggle('talking',on)}
+let keepU=[];
 function browserSpeak(text){
-  if(!window.speechSynthesis){talking(true);clearTimeout(S.mt);S.mt=setTimeout(()=>talking(false),Math.min(9000,text.length*65));return}
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);u.lang='de-DE';const v=germanVoice();if(v)u.voice=v;
-  u.pitch=S.c.sex==='f'?1.1:0.85;u.rate=1;
-  u.onstart=()=>talking(true);u.onend=u.onerror=()=>talking(false);
-  speechSynthesis.speak(u);
+  const fake=()=>{talking(true);clearTimeout(S.mt);S.mt=setTimeout(()=>talking(false),Math.min(12000,text.length*65))};
+  if(!window.speechSynthesis){fake();return}
+  const ss=speechSynthesis;
+  const go=()=>{
+    const parts=text.match(/[^.!?…]+[.!?…]*/g)||[text];
+    keepU=parts.map(p=>p.trim()).filter(Boolean).map((p,i,arr)=>{
+      const u=new SpeechSynthesisUtterance(p);u.lang='de-DE';const v=germanVoice();if(v)u.voice=v;
+      u.pitch=S.c.sex==='f'?1.1:0.85;u.rate=1;
+      u.onstart=()=>{S.spoke=true;talking(true)};
+      u.onend=u.onerror=()=>{if(i===arr.length-1)talking(false)};
+      return u});
+    S.spoke=false;keepU.forEach(u=>ss.speak(u));
+    clearTimeout(S.chk);S.chk=setTimeout(()=>{if(!S.spoke&&S.view==='call'){fake();setStatus(L('Keine Stimme? Lautstärke prüfen oder Chrome/Edge nutzen','No voice? Check the volume or use Chrome/Edge'))}},1800);
+  };
+  if(ss.speaking||ss.pending){ss.cancel();setTimeout(go,150)}else{ss.resume();go()}
 }
 function speak(text){stopVoice();browserSpeak(text)}
 function stopVoice(){try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}if(audio){try{audio.pause()}catch(e){}audio=null}talking(false)}
@@ -657,7 +667,7 @@ function beginCall(){
     <div class="cc" id="cc"></div>
    </div>
    <div class="controls">
-    <button class="mic" id="mic" aria-label="Sprechen">${MIC}</button>
+    <button class="mic" id="mic" aria-label="Sprechen">${MIC}</button><button class="btn ghost" id="again2" title="Play again">🔊</button>
     <div class="say"><textarea id="txt"></textarea><button class="btn" id="send"></button></div>
     <button class="btn danger" id="end"></button>
    </div>
@@ -670,6 +680,7 @@ function beginCall(){
   if(!SR)$('#mic').style.display='none';
   callLabels();setStatus(L('Verbunden','Connected'));
   $('#mic').onclick=micClick;
+  $('#again2').onclick=()=>{const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(last)speak(last.text)};
   $('#send').onclick=()=>{const t=$('#txt').value.trim();if(t){$('#txt').value='';doctorSays(t)}};
   $('#txt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#send').click()}});
   $('#end').onclick=()=>endCall(false);
@@ -684,7 +695,7 @@ function callLabels(){
   $('#self').textContent=L('Sie','You');
   $('#txt').placeholder=(SR?L('Mikrofon antippen und sprechen – oder hier tippen','Tap the microphone and speak – or type here'):L('Frage hier eintippen','Type your question here'))+L(' (Enter = senden)',' (Enter = send)');
   $('#send').textContent=L('Senden','Send');$('#end').textContent=L('Beenden','End');
-  $('#hint').textContent=(SR?L('Mikrofon antippen, Frage stellen, erneut antippen – dann antwortet der Patient.','Tap the microphone, ask the question in German, tap again – then the patient answers.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'))+(hasKey()?'':L(' Kein API-Schlüssel gespeichert – zurück zur Startseite.',' No API key saved – go back to the start page.'));
+  $('#hint').textContent=(SR?L('Mikrofon antippen und Frage stellen – nach einer kurzen Pause wird sie automatisch gesendet. 🔊 spielt die letzte Antwort nochmal ab.','Tap the microphone and ask your question in German – it is sent automatically when you pause. 🔊 replays the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'))+(hasKey()?'':L(' Kein API-Schlüssel gespeichert – zurück zur Startseite.',' No API key saved – go back to the start page.'));
   $('#tab-n').textContent=L('Notizblock','Notepad');$('#tab-t').textContent=L('Mitschrift','Transcript');
   $('#notes').placeholder=L('Notizen wie im Prüfungsraum…','Notes, like in the exam room…');
   const ln=$('#lognote');if(ln)ln.textContent=L('Die Mitschrift erscheint hier. In der echten Prüfung gibt es sie nicht – nutze sie nur zur Kontrolle.','The transcript appears here. There is none in the real exam – use it only to check.');
@@ -708,7 +719,8 @@ function micClick(){
     S.buf=$('#txt').value.trim();S.partial='';
     rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
     rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
-      if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft()};
+      if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft();
+      clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.listening&&(S.buf||S.partial)){S.autoSend=true;try{rec.stop()}catch(err){S.autoSend=false;flushSpeech()}}},1700)};
     rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){$('#mic').style.display='none';$('#hint').textContent=L('Mikrofon nicht erlaubt – bitte tippen.','Microphone not allowed – please type.')}};
     rec.onend=()=>{const wasAuto=S.autoSend;S.autoSend=false;if(S.listening&&!wasAuto){try{rec.start();return}catch(e){}}S.listening=false;micUI();if(wasAuto)flushSpeech()};
     try{rec.start();S.listening=true;micUI()}catch(e){}
@@ -717,7 +729,7 @@ function micClick(){
   }
 }
 function flushSpeech(){
-  S.listening=false;micUI();
+  clearTimeout(S.sil);S.listening=false;micUI();
   const t=(S.buf+' '+(S.partial||'')).trim();S.buf='';S.partial='';$('#txt').value='';
   if(t)doctorSays(t);else setStatus(L('Verbunden','Connected'));
 }
