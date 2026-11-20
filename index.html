@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FaMed Anamnese-Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm, clinical exam console – serious but encouraging
+   IDEA: a telemedicine consultation window, like the real FaMed video call
+   PICTURE: the patient on a webcam tile, mouth moving when they speak, timer above
+   COLOUR and TYPE: white + deep clinical teal, coral only for time running out; Inter Tight / Inter
+   LAYOUT: case list on the left, the call fills the rest; stacks on phones */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0d1416);--ink:light-dark(#11191b,#e6eeef);--mute:light-dark(#5b6b6e,#93a5a8);
+--panel:light-dark(#f1f6f6,#152124);--line:light-dark(#d8e3e3,#24353a);
+--teal:light-dark(#0b5d63,#57b6bc);--tealbg:light-dark(#0b5d63,#0f3a3e);--onteal:#f2fbfb;
+--coral:#e5533d;--ok:light-dark(#1f7a4d,#5cc98f);--mid:light-dark(#a86a00,#e2b04a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Inter Tight",Inter,sans-serif;line-height:1.08;text-wrap:balance;margin:0}
+button{font:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.app{display:grid;grid-template-columns:290px minmax(0,1fr);min-height:100vh}
+aside{background:var(--tealbg);color:var(--onteal);padding:22px 16px;display:flex;flex-direction:column;gap:14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{font:700 21px/1.1 "Inter Tight",sans-serif;padding:0 8px}
+.brand small{display:block;font:500 13px Inter;opacity:.75;margin-top:4px}
+.sec{font-size:13px;opacity:.7;margin:10px 8px 2px}
+.tbtn{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left}
+.tbtn:hover{background:rgba(255,255,255,.09)}.tbtn.on{background:rgba(255,255,255,.18)}
+.tnum{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.14);font:600 13px Inter}
+.tt{flex:1;font-size:15px;line-height:1.25}.tt small{display:block;opacity:.65;font-size:13px}
+.best{flex:none;font:600 13px Inter;padding:2px 7px;border-radius:20px;background:rgba(255,255,255,.16)}
+.rnd{border:1px solid rgba(255,255,255,.35);background:transparent;color:inherit;border-radius:10px;min-height:44px}
+.rnd:hover{background:rgba(255,255,255,.09)}
+.role{display:flex;gap:6px;padding:0 4px;margin-top:auto}
+.role button{flex:1;min-height:40px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit;font-size:14px}
+.role button.on{background:var(--onteal);color:var(--tealbg)}
+main{padding:clamp(18px,3vw,40px);max-width:1240px;width:100%}
+.lead{color:var(--mute);max-width:62ch}
+.btn{border:0;border-radius:10px;min-height:46px;padding:10px 20px;background:var(--teal);color:var(--bg);font-weight:600}
+.btn.ghost{background:transparent;color:var(--teal);border:1.5px solid var(--teal)}
+.btn.danger{background:var(--coral);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+/* home */
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0}
+.step{background:var(--panel);border-radius:14px;padding:18px}
+.step b{display:block;font:700 30px/1 "Inter Tight";color:var(--teal);margin-bottom:8px}
+.caps{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 24px}
+.cap{font-size:14px;padding:5px 12px;border-radius:20px;background:var(--panel);border:1px solid var(--line)}
+.cap.y::before{content:"● ";color:var(--ok)}.cap.n::before{content:"● ";color:var(--coral)}
+.fl{display:block;font-size:14px;font-weight:600;margin-top:10px}.fl input,.fl select{display:block;width:100%;margin-top:5px;min-height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);padding:8px 12px;font:16px Inter}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@media(max-width:600px){.two{grid-template-columns:minmax(0,1fr)}}
+.sm{min-height:38px;padding:6px 14px;font-size:14px;margin-top:10px}.trout{white-space:pre-line;font-size:15px;margin-top:8px;color:var(--ink);border-left:3px solid var(--teal);padding-left:10px}.trout:empty{display:none}
+.en{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:var(--bg);font-size:15px;color:var(--mute)}
+.hist{width:100%;border-collapse:collapse;font-size:15px}.hist td,.hist th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}.hist .r{text-align:right;white-space:nowrap}
+/* reading */
+.task{max-width:720px;margin:6vh auto 0;background:var(--panel);border-radius:18px;padding:clamp(22px,4vw,40px);border-top:6px solid var(--teal)}
+.count{font:700 clamp(54px,9vw,88px)/1 "Inter Tight";color:var(--teal);margin:18px 0 6px;font-variant-numeric:tabular-nums}
+/* call */
+.call{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px}
+.stage{position:relative;border-radius:18px;overflow:hidden;background:#1b2729;aspect-ratio:16/10;box-shadow:0 18px 40px -22px rgba(0,0,0,.5)}
+.stage svg.av{position:absolute;inset:0;width:100%;height:100%}
+.bar{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:linear-gradient(rgba(0,0,0,.55),transparent);color:#fff;font-size:14px}
+.rec::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--coral);margin-right:7px;vertical-align:1px}
+.timer{font:700 22px/1 "Inter Tight";font-variant-numeric:tabular-nums;background:rgba(0,0,0,.45);padding:7px 12px;border-radius:10px;color:#fff}
+.timer.low{background:var(--coral);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.7}}
+.self{position:absolute;right:14px;bottom:14px;width:22%;aspect-ratio:4/3;border-radius:10px;background:#2c3c3f;border:2px solid rgba(255,255,255,.25);display:grid;place-items:center;color:#cfe;font:600 14px Inter}
+.self.live{border-color:#7fe3a8}
+.cc{position:absolute;left:5%;right:28%;bottom:16px;color:#fff;font-size:17px;line-height:1.4;text-shadow:0 1px 3px #000}
+.cc span{background:rgba(0,0,0,.6);padding:3px 8px;border-radius:6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.status{position:absolute;left:14px;top:52px;color:#fff;font-size:13px;background:rgba(0,0,0,.45);padding:4px 10px;border-radius:20px}
+.controls{display:flex;gap:10px;align-items:stretch;margin-top:14px;flex-wrap:wrap}
+.mic{flex:none;width:64px;height:64px;border-radius:50%;border:0;background:var(--teal);color:var(--bg);display:grid;place-items:center}
+.mic.on{background:var(--coral);color:#fff;box-shadow:0 0 0 6px color-mix(in srgb,var(--coral) 30%,transparent)}
+.mic svg{width:26px;height:26px}
+.say{flex:1 1 260px;display:flex;gap:8px}
+.say textarea{flex:1;resize:none;min-height:64px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);padding:10px 12px;font:16px/1.4 Inter}
+.hint{font-size:13px;color:var(--mute);margin-top:8px}
+.side{display:flex;flex-direction:column;background:var(--panel);border-radius:16px;overflow:hidden;min-height:420px}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;min-height:46px;border:0;background:transparent;color:var(--mute);font-weight:600;font-size:15px}
+.tabs button.on{color:var(--teal);box-shadow:inset 0 -3px 0 var(--teal)}
+.pane{flex:1;display:none;padding:12px;overflow-y:auto;max-height:62vh}.pane.on{display:block}
+#notes{width:100%;height:100%;min-height:380px;border:0;background:transparent;color:var(--ink);font:15px/1.6 Inter;resize:none;background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% 24px;line-height:24px}
+.msg{margin:0 0 10px;font-size:15px}.msg b{display:block;font-size:13px;color:var(--mute)}
+.msg.doc b{color:var(--teal)}
+/* feedback */
+.fhead{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:center;margin-bottom:26px}
+.ring{width:150px;height:150px}
+.vd{display:inline-block;font-weight:600;padding:3px 12px;border-radius:20px;margin-bottom:10px;color:#fff}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.card{background:var(--panel);border-radius:14px;padding:18px 20px}
+.card h3{font-size:19px;margin-bottom:12px}
+.row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}.row:last-child{border:0}
+.chip{flex:none;font-size:13px;font-weight:600;padding:1px 9px;border-radius:12px;height:fit-content;color:#fff}
+.c-ok{background:var(--ok)}.c-teilweise{background:var(--mid)}.c-fehlt{background:var(--coral)}
+.fix{padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}.fix:last-child{border:0}
+.fix s{color:var(--coral)}.fix ins{text-decoration:none;color:var(--ok);font-weight:600;display:block}
+.fix small{color:var(--mute)}
+ul.clean{margin:0;padding-left:20px}ul.clean li{margin:4px 0}
+details{background:var(--panel);border-radius:14px;padding:14px 20px;margin-top:18px}
+summary{cursor:pointer;font-weight:600;min-height:28px}
+.spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--teal);animation:rot 1s linear infinite;margin:40px auto 14px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+/* avatar animation */
+.av .eyes{transform-box:fill-box;transform-origin:center;animation:blink 5.5s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+.av .head{transform-origin:240px 330px;animation:sway 7s ease-in-out infinite}
+@keyframes sway{50%{transform:rotate(1.2deg) translateY(1px)}}
+.av .m-open{opacity:0;transform-box:fill-box;transform-origin:center}
+.av.talking .m-open{opacity:1;animation:talk .17s infinite alternate}
+.av.talking .m-closed{opacity:0}
+@keyframes talk{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+@media(prefers-reduced-motion:reduce){.av .eyes,.av .head,.av.talking .m-open,.timer.low,.spin{animation:none}}
+@media(max-width:980px){.call{grid-template-columns:minmax(0,1fr)}.side{min-height:260px}.pane{max-height:40vh}#notes{min-height:220px}}
+@media(max-width:760px){
+ .app{grid-template-columns:minmax(0,1fr)}
+ aside{position:static;height:auto;padding:14px 12px;gap:8px}
+ #nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+ #nav .sec{display:none}
+ .tbtn{flex:none;width:auto;background:rgba(255,255,255,.08)}
+ .tt small,.best{display:none}
+ .role{margin-top:4px}
+ .steps,.grid2{grid-template-columns:minmax(0,1fr)}
+ .fhead{grid-template-columns:minmax(0,1fr)}
+ .cc{right:30%;bottom:10px;font-size:14px}
+ .self{width:24%;bottom:10px;right:10px}
+ .bar{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+ <div class="brand">FaMed Anamnese-Trainer<small>Videosprechstunde · 11 Minuten</small></div>
+ <div class="role lang" aria-label="Sprache / Language" style="margin:0"><button data-l="de">Deutsch</button><button data-l="en">English</button></div>
+ <button class="rnd" id="rand">Zufälliger Fall</button>
+ <nav id="nav" aria-label="Fälle"></nav>
+ <div class="role" aria-label="Ich bin"><button data-r="m">Arzt</button><button data-r="f">Ärztin</button></div>
+</aside>
+<main id="main"></main>
+</div>
+<script>
+const SECTIONS=[
+ {id:'krebs',name:'Krebs-Anamnese'},
+ {id:'neuro',name:'Neurologische Anamnese'},
+ {id:'unfall',name:'Unfall-Anamnese'},
+ {id:'hals',name:'Hals / Infekt / Fatigue'},
+ {id:'schmerz',name:'Schmerz-Anamnese'}
+];
+
+const TOPICS={
+ kolon:['Seit wann Bauchschmerzen?','Plötzlich oder schrittweise?','Lokalisation (zeigen lassen)','Ausstrahlung','Charakter (dumpf, drückend, krampfartig)','Schmerzskala 1–10','Verlauf (besser/schlechter)','Auslöser / was verstärkt oder lindert','Medikamente dagegen?','Übelkeit / Erbrechen, Aussehen des Erbrochenen','Stuhlgang: Verstopfung, Durchfall, Teerstuhl, Blut im Stuhl','Wasserlassen','Fieber, Schüttelfrost, Nachtschweiß','Appetit','Ungewollter Gewichtsverlust (6 Monate)','Schlaf','Frühere Darmspiegelung / Vorsorge'],
+ bronchial:['Seit wann Husten?','Plötzlich oder schrittweise?','Trocken oder mit Auswurf?','Auswurf: Farbe, Konsistenz','Blut im Auswurf: wie oft, wie viel','Heiserkeit / Stimmveränderung','Atemnot: wann (Belastung, Ruhe, nachts)','Brustschmerzen / Engegefühl + Schmerzanamnese','Kürzliche Atemwegsinfektion / COVID-Kontakt','Übelkeit','Schwindel, Müdigkeit, Leistungsschwäche','Fieber, Schüttelfrost, Nachtschweiß','Appetit','Ungewollter Gewichtsverlust','Stuhlgang / Wasserlassen','Berufliche Exposition (z. B. Asbest)'],
+ oesophagus:['Seit wann Schluckbeschwerden?','Plötzlich oder schrittweise?','Nur feste oder auch flüssige Nahrung?','Schmerzen beim Schlucken + Schmerzanamnese','Verlauf','Vermehrter Speichel','Hochkommen von Nahrung (Regurgitation)','Kloßgefühl / geschwollener Hals','Heiserkeit','Schmerzen hinter dem Brustbein','Nächtlicher trockener Husten','Sodbrennen / saures Aufstoßen','Blähungen / Völlegefühl','Übelkeit, Erbrechen, Aussehen','Stuhlgang (Teerstuhl, Blut)','Fieber, Nachtschweiß','Appetit / ungewollter Gewichtsverlust','Schlaf'],
+ migraene:['Lokalisation: einseitig, beidseitig, wie ein Band?','Seit wann?','Plötzlich oder schrittweise?','Charakter (pulsierend, drückend, stechend)','Schmerzskala 1–10','Ausstrahlung (Nacken, hinter die Augen)','Häufigkeit und Dauer der Attacken','Auslöser / was verstärkt oder lindert','Verschlimmerung durch körperliche Aktivität','Licht- / Lärmempfindlichkeit','Übelkeit / Erbrechen','Sehstörungen, Flimmern, Lichtblitze (Aura)','Augentränen / Augenrötung','Neurologische Symptome (Lähmung, Taubheit, Sprechen)','Fieber / Nackensteifigkeit','Kopfverletzung','Früher ähnliche Schmerzen?','Medikamente dagegen?'],
+ vertigo:['Seit wann Schwindel?','Dreh- oder Schwankschwindel?','Häufigkeit und Dauer der Episoden','Anfallsartig oder dauerhaft?','Auslöser: Lagewechsel, Kopfdrehen, Hinlegen','Übelkeit, Augenzittern, Sehstörungen','Hörminderung','Druckgefühl im Ohr','Ohrgeräusche: seit wann, ein-/beidseitig','Tinnitus: Lautstärke, Klang, pulsierend?','Verlauf des Tinnitus','Neurologische Symptome (Lähmung, Taubheit, Sprechen)','Kopfschmerzen','Angst-, Schlaf-, Konzentrationsstörungen'],
+ knie:['Unfallhergang (wann, wo, wie)','Sturz? Auf welche Seite?','Helm / angeschnallt?','Wie ins Krankenhaus / in die Praxis gekommen?','Kopfverletzung, Schwindel, Bewusstlosigkeit','Lokalisation im Knie (vorne, innen, außen, hinten)','Schmerzskala, Charakter, Ausstrahlung','Knie strecken / beugen möglich?','Belastung möglich / gehen?','Instabilitätsgefühl','Knacken oder Knirschen beim Unfall','Sichtbare Fehlstellung','Taubheit / Kribbeln im Bein oder Fuß','Schwellung, Rötung, Überwärmung (sofort oder später?)','Abschürfungen / andere Verletzungen','Frühere Verletzungen am Gelenk','Tetanusschutz (letzte 10 Jahre)'],
+ sprung:['Unfallhergang (wann, wo, wie)','Umgeknickt? Nach innen oder außen?','Sturz / Kopfverletzung, Schwindel, Bewusstlosigkeit','Wie in die Praxis gekommen?','Lokalisation, Schmerzskala, Charakter','Fuß bewegen möglich?','Auftreten / gehen möglich?','Instabilitätsgefühl','Knacken oder Knirschen','Fehlstellung','Taubheit / Kribbeln im Fuß','Schwellung, Rötung, Überwärmung (sofort oder später?)','Abschürfungen / andere Verletzungen','Frühere Verletzungen am Gelenk','Tetanusschutz (letzte 10 Jahre)'],
+ mandel:['Seit wann Beschwerden?','Aussehen der Mandeln (geschwollen, gerötet, Beläge)','Halsschmerzen + Schmerzanamnese (Skala, Ausstrahlung)','Schluckbeschwerden','Geschwollene Lymphknoten: schmerzhaft, beweglich, fest?','Kloßgefühl im Hals','Mundgeruch','Heiserkeit / Stimmveränderung','Früher ähnliche Beschwerden?','Fieber (gemessen?), Schüttelfrost, Nachtschweiß','Übelkeit / Erbrechen','Appetit / Gewicht','Kontakt zu Personen mit ähnlichen Symptomen'],
+ hals:['Seit wann Halsschmerzen?','Plötzlich oder schrittweise?','Lokalisation, Charakter, Skala, Ausstrahlung','Husten, Schluckbeschwerden, Kratzen','Geschwollene Lymphknoten','Heiserkeit','Fieber gemessen? Wie hoch?','Schüttelfrost, Nachtschweiß, Müdigkeit, Leistungsschwäche','Geruchs- / Geschmacksverlust','Atemnot','Übelkeit, Schwindel','Appetit / Gewicht','Kontakt zu Erkrankten / COVID','Große Menschenmengen','Impfstatus (COVID, Grippe)'],
+ fatigue:['Seit wann erschöpft?','Dauerhaft oder phasenweise?','Ausreichender und erholsamer Schlaf?','Häufige Infekte / chronische Erkrankungen','Psychische Belastung / Stress','Stimmung, Freudlosigkeit','Schwindel, Konzentrationsstörungen, Kurzatmigkeit','Herzklopfen, Herzstolpern, Herzfrequenz','Vermehrtes Schwitzen','Kälte- oder Wärmeempfindlichkeit','Haut, Haare, Nägel','Gewichtsveränderung / Appetit','Stuhlgang','Menstruation (Stärke, Dauer)','Ernährung'],
+ thorax:['Lokalisation (Mitte, links, rechts, seitlich)','Seit wann?','Plötzlich oder schrittweise?','Charakter (drückend, stechend, brennend)','Schmerzskala 1–10','Ausstrahlung (linker Arm, Kiefer, Rücken, Schulterblätter)','Belastung oder Ruhe? Besserung in Ruhe?','Abhängig von Atmung / Bewegung?','Brustkorbverletzung','Früher ähnliche Schmerzen?','Medikamente dagegen?','Herzrasen, Herzstolpern','Atemnot','Kaltschweiß','Geschwollene Beine','Husten, Auswurf','Übelkeit, Sodbrennen, Schwindel','Fieber, Nachtschweiß'],
+ bauch:['Seit wann Bauchschmerzen?','Plötzlich oder schrittweise?','Lokalisation (zeigen lassen)','Ausstrahlung (Schulter, Rücken)','Charakter (krampfartig, dumpf, stechend)','Schmerzskala 1–10','Verlauf','Auslöser (Essen, fettige Speisen)','Medikamente dagegen?','Übelkeit / Erbrechen, Aussehen des Erbrochenen','Stuhlgang: Farbe, Durchfall, Verstopfung, Blut','Urin: Farbe, Beschwerden','Fieber, Schüttelfrost','Gelbfärbung der Haut / Augen','Früher ähnliche Beschwerden?','Appetit / Gewicht'],
+ ruecken:['Lokalisation (Nacken, mittlerer, unterer Rücken)','Seit wann?','Plötzlich oder schrittweise?','Auslöser / Verletzung (Heben)','Charakter, Schmerzskala','Anfallsartig oder dauerhaft?','Ausstrahlung (Gesäß, Bein, Fuß)','Kribbeln / Taubheit im Bein','Schwäche in den Beinen / Gehschwierigkeiten','Verschlimmerung (Husten, Niesen, Sitzen) / Besserung (Liegen)','Früher ähnliche Schmerzen?','Medikamente dagegen?','Probleme beim Wasserlassen oder Stuhlgang','Taubheit im Genital- / Gesäßbereich','Nachtschmerzen','Fieber, Nachtschweiß, Gewichtsverlust']
+};
+
+const CLOSE={
+ standard:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich Ihr Herz und Ihre Lunge abhören und Ihren Bauch abtasten. Außerdem werde ich Ihnen ein bisschen Blut abnehmen, um wichtige Blutwerte zu kontrollieren. Sobald alle Ergebnisse vorliegen, halte ich Rücksprache mit meinem Oberarzt, komme wieder zu Ihnen und bespreche mit Ihnen das weitere Vorgehen.',
+ vertigo:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich insbesondere Ihre Ohren untersuchen, Ihr Gleichgewicht überprüfen und einige neurologische Tests durchführen. Zusätzlich werde ich auch Ihr Herz und Ihre Lunge abhören sowie Ihren Bauch abtasten, um ein umfassendes Bild zu erhalten.',
+ husten:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich Ihre Lunge und Ihr Herz abhören, Ihre Körpertemperatur messen, Ihre Sauerstoffsättigung kontrollieren und Ihren Bauch abtasten, um ein umfassendes Bild zu erhalten.',
+ mandel:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich mir vor allem Ihren Rachen und Ihre Mandeln genau anschauen und die Lymphknoten an Ihrem Hals abtasten. Zusätzlich werde ich auch Ihr Herz und Ihre Lunge abhören sowie Ihren Bauch abtasten, um ein umfassendes Bild zu erhalten.',
+ thorax:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich insbesondere Ihre Lunge und Ihr Herz abhören und Ihren Brustkorb genauer untersuchen. Zusätzlich werde ich auch Ihren Bauch sowie die Lymphknoten an Ihrem Hals und in den Achseln abtasten, um ein umfassendes Bild zu erhalten.',
+ bauch:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich Ihren Bauch sorgfältig abtasten, die Darmgeräusche abhören und gegebenenfalls auch eine rektale Untersuchung durchführen. Zusätzlich werde ich die Lymphknoten an Ihrem Hals, in den Achseln sowie in der Leistenregion abtasten, um ein umfassendes Bild zu erhalten.',
+ oesophagus:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich mir vor allem Ihren Rachen genau anschauen, Ihren Bauch sorgfältig abtasten und die Darmgeräusche abhören. Zusätzlich werde ich Ihr Herz und Ihre Lunge abhören sowie die Lymphknoten an Ihrem Hals, in den Achseln und in der Leistenregion abtasten, um ein umfassendes Bild zu erhalten.',
+ gelenk:'Anschließend werde ich eine körperliche Untersuchung durchführen. Zunächst werde ich die Durchblutung sowie die Nervenfunktion kontrollieren. Dabei werde ich das Knie bzw. Sprunggelenk abtasten, die Beweglichkeit prüfen und die Stabilität testen. Zusätzlich werde ich auch Ihr Herz und Ihre Lunge abhören sowie Ihren Bauch abtasten, um ein umfassendes Bild zu erhalten.',
+ ruecken:'Anschließend werde ich eine körperliche Untersuchung durchführen. Zunächst werde ich die Durchblutung sowie die Nervenfunktion kontrollieren. Dabei werde ich insbesondere Ihre Wirbelsäule untersuchen, die Beweglichkeit prüfen und schmerzhafte Punkte abtasten. Zusätzlich werde ich auch Ihr Herz und Ihre Lunge abhören sowie Ihren Bauch abtasten, um ein umfassendes Bild zu erhalten.',
+ migraene:'Anschließend werde ich eine körperliche Untersuchung durchführen. Dabei werde ich vor allem eine neurologische Untersuchung durchführen, Ihre Reflexe überprüfen sowie Ihre Augenbewegungen und Ihr Gleichgewicht testen. Zusätzlich werde ich auch Ihr Herz und Ihre Lunge abhören sowie Ihren Bauch abtasten, um ein umfassendes Bild zu erhalten.'
+};
+
+/* look: skin, hair colour, style (short|bald|long|bun|curly|ponytail), shirt, glasses, beard, age */
+const CASES=[
+{id:'kolon',sec:'krebs',topic:'kolon',close:'bauch',title:'Kolonkarzinom',dx:'V. a. Kolonkarzinom (B-Symptomatik, veränderte Stuhlgewohnheiten, Hämatochezie, positive Familienanamnese)',
+ name:'Klaus Becker',anrede:'Herr Becker',sex:'m',age:64,voice:'rounded',
+ look:{skin:'#e9c3a6',hair:'#a7a7a3',style:'short',shirt:'#5a6b7d',glasses:true,beard:false},
+ story:`Klaus Becker, 64 Jahre, geboren am 12.05.1962. 1,78 m, 84 kg (vor einem halben Jahr 91 kg). Hausarzt: Dr. Lange.
+HAUPTBESCHWERDE: Seit ca. 3 Monaten Bauchschmerzen im linken Unterbauch. Schleichend angefangen. Dumpf, manchmal krampfartig. Ca. 5 von 10. Keine Ausstrahlung. Schlimmer nach dem Essen, nach dem Stuhlgang kurz besser. Wird langsam schlimmer. Ibuprofen 400 mg ab und zu, hilft kaum.
+STUHLGANG: Seit ca. 3 Monaten Wechsel zwischen Verstopfung und Durchfall (früher ganz regelmäßig). In den letzten 4 Wochen zweimal Blut im Stuhl gesehen, dunkelrot, auf dem Stuhl. Stuhl manchmal ganz dünn, "wie ein Bleistift". Kein schwarzer Stuhl.
+VEGETATIV: Leichte Übelkeit, kein Erbrechen. Appetit deutlich weniger. 7 kg ungewollt abgenommen in 6 Monaten. Manchmal nachts verschwitzt. Kein Fieber. Sehr müde, schlapp. Schläft schlecht, weil er sich Sorgen macht. Wasserlassen normal. Kein Schwindel.
+DARMSPIEGELUNG: Noch nie gemacht, "hatte Angst davor".
+VORERKRANKUNGEN: Bluthochdruck seit 10 Jahren. Diabetes Typ 2 seit 5 Jahren.
+OPERATIONEN: Blinddarm-OP mit 20. Leistenbruch-OP rechts 2015, ohne Komplikationen.
+MEDIKAMENTE: Ramipril 5 mg morgens, Metformin 1000 mg morgens und abends.
+ALLERGIEN: Penicillin (Hautausschlag).
+IMPFUNGEN: Weiß nicht genau, Impfpass nicht dabei.
+NOXEN: Raucht seit 40 Jahren ca. 20 Zigaretten am Tag. Trinkt jeden Abend 2–3 Flaschen Bier. Keine Drogen.
+FAMILIE: Vater mit 70 an Darmkrebs gestorben. Mutter lebt, 88, Herzschwäche. Ein Bruder, gesund.
+SOZIAL: Verheiratet, 2 erwachsene Kinder (gesund). Wohnt mit Ehefrau im eigenen Haus in Kassel. LKW-Fahrer, geht nächstes Jahr in Rente.
+PSYCHE: Macht sich große Sorgen wegen seines Vaters.`,
+ cues:`1) Sobald es um das Blut im Stuhl oder die Familie geht, sagst du besorgt: "Mein Vater hatte Darmkrebs... Habe ich das jetzt auch?"
+2) Wenn der Arzt nach dem Rauchen fragt und es kritisiert, sagst du etwas genervt, dass du es schon oft versucht hast aufzuhören.
+3) Am Ende fragst du: "Muss ich jetzt eine Darmspiegelung machen? Tut das weh?"`},
+
+{id:'bronchial',sec:'krebs',topic:'bronchial',close:'thorax',title:'Bronchialkarzinom',dx:'V. a. Bronchialkarzinom (Hämoptysen, Heiserkeit, B-Symptomatik, starke Raucherin, Asbestexposition)',
+ name:'Monika Schulz',anrede:'Frau Schulz',sex:'f',age:61,voice:'glassy',
+ look:{skin:'#efcfb6',hair:'#8a6a4e',style:'bun',shirt:'#7a4e63',glasses:false,beard:false},
+ story:`Monika Schulz, 61 Jahre, geboren am 03.09.1965. 1,65 m, 58 kg (vor 6 Monaten 64 kg).
+HAUPTBESCHWERDE: Husten seit ca. 2 Monaten, schleichend. Anfangs trocken, jetzt mit Auswurf: weißlich-gelblich, zäh. Seit 2 Wochen 2–3 Mal morgens Blutfäden im Auswurf (kleine Menge, hellrot). Husten wird schlimmer, besonders morgens. Kein bestimmter Auslöser.
+STIMME: Seit ca. 3 Wochen heiser.
+ATMUNG: Atemnot bei Belastung, z. B. nach 2 Stockwerken muss sie stehen bleiben. In Ruhe nicht. Nachts manchmal Husten.
+SCHMERZ: Dumpfe Schmerzen rechte Brustseite, 4 von 10, beim Husten stärker, keine Ausstrahlung.
+INFEKT: Keine bekannte Erkältung vorher, kein COVID-Kontakt.
+VEGETATIV: Nachtschweiß fast jede Nacht (muss T-Shirt wechseln). Temperatur manchmal 37,8 °C. 6 kg ungewollt abgenommen in 6 Monaten. Appetit weniger. Müde und schlapp. Keine Übelkeit. Stuhlgang und Wasserlassen normal. Schläft wegen Husten schlecht.
+GYN: Keine Periode mehr seit Gebärmutterentfernung 2010.
+VORERKRANKUNGEN: COPD seit 5 Jahren. Schilddrüsenunterfunktion.
+OPERATIONEN: Gebärmutterentfernung 2010 wegen Myomen.
+MEDIKAMENTE: Spiriva-Spray 1x täglich, Salbutamol-Spray bei Bedarf (jetzt öfter, 3–4 Mal am Tag), L-Thyroxin 75 µg morgens.
+ALLERGIEN: Hausstaub (Schnupfen). Keine Medikamentenallergie.
+IMPFUNGEN: Grippe jedes Jahr, COVID 3x.
+NOXEN: Raucht seit 40 Jahren 1 Schachtel (20 Zigaretten) am Tag. Alkohol: ab und zu ein Glas Wein. Keine Drogen.
+FAMILIE: Bruder mit 65 an Lungenkrebs gestorben. Vater an Herzinfarkt verstorben. Mutter lebt, Diabetes.
+SOZIAL: Verwitwet seit 3 Jahren. Eine Tochter (gesund). Lebt allein in einer Wohnung in Hannover. Hat 25 Jahre in einer Firma für Dämmung und Isolierung gearbeitet (auch mit alten Asbestplatten), jetzt in Frührente.`,
+ cues:`1) Wenn es um das Blut im Auswurf geht, sagst du ängstlich: "Mein Bruder hatte auch Blut beim Husten, und dann war es Lungenkrebs. Habe ich Krebs, Herr Doktor?"
+2) Beim Thema Rauchen sagst du: "Ich weiß, ich weiß... Aber ich schaffe es einfach nicht aufzuhören."
+3) Mitten im Gespräch sagst du einmal, dass du gerade schlecht Luft bekommst (nur leicht).
+4) Am Ende fragst du: "Muss ich ins Krankenhaus?"`},
+
+{id:'oesophagus',sec:'krebs',topic:'oesophagus',close:'oesophagus',title:'Ösophaguskarzinom',dx:'V. a. Ösophaguskarzinom (progrediente Dysphagie fest → breiig, Gewichtsverlust, langjähriger Reflux, Nikotin- und Alkoholabusus)',
+ name:'Dieter Wagner',anrede:'Herr Wagner',sex:'m',age:67,voice:'buttery',
+ look:{skin:'#e3b796',hair:'#cfcfcf',style:'bald',shirt:'#6b7d4a',glasses:false,beard:true},
+ story:`Dieter Wagner, 67 Jahre, geboren am 21.01.1959. 1,75 m, 68 kg (vor 4 Monaten 78 kg).
+HAUPTBESCHWERDE: Seit ca. 3 Monaten Probleme beim Schlucken. Schrittweise angefangen. Zuerst nur bei fester Nahrung (Fleisch, Brot), jetzt auch bei Brei. Getränke gehen noch. Gefühl, dass das Essen hinter dem Brustbein stecken bleibt. Wird immer schlimmer. Isst fast nur noch Suppe.
+SCHMERZ: Beim Schlucken brennende Schmerzen hinter dem Brustbein, 5 von 10, keine Ausstrahlung.
+WEITERE: Unverdautes Essen kommt manchmal wieder hoch. Mehr Speichel im Mund. Leicht heiser seit ein paar Wochen. Nachts trockener Husten im Liegen. Sodbrennen und saures Aufstoßen seit über 10 Jahren. Kein Kloßgefühl, Hals nicht geschwollen. Kein Völlegefühl.
+VEGETATIV: 10 kg ungewollt abgenommen in 4 Monaten. Appetit eigentlich da, aber Angst vor dem Essen. Müde, schwach. Keine Übelkeit, kein Erbrechen. Stuhlgang normal, kein schwarzer Stuhl. Wasserlassen normal. Kein Fieber, kein Nachtschweiß. Schläft unruhig wegen Husten.
+VORERKRANKUNGEN: Refluxkrankheit seit Jahren. Gicht.
+OPERATIONEN: Künstliches Kniegelenk links 2019, ohne Komplikationen.
+MEDIKAMENTE: Pantoprazol 40 mg (nimmt es nur unregelmäßig, "wenn es brennt"), Allopurinol 300 mg täglich.
+ALLERGIEN: Keine bekannt.
+IMPFUNGEN: Grippe-Impfung letztes Jahr, sonst weiß er es nicht.
+NOXEN: Raucht seit 45 Jahren ca. 15 Zigaretten am Tag. Trinkt täglich 2 Schnäpse und 2 Bier. Keine Drogen.
+FAMILIE: Mutter an Magenkrebs gestorben (mit 72). Vater an Schlaganfall gestorben.
+SOZIAL: Geschieden, lebt allein in Dortmund. Ein Sohn, gesund, wohnt weit weg. Rentner, war Metzger.`,
+ cues:`1) Wenn du von den Schluckbeschwerden erzählst, sagst du verzweifelt: "Ich kann kaum noch was essen, Herr Doktor. Ich hab Angst, dass ich verhungere."
+2) Beim Alkohol spielst du es erst herunter ("nur ein bisschen") und gibst erst auf genaue Nachfrage die Menge zu.
+3) Am Ende fragst du: "Muss ich jetzt einen Schlauch schlucken? Eine Magenspiegelung?"`},
+
+{id:'migraene',sec:'neuro',topic:'migraene',close:'migraene',title:'Migräne',dx:'Migräne mit Aura (einseitig, pulsierend, Photo-/Phonophobie, Flimmerskotom) – cave: orale Kontrazeption bei Migräne mit Aura',
+ name:'Julia Hoffmann',anrede:'Frau Hoffmann',sex:'f',age:29,voice:'airy',
+ look:{skin:'#f1d2bd',hair:'#3b2a20',style:'long',shirt:'#3c7a74',glasses:false,beard:false},
+ story:`Julia Hoffmann, 29 Jahre, geboren am 17.06.1997. 1,70 m, 60 kg.
+HAUPTBESCHWERDE: Seit 2 Tagen starke Kopfschmerzen auf der linken Seite, hinter dem linken Auge bis zur Schläfe. Pulsierend, "wie ein Hämmern". 8 von 10. Langsam stärker geworden (nicht schlagartig). Schlimmer bei Bewegung, z. B. Treppensteigen. Im dunklen Zimmer etwas besser.
+VORGESCHICHTE: Hat seit 3 Jahren solche Attacken, 2–3 Mal im Monat, dauern sonst 1 Tag. Diesmal stärker und länger.
+AURA: Vor den Schmerzen ca. 20 Minuten Flimmern und Zickzack-Linien vor den Augen.
+BEGLEITEND: Licht- und Lärmempfindlich. Übelkeit, zweimal erbrochen (Essensreste). Keine Lähmungen, kein Taubheitsgefühl, Sprechen normal. Kein Fieber, Nacken nicht steif. Keine Kopfverletzung. Augen nicht rot, kein Tränen.
+AUSLÖSER: Stress, wenig Schlaf, Periode, Rotwein.
+MEDIKAMENTE DAGEGEN: Ibuprofen 400 mg, gestern 3 Tabletten, hat nicht geholfen.
+VEGETATIV: Appetit wenig wegen Übelkeit. Gewicht stabil. Stuhl, Wasserlassen normal. Schläft schlecht wegen Stress.
+GYN: Periode hat vor 3 Tagen angefangen, regelmäßig. Nimmt die Pille (seit 8 Jahren). Keine Schwangerschaft möglich.
+VORERKRANKUNGEN: Asthma als Kind, jetzt keine Beschwerden.
+OPERATIONEN: Keine. Weisheitszähne gezogen.
+MEDIKAMENTE: Pille, sonst nichts.
+ALLERGIEN: Pollen (Heuschnupfen). Keine Medikamentenallergie.
+IMPFUNGEN: Alles aktuell.
+NOXEN: Nichtraucherin. Am Wochenende 1–2 Gläser Wein. Keine Drogen.
+FAMILIE: Mutter hat auch Migräne. Vater Bluthochdruck.
+SOZIAL: Ledig, hat einen Freund, wohnt mit ihm in Köln. Grundschullehrerin, gerade viel Stress (Zeugnisse).`,
+ cues:`1) Gleich am Anfang, wenn es um die Schmerzen geht, sagst du: "Ich habe wirklich starke Schmerzen. Können Sie mir bitte etwas geben?"
+2) Später fragst du ängstlich: "Kann das ein Hirntumor sein? Meine Kollegin hat sowas gesagt."
+3) Wenn der Arzt nach Medikamenten fragt, erwähnst du die Pille nur, wenn er ausdrücklich nach Verhütung oder allen Medikamenten fragt.`},
+
+{id:'vertigo',sec:'neuro',topic:'vertigo',close:'vertigo',title:'Vertigo / Tinnitus',dx:'V. a. Morbus Menière (rezidivierender Drehschwindel über Stunden, einseitiger Tinnitus, Hörminderung, Ohrdruck rechts)',
+ name:'Andreas Krüger',anrede:'Herr Krüger',sex:'m',age:52,voice:'rounded',
+ look:{skin:'#dcae8c',hair:'#4a3a2e',style:'short',shirt:'#2f4f6e',glasses:false,beard:false},
+ story:`Andreas Krüger, 52 Jahre, geboren am 08.11.1973. 1,82 m, 90 kg.
+HAUPTBESCHWERDE: Seit ca. 2 Monaten Schwindelattacken, insgesamt 4 Mal. Letzte Attacke heute Morgen. Alles dreht sich (Drehschwindel). Kommt plötzlich, dauert jeweils 2–3 Stunden. Nicht abhängig von Kopfbewegung oder Lage. Muss sich dann hinlegen.
+BEGLEITEND: Bei den Attacken starke Übelkeit, heute 2x erbrochen. Augenzittern hat seine Frau einmal gesehen. Sehen sonst normal.
+OHR: Rauschen im rechten Ohr, tief, wie ein Wasserfall, seit ca. 2 Monaten, vor und während der Attacken lauter. Druckgefühl im rechten Ohr. Hört rechts schlechter, auch zwischen den Attacken. Nicht pulsierend. Wird langsam schlimmer.
+NEURO: Keine Lähmungen, kein Taubheitsgefühl, Sprechen normal. Keine Kopfschmerzen.
+VEGETATIV: Appetit normal, Gewicht stabil, kein Fieber. Stuhl und Wasserlassen normal. Schläft schlecht wegen dem Rauschen. Konzentration schlechter. Angst vor der nächsten Attacke.
+VORERKRANKUNGEN: Erhöhte Cholesterinwerte. Bandscheibenvorfall LWS 2018 (ohne OP behandelt).
+OPERATIONEN: Mandeln als Kind entfernt.
+MEDIKAMENTE: Simvastatin 20 mg abends. Heute Vomex gegen Übelkeit selbst genommen.
+ALLERGIEN: Erdnüsse (Schwellung im Mund).
+IMPFUNGEN: Aktuell, Tetanus vor 4 Jahren.
+NOXEN: Ex-Raucher (10 Jahre geraucht, 10 Zigaretten am Tag, vor 15 Jahren aufgehört). Am Wochenende 2 Bier. Trinkt ca. 5 Tassen Kaffee am Tag. Keine Drogen.
+FAMILIE: Vater mit 75 Schlaganfall, lebt noch. Mutter Diabetes.
+SOZIAL: Verheiratet, 3 Kinder (gesund). Wohnt in Bremen. Busfahrer im Linienverkehr.`,
+ cues:`1) Im Gespräch sagst du einmal: "Mir ist gerade wieder ein bisschen übel."
+2) Wenn es um die Arbeit geht, fragst du besorgt: "Darf ich noch Bus fahren? Ich kann nicht einfach aufhören zu arbeiten."
+3) Am Ende fragst du: "Werde ich taub auf dem Ohr?"`},
+
+{id:'knie',sec:'unfall',topic:'knie',close:'gelenk',title:'Knieverletzung',dx:'V. a. vordere Kreuzbandruptur rechts (Drehtrauma, Knacken, sofortige Schwellung, Instabilität), DD Meniskusläsion',
+ name:'Lukas Meier',anrede:'Herr Meier',sex:'m',age:24,voice:'buttery',
+ look:{skin:'#f0cdb2',hair:'#c79a5a',style:'curly',shirt:'#c0453a',glasses:false,beard:false},
+ story:`Lukas Meier, 24 Jahre, geboren am 02.04.2002. 1,85 m, 78 kg.
+UNFALL: Gestern Abend gegen 20 Uhr beim Fußballspielen im Verein. Beim schnellen Richtungswechsel hat sich das rechte Knie verdreht, Fuß blieb im Rasen stecken. Ist hingefallen, auf die rechte Seite. Kein Kontakt mit Gegenspieler. Hat ein lautes Knacken im Knie gehört. Kein Helm (Fußball). Kopf nicht angeschlagen, nicht schwindelig, nicht ohnmächtig. Ein Freund hat ihn heute mit dem Auto gebracht.
+SCHMERZ: Rechtes Knie, eher innen und vorne. Stechend, 7 von 10, beim Gehen stärker. Keine Ausstrahlung.
+BEFUND (Patient): Knie sofort dick geworden (innerhalb einer Stunde). Warm, leicht rot. Kann das Knie nicht ganz strecken und nicht ganz beugen. Kann nur kurz und humpelnd auftreten. Gefühl, dass das Knie wegknickt / nachgibt. Keine Fehlstellung gesehen. Kein Kribbeln, kein Taubheitsgefühl im Fuß. Kleine Schürfwunde am rechten Knie.
+MASSNAHMEN: Gekühlt, Bein hochgelegt. Ibuprofen 600 mg einmal gestern Abend, hat etwas geholfen.
+FRÜHER: 2020 linkes Sprunggelenk verstaucht. Rechtes Knie bisher nie verletzt.
+TETANUS: Weiß nicht, letzte Impfung wahrscheinlich als Kind/Jugendlicher.
+VEGETATIV: Alles normal, kein Fieber.
+VORERKRANKUNGEN: Keine. OPERATIONEN: Keine.
+MEDIKAMENTE: Keine regelmäßig.
+ALLERGIEN: Pflaster (juckender Ausschlag).
+NOXEN: Raucht nur auf Partys ein paar Zigaretten. Am Wochenende Alkohol, 4–5 Bier. Ab und zu Cannabis (gibt er nur zögerlich zu).
+FAMILIE: Mutter Rheuma, Vater gesund.
+SOZIAL: Ledig, wohnt in einer WG in Stuttgart. Studiert Maschinenbau, jobbt als Kellner.`,
+ cues:`1) Wenn der Arzt nach den Schmerzen fragt, sagst du: "Es tut echt weh, vor allem wenn ich auftrete."
+2) Später fragst du: "Wann kann ich wieder Fußball spielen? Wir haben in zwei Wochen ein wichtiges Spiel."
+3) Am Ende fragst du: "Muss ich operiert werden?"`},
+
+{id:'knieluxation',sec:'unfall',topic:'knie',close:'gelenk',title:'Knieluxation (Patella)',dx:'Rezidivierende laterale Patellaluxation links mit spontaner Reposition',
+ name:'Sarah Klein',anrede:'Frau Klein',sex:'f',age:19,voice:'airy',
+ look:{skin:'#f3d6c3',hair:'#1f1a17',style:'ponytail',shirt:'#6a5acd',glasses:false,beard:false},
+ story:`Sarah Klein, 19 Jahre, geboren am 25.10.2007. 1,68 m, 55 kg.
+UNFALL: Heute Vormittag im Tanztraining (Hip-Hop). Bei einer schnellen Drehung auf dem linken Bein ist die Kniescheibe "nach außen gesprungen". Das Knie sah ganz komisch aus, die Kniescheibe stand seitlich. Ist nicht hingefallen, hat sich hingesetzt. Als sie das Bein gestreckt hat, ist die Kniescheibe von selbst wieder zurückgesprungen. Kopf nicht verletzt, kein Schwindel, nicht ohnmächtig. Die Trainerin hat sie mit dem Auto gebracht.
+SCHMERZ: Linkes Knie, vorne und innen an der Kniescheibe. Drückend-stechend, 6 von 10. Keine Ausstrahlung.
+BEFUND (Patient): Knie geschwollen (direkt danach). Fühlt sich instabil an, hat Angst, es zu belasten. Kann es beugen, aber mit Schmerzen. Kann humpelnd gehen. Kein Knacken gehört, eher ein "Wegrutschen". Kein Kribbeln, keine Taubheit im Fuß. Keine Schürfwunden.
+FRÜHER: Vor 2 Jahren schon einmal das Gleiche beim Sport, gleiche Seite. Damals Schiene getragen.
+TETANUS: Vor 3 Jahren aufgefrischt.
+MEDIKAMENTE DAGEGEN: Noch nichts, nur gekühlt.
+VEGETATIV: Unauffällig.
+GYN: Letzte Periode vor 2 Wochen, regelmäßig, nimmt die Pille. Schwangerschaft nicht möglich.
+VORERKRANKUNGEN: Keine. OPERATIONEN: Keine.
+MEDIKAMENTE: Pille.
+ALLERGIEN: Nickel (Ausschlag bei Schmuck).
+NOXEN: Nichtraucherin, kaum Alkohol, keine Drogen.
+FAMILIE: Mutter Schilddrüsenunterfunktion. Vater gesund.
+SOZIAL: Ledig, wohnt bei den Eltern in Leipzig. Macht gerade Abitur. Tanzt 4 Mal pro Woche.`,
+ cues:`1) Wenn der Arzt von Röntgen oder Untersuchungen spricht, fragst du: "Ist Röntgen nicht gefährlich? Die Strahlung?"
+2) Wenn es um Schmerzen geht, sagst du, dass du es noch aushalten kannst, aber gerne etwas hättest.
+3) Am Ende fragst du: "Muss ich im Krankenhaus bleiben? Ich habe nächste Woche Abiprüfung."`},
+
+{id:'sprung',sec:'unfall',topic:'sprung',close:'gelenk',title:'Sprunggelenkverletzung',dx:'Supinationstrauma rechts, V. a. Außenbandverletzung, DD Fraktur (Knacken, kaum belastbar) – Tetanus auffrischen, ASS-/NSAR-Unverträglichkeit beachten',
+ name:'Andrea Schneider',anrede:'Frau Schneider',sex:'f',age:45,voice:'glassy',
+ look:{skin:'#e8bf9f',hair:'#9c4a2a',style:'long',shirt:'#2f6f8f',glasses:true,beard:false},
+ story:`Andrea Schneider, 45 Jahre, geboren am 14.02.1981. 1,64 m, 70 kg.
+UNFALL: Heute Morgen gegen 7:30 Uhr auf der nassen Treppe vor der Bäckerei umgeknickt, rechter Fuß nach innen umgeknickt (Fuß nach innen, Knöchel nach außen). Ist dann gestürzt, auf das linke Knie gefallen. Kopf nicht angeschlagen, nicht schwindelig, nicht ohnmächtig. Ehemann hat sie mit dem Auto gebracht.
+SCHMERZ: Rechts außen am Knöchel. Stechend, 7 von 10, beim Auftreten 9. Keine Ausstrahlung.
+BEFUND (Patient): Hat ein Knacken gehört. Knöchel sofort geschwollen, blauer Fleck, warm. Kann den Fuß nur wenig bewegen, kann kaum auftreten. Keine Fehlstellung gesehen. Kein Kribbeln, keine Taubheit. Schürfwunde am linken Knie.
+FRÜHER: Ist rechts schon öfter umgeknickt, aber nie so schlimm.
+TETANUS: Letzte Impfung vor ca. 12 Jahren.
+MEDIKAMENTE DAGEGEN: Noch nichts genommen, weil sie Aspirin/Ibuprofen nicht verträgt.
+VEGETATIV: Unauffällig.
+GYN: Periode unregelmäßig, letzte vor 2 Wochen. Schwangerschaft unwahrscheinlich (Mann sterilisiert).
+VORERKRANKUNGEN: Schilddrüsenunterfunktion. Asthma (leicht).
+OPERATIONEN: Kaiserschnitt 2010.
+MEDIKAMENTE: L-Thyroxin 50 µg morgens. Asthmaspray bei Bedarf.
+ALLERGIEN/UNVERTRÄGLICHKEIT: Nach Aspirin und Ibuprofen bekommt sie Atemnot (Asthmaanfall).
+IMPFUNGEN: Siehe Tetanus, sonst Kinderimpfungen.
+NOXEN: Raucht 5 Zigaretten am Tag seit 20 Jahren. Alkohol selten. Keine Drogen.
+FAMILIE: Mutter Osteoporose, Vater Diabetes.
+SOZIAL: Verheiratet, 2 Kinder (14 und 16). Wohnt in Nürnberg. Verkäuferin im Supermarkt, steht den ganzen Tag.`,
+ cues:`1) Früh im Gespräch sagst du: "Ich habe starke Schmerzen, Frau Doktor/Herr Doktor. Können Sie mir etwas geben?"
+2) Wenn der Arzt dir ein Schmerzmittel anbietet und nicht nach Unverträglichkeiten fragt, erwähnst du es nicht von dir aus.
+3) Am Ende fragst du: "Wie lange werde ich krankgeschrieben? Ich muss arbeiten."`},
+
+{id:'mandel',sec:'hals',topic:'mandel',close:'mandel',title:'Mandelentzündung',dx:'V. a. bakterielle Tonsillitis (hohes Fieber, Beläge, schmerzhafte Lymphknoten, kein Husten) – Amoxicillin-Unverträglichkeit beachten',
+ name:'Laura Fischer',anrede:'Frau Fischer',sex:'f',age:22,voice:'airy',
+ look:{skin:'#f4dccb',hair:'#d8b46a',style:'long',shirt:'#d98c4f',glasses:false,beard:false},
+ story:`Laura Fischer, 22 Jahre, geboren am 30.07.2004. 1,72 m, 62 kg.
+HAUPTBESCHWERDE: Seit 3 Tagen starke Halsschmerzen, ganz plötzlich angefangen. Beidseits. Brennend-stechend, 7 von 10, beim Schlucken 9. Strahlt in beide Ohren aus. Wird schlimmer.
+MANDELN: Hat im Spiegel gesehen: Mandeln stark geschwollen, rot, mit weißen Punkten/Belägen.
+WEITERE: Starke Schluckbeschwerden, kann kaum essen, nur trinken. Lymphknoten am Hals dick, schmerzhaft, verschiebbar. Kloßgefühl, Stimme klingt "kloßig". Mundgeruch. Kein Husten, kein Schnupfen.
+FIEBER: Gestern Abend 39,2 °C gemessen. Schüttelfrost. Nachts verschwitzt. Sehr müde und schlapp.
+VEGETATIV: Appetit kaum, isst wenig wegen Schmerzen. Keine Übelkeit. Stuhl und Wasserlassen normal. Schläft schlecht.
+KONTAKT: Mitbewohnerin hatte letzte Woche ähnliche Beschwerden.
+FRÜHER: Letztes Jahr dreimal Mandelentzündung, jeweils mit Antibiotika behandelt.
+MEDIKAMENTE DAGEGEN: Paracetamol 500 mg, hilft nur kurz.
+GYN: Letzte Periode vor 1 Woche, regelmäßig, Pille. Keine Schwangerschaft.
+VORERKRANKUNGEN: Keine. OPERATIONEN: Keine.
+MEDIKAMENTE: Pille.
+ALLERGIEN: Amoxicillin (Hautausschlag am ganzen Körper vor 2 Jahren).
+IMPFUNGEN: Vollständig.
+NOXEN: Nichtraucherin. Alkohol selten auf Partys. Keine Drogen.
+FAMILIE: Vater Diabetes, Mutter gesund.
+SOZIAL: Ledig, WG in Münster, studiert Pharmazie.`,
+ cues:`1) Wenn es um Behandlung geht, fragst du: "Brauche ich Antibiotika? Ich hatte mal einen Ausschlag davon."
+2) Später fragst du: "Muss man mir die Mandeln rausnehmen? Das ist ja schon das vierte Mal."
+3) Du sprichst etwas mühsam, weil das Schlucken weh tut, und sagst einmal: "Entschuldigung, das Sprechen tut weh."`},
+
+{id:'covid',sec:'hals',topic:'hals',close:'husten',title:'Halsschmerzen / Fatigue / COVID',dx:'V. a. COVID-19 (Kontakt zu positivem Kollegen, Fieber, Geruchs-/Geschmacksverlust, Fatigue) bei Asthma und Adipositas',
+ name:'Stefan Braun',anrede:'Herr Braun',sex:'m',age:38,voice:'buttery',
+ look:{skin:'#c99772',hair:'#2a211b',style:'short',shirt:'#4b5563',glasses:true,beard:true},
+ story:`Stefan Braun, 38 Jahre, geboren am 05.12.1987. 1,80 m, 98 kg.
+HAUPTBESCHWERDE: Seit 4 Tagen Halsschmerzen, eher kratzend, 4 von 10, schrittweise angefangen, keine Ausstrahlung. Dazu trockener Husten.
+WEITERE: Fieber bis 38,5 °C (gemessen). Gliederschmerzen, Kopfschmerzen. Extrem müde und abgeschlagen, liegt nur auf dem Sofa. Seit gestern riecht und schmeckt er fast nichts mehr. Leichte Atemnot beim Treppensteigen (sonst nicht). Keine Lymphknotenschwellung bemerkt. Keine Heiserkeit.
+VEGETATIV: Schüttelfrost am ersten Tag. Nachts verschwitzt. Appetit weniger. Gewicht stabil. Leichte Übelkeit, kein Erbrechen. Stuhl leicht weich, Wasserlassen normal. Schläft viel, aber nicht erholsam.
+KONTAKT: Ein Kollege aus dem Großraumbüro wurde letzte Woche positiv auf Corona getestet. War vor 6 Tagen auf einem Konzert. Hat keinen Schnelltest gemacht.
+VORERKRANKUNGEN: Asthma bronchiale seit der Jugend. Übergewicht.
+OPERATIONEN: Meniskus-OP rechts 2016.
+MEDIKAMENTE: Salbutamol-Spray bei Bedarf (in den letzten Tagen 2–3 Mal am Tag). Paracetamol 1000 mg gegen Fieber.
+ALLERGIEN: Katzenhaare. Keine Medikamentenallergie.
+IMPFUNGEN: COVID 3x, letzte 2022. Keine Grippeimpfung.
+NOXEN: Raucht E-Zigarette seit 3 Jahren (früher normale Zigaretten, 10 am Tag, 10 Jahre). Alkohol selten. Keine Drogen.
+FAMILIE: Mutter Bluthochdruck, Vater gesund.
+SOZIAL: Verheiratet, Ehefrau ist in der 20. Woche schwanger. Wohnt in Frankfurt. IT-Berater, Großraumbüro.`,
+ cues:`1) Wenn es um Kontakte oder Ansteckung geht, fragst du besorgt: "Meine Frau ist schwanger. Kann ich sie anstecken? Ist das gefährlich für das Baby?"
+2) Du sagst einmal, dass du dich extrem schlapp fühlst und eigentlich nur schlafen willst.
+3) Am Ende fragst du: "Wie lange muss ich zu Hause bleiben?"`},
+
+{id:'fatigue',sec:'hals',topic:'fatigue',close:'standard',title:'Chronische Fatigue',dx:'V. a. Eisenmangelanämie (Hypermenorrhoe, vegetarisch) und/oder Hypothyreose (Kälteintoleranz, Gewichtszunahme, Obstipation, trockene Haut, FA Hashimoto); DD Depression',
+ name:'Sabine Wolf',anrede:'Frau Wolf',sex:'f',age:48,voice:'glassy',
+ look:{skin:'#efd2bf',hair:'#6b4b34',style:'bun',shirt:'#8a7a5a',glasses:true,beard:false},
+ story:`Sabine Wolf, 48 Jahre, geboren am 19.08.1978. 1,66 m, 72 kg (vor 4 Monaten 68 kg).
+HAUPTBESCHWERDE: Seit ca. 4 Monaten immer müder und erschöpft, dauerhaft, nicht nur phasenweise. Schläft 9 Stunden, wacht trotzdem müde auf. Schafft die Arbeit kaum.
+WEITERE: Konzentrationsprobleme, vergisst Dinge. Kurzatmig bei Belastung (Treppen). Manchmal Herzklopfen. Schwindel beim schnellen Aufstehen. Friert ständig, auch wenn andere es warm finden. Trockene Haut, Haare fallen mehr aus. Brüchige Nägel.
+VEGETATIV: Appetit eher weniger, trotzdem 4 kg zugenommen. Verstopfung (nur alle 3 Tage Stuhlgang). Wasserlassen normal. Kein Fieber, kein Nachtschweiß, eher wenig Schwitzen.
+GYN: Periode alle 24 Tage, 7 Tage lang, sehr stark (muss nachts aufstehen zum Wechseln). Letzte Periode vor 10 Tagen. Keine Schwangerschaft möglich (Spirale).
+PSYCHE: Viel Stress: pflegt ihre demente Mutter. Stimmung "gedrückt", weint manchmal. Keine Suizidgedanken.
+ERNÄHRUNG: Vegetarierin seit 5 Jahren.
+VORERKRANKUNGEN: Eisenmangel vor 10 Jahren.
+OPERATIONEN: Kaiserschnitt 2005.
+MEDIKAMENTE: Johanniskraut aus der Apotheke (selbst gekauft, seit 2 Monaten), Vitamin D. Hormonspirale.
+ALLERGIEN: Erdbeeren (Juckreiz). Keine Medikamentenallergie.
+IMPFUNGEN: Aktuell.
+NOXEN: Nichtraucherin. Alkohol selten. Keine Drogen. 4 Tassen Kaffee am Tag, "sonst schaffe ich nichts".
+FAMILIE: Mutter: Hashimoto-Schilddrüse und Demenz. Vater an Herzinfarkt gestorben.
+SOZIAL: Verheiratet, ein Sohn (21, gesund, studiert). Wohnt in Augsburg. Buchhalterin in Vollzeit.`,
+ cues:`1) Wenn es um Medikamente geht, sagst du stolz: "Ich nehme Johanniskraut, das habe ich mir selbst in der Apotheke gekauft."
+2) Später fragst du: "Bin ich depressiv? Ich will aber keine Psychopillen nehmen."
+3) Wenn es um deine Mutter geht, wirst du kurz emotional.`},
+
+{id:'thorax',sec:'schmerz',topic:'thorax',close:'thorax',title:'Thoraxschmerzen',dx:'V. a. akutes Koronarsyndrom / Herzinfarkt (Ruheangina, Ausstrahlung linker Arm und Kiefer, vegetative Begleitsymptome, viele Risikofaktoren) – Notfall!',
+ name:'Wolfgang Richter',anrede:'Herr Richter',sex:'m',age:58,voice:'rounded',
+ look:{skin:'#e6bfa3',hair:'#7d7a74',style:'short',shirt:'#2e5e4e',glasses:false,beard:false},
+ story:`Wolfgang Richter, 58 Jahre, geboren am 27.03.1968. 1,76 m, 92 kg.
+HAUPTBESCHWERDE: Seit heute Morgen ca. 1 Stunde Schmerzen in der Mitte der Brust, hinter dem Brustbein. Angefangen beim Treppensteigen. Drückend, "wie ein Elefant auf der Brust". 7 von 10. Strahlt in den linken Arm und in den Unterkiefer aus. In Ruhe NICHT besser. Nicht abhängig von Atmung oder Bewegung. Keine Verletzung.
+VORGESCHICHTE: Seit ca. 2 Wochen kurze Druckgefühle (5 Minuten) beim Treppensteigen, in Ruhe dann weg. Hat sich nichts dabei gedacht.
+BEGLEITEND: Engegefühl, Atemnot (auch jetzt). Kalter Schweiß. Übelkeit, kein Erbrechen. Kein Herzrasen, kein Herzstolpern. Leichter Schwindel. Keine geschwollenen Beine. Kein Husten. Kein Sodbrennen. Kein Fieber.
+MEDIKAMENTE DAGEGEN: Nichts.
+VEGETATIV: Appetit normal, Gewicht stabil. Stuhl, Wasserlassen normal. Schläft eher schlecht (Stress).
+VORERKRANKUNGEN: Bluthochdruck, erhöhte Cholesterinwerte, Diabetes Typ 2.
+OPERATIONEN: Gallenblase entfernt 2012.
+MEDIKAMENTE: Amlodipin 5 mg morgens, Atorvastatin 40 mg abends, Metformin 850 mg morgens und abends.
+ALLERGIEN: Keine bekannt.
+IMPFUNGEN: Weiß nicht.
+NOXEN: Raucht seit 30 Jahren 20 Zigaretten am Tag. Am Wochenende 3–4 Bier. Keine Drogen.
+FAMILIE: Vater mit 55 an Herzinfarkt gestorben. Mutter lebt, Bluthochdruck.
+SOZIAL: Verheiratet, 2 Kinder (erwachsen). Wohnt in Bochum. Bauleiter, viel Stress, wenig Bewegung.`,
+ cues:`1) Früh im Gespräch sagst du: "Ich bekomme schlecht Luft..."
+2) Wenn es um Schmerzen geht, sagst du, dass es sehr drückt.
+3) Wenn es um die Familie geht, sagst du ängstlich: "Mein Vater ist mit 55 an einem Herzinfarkt gestorben. Habe ich einen Herzinfarkt?"`},
+
+{id:'bauch',sec:'schmerz',topic:'bauch',close:'bauch',title:'Bauchschmerzen',dx:'V. a. akute Cholezystitis (rechter Oberbauch nach fettem Essen, Ausstrahlung rechte Schulter, Fieber, galliges Erbrechen); DD Choledocholithiasis (heller Stuhl, dunkler Urin)',
+ name:'Elke Hartmann',anrede:'Frau Hartmann',sex:'f',age:52,voice:'glassy',
+ look:{skin:'#efc9ad',hair:'#b98a4e',style:'curly',shirt:'#9b4d6a',glasses:false,beard:false},
+ story:`Elke Hartmann, 52 Jahre, geboren am 09.06.1974. 1,63 m, 88 kg.
+HAUPTBESCHWERDE: Seit gestern Abend Bauchschmerzen im rechten Oberbauch, unter dem Rippenbogen. Plötzlich angefangen ca. 1 Stunde nach dem Abendessen (Schweinebraten mit Soße). Zuerst krampfartig, jetzt dauerhaft dumpf-stechend. 7 von 10. Strahlt in die rechte Schulter und in den Rücken aus. Wird schlimmer. Beim tiefen Einatmen stärker.
+MEDIKAMENTE DAGEGEN: Buscopan, hat wenig geholfen.
+BEGLEITEND: Übelkeit, zweimal erbrochen: zuerst Essensreste, dann gelblich-grün und bitter (Galle), kein Blut. Fieber 38,4 °C gemessen, Schüttelfrost. Völlegefühl.
+STUHL/URIN: Stuhl heute etwas heller als sonst, kein Durchfall, kein Blut. Urin dunkler als sonst, kein Brennen. Gelbe Augen? Hat sie nicht bemerkt.
+FRÜHER: Zweimal in den letzten Monaten ähnliche, aber kürzere Schmerzen nach fettem Essen, ging von selbst weg.
+VEGETATIV: Kein Appetit. Gewicht stabil. Schläft schlecht wegen Schmerzen.
+GYN: Keine Periode mehr seit 2 Jahren (Wechseljahre).
+VORERKRANKUNGEN: Bluthochdruck, Übergewicht.
+OPERATIONEN: Zwei Kaiserschnitte (1998 und 2001).
+MEDIKAMENTE: Bisoprolol 5 mg morgens.
+ALLERGIEN: Pflaster. Keine Medikamentenallergie.
+IMPFUNGEN: Aktuell.
+NOXEN: Nichtraucherin. Alkohol selten. Keine Drogen.
+FAMILIE: Mutter hatte Gallensteine (operiert). Vater Herzinfarkt.
+SOZIAL: Verheiratet, 2 Kinder (erwachsen). Wohnt in Mainz. Bürokauffrau.`,
+ cues:`1) Im Gespräch sagst du einmal: "Mir ist schon wieder so übel..."
+2) Wenn die Rede von Untersuchungen ist, fragst du: "Muss ich operiert werden? Ich habe solche Angst vor einer Narkose."
+3) Am Ende fragst du: "Wie lange muss ich im Krankenhaus bleiben?"`},
+
+{id:'ruecken',sec:'schmerz',topic:'ruecken',close:'ruecken',title:'Rückenschmerzen mit Kribbeln',dx:'V. a. lumbaler Bandscheibenvorfall L5/S1 links mit Radikulopathie S1 (Ausstrahlung bis Fußaußenrand), Red Flags negativ',
+ name:'Thomas Neumann',anrede:'Herr Neumann',sex:'m',age:45,voice:'buttery',
+ look:{skin:'#d9a982',hair:'#3a3a3a',style:'short',shirt:'#8a5a3a',glasses:false,beard:true},
+ story:`Thomas Neumann, 45 Jahre, geboren am 11.09.1981. 1,79 m, 86 kg.
+HAUPTBESCHWERDE: Seit 5 Tagen Schmerzen im unteren Rücken. Plötzlich angefangen, als er bei der Arbeit eine Waschmaschine gehoben hat. Einschießend, stechend, 8 von 10. Dauerhaft, beim Bewegen einschießend.
+AUSSTRAHLUNG: Ins linke Gesäß, hinten am Oberschenkel bis zur Außenseite des Fußes und zum kleinen Zeh.
+NEURO: Kribbeln und Taubheitsgefühl am Fußaußenrand links. Bein fühlt sich etwas schwach an, knickt manchmal ein. Kann gehen, aber langsam.
+VERSTÄRKT/LINDERT: Schlimmer beim Husten, Niesen und langen Sitzen. Besser im Liegen mit angewinkelten Beinen. Nachts Schmerzen nur beim Umdrehen.
+RED FLAGS: Wasserlassen und Stuhlgang normal. Kein Taubheitsgefühl im Genital- oder Gesäßbereich. Kein Fieber, kein Nachtschweiß, kein Gewichtsverlust. Keine Verletzung/kein Sturz.
+FRÜHER: Zweimal "Hexenschuss", aber nie ins Bein.
+MEDIKAMENTE DAGEGEN: Ibuprofen 600 mg dreimal täglich seit 4 Tagen und Wärmepflaster, hilft wenig. Seitdem Magendrücken.
+VEGETATIV: Appetit normal. Schläft schlecht wegen Schmerzen.
+VORERKRANKUNGEN: Magenschleimhautentzündung (Gastritis) vor 3 Jahren.
+OPERATIONEN: Leistenbruch links 2010.
+MEDIKAMENTE: Pantoprazol 20 mg nur bei Bedarf.
+ALLERGIEN: Metamizol (Novalgin) – Kreislaufkollaps.
+IMPFUNGEN: Tetanus vor 5 Jahren.
+NOXEN: Raucht 10 Zigaretten am Tag seit 25 Jahren. 1–2 Bier am Abend. Keine Drogen.
+FAMILIE: Vater Bandscheibenprobleme und Diabetes. Mutter gesund.
+SOZIAL: Verheiratet, 2 Kinder (8 und 12). Wohnt in Duisburg. Arbeitet bei einer Umzugsfirma (schweres Heben).`,
+ cues:`1) Früh sagst du: "Ich muss unbedingt wieder arbeiten, sonst verliere ich Geld. Können Sie mir nicht einfach eine Spritze geben?"
+2) Wenn es um weitere Untersuchungen geht, fragst du: "Brauche ich ein MRT? Ist das gefährlich?"
+3) Wenn der Arzt nach Schmerzmitteln fragt, erwähnst du das Magendrücken erst auf Nachfrage.`}
+];
+
+</script>
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ls={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const CALL_SECONDS=660, READ_SECONDS=30;
+let lang=ls.get('famed-lang','de');
+const L=(de,en)=>lang==='en'?en:de;
+const SEC_EN={krebs:'Cancer history',neuro:'Neurological history',unfall:'Accident / injury history',hals:'Throat / infection / fatigue',schmerz:'Pain history'};
+const TITLE_EN={kolon:'Colon cancer',bronchial:'Lung cancer',oesophagus:'Oesophageal cancer',migraene:'Migraine',vertigo:'Vertigo / tinnitus',knie:'Knee injury',knieluxation:'Knee dislocation (patella)',sprung:'Ankle injury',mandel:'Tonsillitis',covid:'Sore throat / fatigue / COVID',fatigue:'Chronic fatigue',thorax:'Chest pain',bauch:'Abdominal pain',ruecken:'Back pain with tingling'};
+const DX_EN={kolon:'Suspected colon cancer (weight loss, night sweats, changed bowel habits, blood in stool, family history)',bronchial:'Suspected lung cancer (coughing up blood, hoarseness, weight loss, heavy smoker, asbestos exposure)',oesophagus:'Suspected oesophageal cancer (progressive swallowing problems, weight loss, long-standing reflux, smoking and alcohol)',migraene:'Migraine with aura – note: combined pill is a concern with aura',vertigo:'Suspected Ménière’s disease (recurrent spinning vertigo for hours, one-sided tinnitus, hearing loss, ear pressure)',knie:'Suspected ACL tear, right knee (twisting injury, pop, immediate swelling, instability); differential: meniscus',knieluxation:'Recurrent lateral patellar dislocation, left, reduced by itself',sprung:'Inversion ankle injury, right – suspected ligament injury, fracture to rule out; tetanus booster due; aspirin/NSAID intolerance',mandel:'Suspected bacterial tonsillitis (high fever, white patches, tender lymph nodes, no cough) – amoxicillin allergy',covid:'Suspected COVID-19 (contact with positive colleague, fever, loss of smell/taste, fatigue) with asthma and obesity',fatigue:'Suspected iron-deficiency anaemia (heavy periods, vegetarian) and/or hypothyroidism; differential: depression',thorax:'Suspected heart attack / acute coronary syndrome – EMERGENCY',bauch:'Suspected acute cholecystitis (gallbladder inflammation); differential: stone in bile duct',ruecken:'Suspected lumbar disc herniation L5/S1 left with S1 nerve root irritation; no red flags'};
+const ctitle=c=>lang==='en'?TITLE_EN[c.id]+' · '+c.title:c.title;
+const GEN_EN={'Begrüßung & Vorstellung':'Greeting & introduction','Persönliche Daten':'Personal details','Hauptbeschwerde':'Main complaint','Aktuelle Anamnese / Schmerzanamnese':'Current history / pain history','Vegetative Anamnese':'General symptoms (fever, appetite, weight, sleep, bowels, urine)','Gynäkologische Anamnese':'Gynaecological history','Zusammenfassung der Beschwerden':'Summary of complaints','Vorerkrankungen & Operationen':'Previous illnesses & operations','Medikation':'Medication','Allergien':'Allergies','Impfungen':'Vaccinations','Noxen':'Smoking, alcohol, drugs','Familienanamnese':'Family history','Sozialanamnese':'Social history','Psyche':'Mental health / stress','Abschluss & nächste Schritte':'Closing & next steps'};
+async function translateEN(text){
+  const r=await aiChat([{role:'system',content:'Translate the following German text into clear, simple English. Keep the line structure and speaker labels. Output only the translation.'},{role:'user',content:text}]);
+  return r.text.trim();
+}
+function trBtn(id,label){return lang==='en'&&hasKey()?`<button class="btn ghost sm" data-tr="${id}">${label}</button><div class="trout" id="tr-${id}"></div>`:''}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-tr]');if(!b)return;const src=document.getElementById('src-'+b.dataset.tr);const out=document.getElementById('tr-'+b.dataset.tr);if(!src||!out)return;
+  b.disabled=true;b.textContent='Translating…';try{out.textContent=await translateEN(src.innerText);b.remove()}catch(err){b.disabled=false;b.textContent='Translation failed – try again'}});
+const main=$('#main');
+let caps={ready:true};
+let role=ls.get('famed-role','m');
+let S=null; // current session
+let clock=null;
+
+/* ---------- engine: Google Gemini API + browser speech ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const cfg=Object.assign({key:'',model:'gemini-3.6-flash',voice:'browser'},ls.get('famed-gemini',{}));
+const saveCfg=()=>ls.set('famed-gemini',cfg);
+const hasKey=()=>cfg.key.trim().length>20;
+let rec=null,audio=null;
+async function aiChat(messages,{json=false,signal}={}){
+  const sys=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
+  const contents=[];
+  for(const m of messages.filter(m=>m.role!=='system')){const r=m.role==='assistant'?'model':'user';const l=contents[contents.length-1];
+    if(l&&l.role===r)l.parts[0].text+='\n'+m.content;else contents.push({role:r,parts:[{text:m.content}]})}
+  if(!contents.length||contents[0].role!=='user')contents.unshift({role:'user',parts:[{text:'(Gespräch beginnt)'}]});
+  const body={contents,generationConfig:{temperature:json?0.3:0.8}};
+  if(sys)body.systemInstruction={parts:[{text:sys}]};
+  if(json)body.generationConfig.responseMimeType='application/json';
+  const tryModels=[cfg.model.trim(),'gemini-3.6-flash','gemini-3.8-flash','gemini-flash-latest','gemini-3.5-flash-lite'].filter((m,i,a)=>m&&a.indexOf(m)===i);
+  let d,lastErr;
+  for(const model of tryModels){
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key.trim()},body:JSON.stringify(body)});
+    d=await r.json().catch(()=>({}));
+    if(r.ok){if(model!==cfg.model){cfg.model=model;saveCfg()}lastErr=null;break}
+    lastErr=new Error((d.error&&d.error.message)||('HTTP '+r.status));lastErr.status=r.status;
+    if(r.status!==404)break;
+  }
+  if(lastErr)throw lastErr;
+  const c=d.candidates&&d.candidates[0];
+  const text=c&&c.content&&c.content.parts?c.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join(''):'';
+  if(!text&&c&&c.finishReason&&c.finishReason!=='STOP'){const e=new Error('Antwort blockiert ('+c.finishReason+')');throw e}
+  return {text};
+}
+function errText(e){
+  if(!e)return 'Fehler';
+  if(e.status===400&&/key/i.test(e.message)||e.status===401||e.status===403)return L('API-Schlüssel ungültig','Invalid API key');
+  if(e.status===429)return L('Kostenloses Limit kurz erreicht – 1 Minute warten','Free limit reached for now – wait 1 minute');
+  if(e.status===404||/model/i.test(e.message))return L('Modell nicht gefunden – Modellname in den Einstellungen prüfen','Model not found – check the model name on the start page');
+  return L('Verbindung gestört: ','Connection problem: ')+e.message;
+}
+function germanVoice(){
+  const vs=speechSynthesis.getVoices().filter(v=>/^de/i.test(v.lang));
+  const want=S&&S.c&&S.c.sex==='f'?/(female|anna|petra|katja|hedda|marlene|vicki|helena|google deutsch)/i:/(male|markus|yannick|stefan|conrad|hans|google deutsch)/i;
+  return vs.find(v=>want.test(v.name))||vs.find(v=>/google/i.test(v.name))||vs[0]||null;
+}
+if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{};
+function talking(on){const av=$('svg.av');if(av)av.classList.toggle('talking',on)}
+function browserSpeak(text){
+  if(!window.speechSynthesis){talking(true);clearTimeout(S.mt);S.mt=setTimeout(()=>talking(false),Math.min(9000,text.length*65));return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='de-DE';const v=germanVoice();if(v)u.voice=v;
+  u.pitch=S.c.sex==='f'?1.1:0.85;u.rate=1;
+  u.onstart=()=>talking(true);u.onend=u.onerror=()=>talking(false);
+  speechSynthesis.speak(u);
+}
+function speak(text){stopVoice();browserSpeak(text)}
+function stopVoice(){try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}if(audio){try{audio.pause()}catch(e){}audio=null}talking(false)}
+
+/* ---------- sidebar ---------- */
+function bestOf(id){const h=ls.get('famed-hist',[]).filter(x=>x.id===id);return h.length?Math.max(...h.map(x=>x.score)):null}
+function nav(){
+  let n=0;
+  $('#nav').innerHTML=SECTIONS.map(sec=>'<div class="sec">'+esc(L(sec.name,SEC_EN[sec.id]))+'</div>'+CASES.filter(c=>c.sec===sec.id).map(c=>{n++;const b=bestOf(c.id);c.num=n;
+    return `<button class="tbtn${S&&S.c===c?' on':''}" data-id="${c.id}"><span class="tnum">${n}</span><span class="tt">Test ${n}<small>${esc(lang==='en'?TITLE_EN[c.id]:c.title)}</small></span>${b!=null?`<span class="best">${b}</span>`:''}</button>`}).join('')).join('');
+  document.querySelectorAll('.role:not(.lang) button').forEach(b=>{b.classList.toggle('on',b.dataset.r===role);b.textContent=b.dataset.r==='m'?L('Arzt','Male doctor'):L('Ärztin','Female doctor')});
+  document.querySelectorAll('.lang button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
+  $('#rand').textContent=L('Zufälliger Fall','Random case');
+  $('.brand small').textContent=L('Videosprechstunde · 11 Minuten','Video consultation · 11 minutes');
+  document.documentElement.lang=lang;
+}
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('.tbtn');if(b)startCase(CASES.find(c=>c.id===b.dataset.id))});
+$('#rand').addEventListener('click',()=>startCase(CASES[Math.floor(Math.random()*CASES.length)]));
+document.querySelector('.role:not(.lang)').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;role=b.dataset.r;ls.set('famed-role',role);nav()});
+document.querySelector('.lang').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.l===lang)return;lang=b.dataset.l;ls.set('famed-lang',lang);nav();
+  if(!S||S.view==='home')home();else if(S.view==='read')readView();else if(S.view==='call')callLabels();else if(S.view==='fb'&&S.fbDone)renderFeedback(S.f)});
+
+/* ---------- home ---------- */
+function home(){
+  stopAll();S={view:'home'};nav();
+  const hist=ls.get('famed-hist',[]).slice(-8).reverse();
+  const cap=(ok,t)=>`<span class="cap ${ok?'y':'n'}">${t}</span>`;
+  main.innerHTML=`<h1 style="font-size:clamp(32px,4.4vw,48px);max-width:16ch">${L('Anamnese üben wie in der echten Prüfung','Practise the history-taking exam, just like the real one')}</h1>
+  <p class="lead" style="margin-top:14px">${L('Wähle links einen Test. Der Fall startet sofort: 30 Sekunden Aufgabenstellung, dann 11 Minuten Videosprechstunde mit einem Patienten, der nur antwortet, was du fragst. Danach bekommst du eine Auswertung nach deinen Checklisten.','Pick a test on the left. It starts straight away: 30 seconds to read the task, then an 11-minute video consultation with a patient who only answers what is asked. The patient always speaks German, as in the exam. Afterwards you get a scored evaluation based on the checklists.')}</p>
+  <div class="steps">
+   <div class="step"><b>30 s</b>${L('Aufgabenstellung lesen. Du bist Allgemeinarzt bzw. Allgemeinärztin, der Name des Patienten ist vorgegeben.','Read the task. The candidate is a GP (family doctor); only the patient’s name is given.')}</div>
+   <div class="step"><b>11:00</b>${L('Gespräch per Sprache oder Tastatur. Notizblock daneben, Restzeit immer sichtbar.','The conversation, by voice or keyboard. Notepad alongside, time left always visible.')}</div>
+   <div class="step"><b>Feedback</b>${L('Fehlende Fragen, Reaktionen auf den Patienten, Sprachkorrekturen und ein Musterabschluss.','Missed questions, reactions to the patient, German corrections and a model closing.')}</div>
+  </div>
+  <div class="card" style="max-width:680px;margin-bottom:22px"><h3>${L('Einrichtung (einmalig, kostenlos)','Setup (once, free)')}</h3>
+   <ol style="margin:0 0 4px;padding-left:20px;font-size:15px">${L('<li>Öffne <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> und melde dich mit einem Google-Konto an.</li><li>Klicke auf „API-Schlüssel erstellen“ und kopiere ihn.</li><li>Füge ihn hier ein und klicke auf „Speichern & testen“.</li>','<li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with a Google account.</li><li>Click “Create API key” and copy it.</li><li>Paste it here and click “Save & test”.</li>')}</ol>
+   <label class="fl">${L('Gemini-API-Schlüssel','Gemini API key')}<input id="k" type="password" autocomplete="off" placeholder="AIza…" value="${esc(cfg.key)}"></label>
+   <label class="fl">${L('Modell','Model')}<input id="mdl" value="${esc(cfg.model)}"></label>
+   <div class="acts" style="margin-top:12px"><button class="btn ghost" id="save">${L('Speichern & testen','Save & test')}</button><span id="tst" class="lead" style="align-self:center;font-size:15px"></span></div>
+   <p class="hint">${L('Der Schlüssel bleibt nur in diesem Browser. Mikrofon und Stimme: am besten Chrome oder Edge am Computer.','The key stays only in this browser. For microphone and voice, use Chrome or Edge on a computer.')}</p>
+   <div class="caps">${cap(hasKey(),L('Gemini-Schlüssel','Gemini key'))+cap(!!SR,L('Mikrofon','Microphone'))+cap(!!window.speechSynthesis,L('Stimme','Voice'))}</div>
+  </div>
+  <button class="btn" id="go1">${L('Mit Test 1 beginnen','Start with Test 1')}</button>
+  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Versuche','Recent attempts')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id);return `<tr><td>${esc(c?(lang==='en'?TITLE_EN[c.id]:c.title):h.id)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r"><b>${h.score}</b> / 100</td></tr>`}).join('')}</tbody></table>`:''}`;
+  $('#go1').onclick=()=>startCase(CASES[0]);
+  $('#save').onclick=async()=>{cfg.key=$('#k').value.trim();cfg.model=$('#mdl').value.trim()||'gemini-3.6-flash';saveCfg();
+    const t=$('#tst');if(!hasKey()){t.textContent=L('Bitte den Schlüssel einfügen.','Please paste the key.');return}
+    t.textContent=L('Teste…','Testing…');try{const r=await aiChat([{role:'user',content:'Antworte nur mit: OK'}]);t.textContent=L('✓ Verbunden (','✓ Connected (')+cfg.model+')';setTimeout(home,900)}catch(e){t.textContent='✗ '+errText(e)}};
+}
+
+/* ---------- reading phase ---------- */
+function startCase(c){
+  stopAll();
+  S={view:'read',c,msgs:[],buf:'',partial:'',listening:false,busy:false,left:CALL_SECONDS,notes:''};nav();
+  S.r=READ_SECONDS;readView();
+  clock=setInterval(()=>{S.r--;const el=$('#rc');if(el)el.textContent='0:'+String(Math.max(S.r,0)).padStart(2,'0');if(S.r<=0)beginCall()},1000);
+}
+function readView(){
+  const c=S.c,r=S.r;
+  const de=`Sie sind ${role==='f'?'Allgemeinärztin':'Allgemeinarzt'}. <b>${esc(c.anrede)}</b> stellt sich heute per Videoanruf bei Ihnen vor. Führen Sie das Anamnesegespräch: Stellen Sie sich vor, erheben Sie eine vollständige Anamnese, fassen Sie die Beschwerden zusammen, erklären Sie die nächsten Schritte und gehen Sie auf die Fragen des Patienten ein.`;
+  main.innerHTML=`<div class="task"><div style="color:var(--mute);font-size:14px">Test ${c.num} · ${esc(ctitle(c))} · ${L('Aufgabenstellung','Task')}</div>
+   <h2 style="font-size:clamp(26px,3.4vw,36px);margin-top:10px">Videosprechstunde in der Hausarztpraxis</h2>
+   <p style="font-size:18px;margin:16px 0 0">${de}</p>
+   <p class="lead" style="margin-top:10px">Sie haben 11 Minuten Zeit. Ein Notizblock steht Ihnen zur Verfügung.</p>
+   ${lang==='en'?`<p class="en">English: “You are a GP. <b>${esc(c.anrede)}</b> is seeing you today by video call. Take the patient’s history: introduce yourself, take a complete history, summarise the complaints, explain the next steps and answer the patient’s questions. You have 11 minutes and a notepad.”</p>`:''}
+   <div class="count" id="rc">0:${String(Math.max(r,0)).padStart(2,'0')}</div><div class="lead">${L('bis der Anruf startet','until the call starts')}</div>
+   <div class="acts"><button class="btn" id="now">${L('Jetzt verbinden','Connect now')}</button><button class="btn ghost" id="back">${L('Zurück','Back')}</button></div></div>`;
+  $('#now').onclick=()=>beginCall();$('#back').onclick=home;
+}
+
+/* ---------- call ---------- */
+const MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+function beginCall(){
+  clearInterval(clock);const c=S.c;S.view='call';S.start=Date.now();
+  main.innerHTML=`<div class="call"><div>
+   <div class="stage">${avatar(c)}
+    <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span class="timer" id="tm">11:00</span></div>
+    <div class="status" id="st"></div>
+    <div class="self" id="self"></div>
+    <div class="cc" id="cc"></div>
+   </div>
+   <div class="controls">
+    <button class="mic" id="mic" aria-label="Sprechen">${MIC}</button>
+    <div class="say"><textarea id="txt"></textarea><button class="btn" id="send"></button></div>
+    <button class="btn danger" id="end"></button>
+   </div>
+   <div class="hint" id="hint"></div>
+  </div>
+  <div class="side"><div class="tabs"><button class="on" data-p="pn" id="tab-n"></button><button data-p="pt" id="tab-t"></button></div>
+   <div class="pane on" id="pn"><textarea id="notes" aria-label="Notizblock"></textarea></div>
+   <div class="pane" id="pt"><div id="log"><p class="lead" style="font-size:14px" id="lognote"></p></div><div id="trbox"></div></div>
+  </div></div>`;
+  if(!SR)$('#mic').style.display='none';
+  callLabels();setStatus(L('Verbunden','Connected'));
+  $('#mic').onclick=micClick;
+  $('#send').onclick=()=>{const t=$('#txt').value.trim();if(t){$('#txt').value='';doctorSays(t)}};
+  $('#txt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#send').click()}});
+  $('#end').onclick=()=>endCall(false);
+  $('#notes').addEventListener('input',e=>S.notes=e.target.value);
+  document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p))});
+  clock=setInterval(tick,1000);tick();
+  setTimeout(()=>{if(S&&S.view==='call'&&!S.msgs.length)patientLine('Hallo? Ja, ich kann Sie hören. Guten Tag.')},1200);
+}
+function callLabels(){
+  if(!$('#end'))return;
+  $('#lbl-call').textContent=L('Videosprechstunde','Video consultation');
+  $('#self').textContent=L('Sie','You');
+  $('#txt').placeholder=(SR?L('Mikrofon antippen und sprechen – oder hier tippen','Tap the microphone and speak – or type here'):L('Frage hier eintippen','Type your question here'))+L(' (Enter = senden)',' (Enter = send)');
+  $('#send').textContent=L('Senden','Send');$('#end').textContent=L('Beenden','End');
+  $('#hint').textContent=(SR?L('Mikrofon antippen, Frage stellen, erneut antippen – dann antwortet der Patient.','Tap the microphone, ask the question in German, tap again – then the patient answers.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'))+(hasKey()?'':L(' Kein API-Schlüssel gespeichert – zurück zur Startseite.',' No API key saved – go back to the start page.'));
+  $('#tab-n').textContent=L('Notizblock','Notepad');$('#tab-t').textContent=L('Mitschrift','Transcript');
+  $('#notes').placeholder=L('Notizen wie im Prüfungsraum…','Notes, like in the exam room…');
+  const ln=$('#lognote');if(ln)ln.textContent=L('Die Mitschrift erscheint hier. In der echten Prüfung gibt es sie nicht – nutze sie nur zur Kontrolle.','The transcript appears here. There is none in the real exam – use it only to check.');
+  const tb=$('#trbox');if(tb)tb.innerHTML=lang==='en'&&hasKey()?'<button class="btn ghost sm" id="trlog">Translate transcript to English</button><div class="trout" id="trlogout"></div>':'';
+  const bt=$('#trlog');if(bt)bt.onclick=async()=>{const txt=S.msgs.map(m=>(m.who==='doc'?'Doctor: ':'Patient: ')+m.text).join('\n');if(!txt)return;bt.disabled=true;bt.textContent='Translating…';try{$('#trlogout').textContent=await translateEN(txt)}catch(e){$('#trlogout').textContent=errText(e)}bt.disabled=false;bt.textContent='Translate again (updated)'};
+}
+function tick(){
+  if(!S||S.view!=='call')return;
+  S.left=CALL_SECONDS-Math.floor((Date.now()-S.start)/1000);
+  const t=$('#tm');if(!t)return;const l=Math.max(S.left,0);
+  t.textContent=Math.floor(l/60)+':'+String(l%60).padStart(2,'0');t.classList.toggle('low',l<=60);
+  if(S.left<=0)endCall(true);
+}
+function setStatus(s){const e=$('#st');if(e)e.textContent=s}
+function showDraft(){const t=$('#txt');if(t)t.value=(S.buf+' '+(S.partial||'')).trim()}
+function micUI(){const m=$('#mic');if(!m)return;m.classList.toggle('on',!!S.listening);$('#self')?.classList.toggle('live',!!S.listening);if(S.listening)setStatus(L('Sie sprechen…','You are speaking…'))}
+function micClick(){
+  if(!SR||!S||S.view!=='call')return;
+  if(!S.listening){
+    stopVoice();
+    S.buf=$('#txt').value.trim();S.partial='';
+    rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
+    rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
+      if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft()};
+    rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){$('#mic').style.display='none';$('#hint').textContent=L('Mikrofon nicht erlaubt – bitte tippen.','Microphone not allowed – please type.')}};
+    rec.onend=()=>{const wasAuto=S.autoSend;S.autoSend=false;if(S.listening&&!wasAuto){try{rec.start();return}catch(e){}}S.listening=false;micUI();if(wasAuto)flushSpeech()};
+    try{rec.start();S.listening=true;micUI()}catch(e){}
+  }else{
+    S.autoSend=true;try{rec.stop()}catch(e){flushSpeech()}
+  }
+}
+function flushSpeech(){
+  S.listening=false;micUI();
+  const t=(S.buf+' '+(S.partial||'')).trim();S.buf='';S.partial='';$('#txt').value='';
+  if(t)doctorSays(t);else setStatus(L('Verbunden','Connected'));
+}
+function logMsg(who,text){
+  const log=$('#log');if(!log)return;if(S.msgs.length===1&&log.querySelector('.lead'))log.innerHTML='';
+  log.insertAdjacentHTML('beforeend',`<p class="msg ${who}"><b>${who==='doc'?L('Sie','You'):esc(S.c.anrede)}</b>${esc(text)}</p>`);
+  log.parentElement.scrollTop=1e6;
+}
+function caption(t){const cc=$('#cc');if(cc)cc.innerHTML=t?'<span>'+esc(t)+'</span>':''}
+function patientLine(text){
+  S.msgs.push({who:'pat',text});logMsg('pat',text);caption(text);speak(text);
+}
+async function doctorSays(text){
+  if(!S||S.view!=='call')return;
+  const me=S;
+  S.msgs.push({who:'doc',text});logMsg('doc',text);
+  if(!hasKey()){setStatus(L('Kein API-Schlüssel – bitte auf der Startseite eintragen','No API key – add it on the start page'));return}
+  if(S.busy)return; // reply will include it
+  S.busy=true;
+  try{
+    while(true){
+      const n=S.msgs.length;setStatus(S.c.anrede+L(' überlegt…',' is thinking…'));caption('');
+      const ctrl=new AbortController();S.ctrl=ctrl;
+      const res=await aiChat(patientInput(),{signal:ctrl.signal});
+      if(S!==me||me.view!=='call')return;
+      if(S.msgs.length!==n&&S.msgs[S.msgs.length-1].who==='doc'){continue} // doctor added more while thinking
+      const reply=clean(res.text)||'Entschuldigung, wie bitte?';
+      patientLine(reply);setStatus(L('Verbunden','Connected'));break;
+    }
+  }catch(e){
+    if(S===me&&me.view==='call'){if(e&&e.name!=='AbortError')setStatus(errText(e))}
+  }finally{me.busy=false}
+}
+function clean(t){return String(t||'').replace(/\*[^*]*\*/g,'').replace(/\[[^\]]*\]/g,'').replace(/^(Patient(in)?|[A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+)\s*:\s*/,'').replace(/^["„]|["“]$/g,'').trim()}
+function patientInput(){
+  const c=S.c,dr=role==='f'?'Frau Doktor':'Herr Doktor';
+  const elapsed=Math.round((Date.now()-S.start)/60000);
+  const sys=`Du spielst in einer Übungssimulation der FaMed-Fachsprachprüfung den Patienten / die Patientin in einer Videosprechstunde bei einer Hausarztpraxis. Der Nutzer ist ${role==='f'?'die Ärztin':'der Arzt'} (Prüfling, Deutsch ist nicht die Muttersprache). Sprich ${role==='f'?'sie':'ihn'} mit "${dr}" an.
+REGELN:
+- Bleib immer in der Rolle. Natürliches, gesprochenes Alltagsdeutsch, Laiensprache, kurze Antworten (meist 1–2 Sätze, höchstens 3).
+- Beantworte nur genau das, was gefragt wird. Erzähle nichts ungefragt (Ausnahme: die Hauptbeschwerde, wenn nach dem Grund des Besuchs gefragt wird, und die MOMENTE unten).
+- Bei medizinischen Fachbegriffen, die ein Laie nicht kennt (z. B. Dyspnoe, Hämoptysen, Miktion, Defäkation, Noxen, Analgetika, Synkope, Emesis, Diarrhö, Obstipation, Palpitationen, Antikoagulation), fragst du nach, was das bedeutet.
+- Ist eine Frage unklar oder grammatisch so falsch, dass man sie nicht versteht, sag freundlich, dass du sie nicht verstanden hast.
+- Steht etwas nicht im Fall, antworte unauffällig und plausibel (meist "Nein" / "Nicht dass ich wüsste") und bleib konsistent.
+- Nenne nie eine Diagnose, hilf dem Arzt nicht, gib keine Prüfungstipps, verlasse nie die Rolle.
+- Antworte ausschließlich mit dem gesprochenen Text: keine Regieanweisungen, keine Sternchen, keine Klammern, keine Anführungszeichen, kein Sprecher-Präfix.
+- Wenn der Arzt die nächsten Schritte erklärt oder sich verabschiedet, stell deine offene Frage aus den MOMENTEN (falls noch nicht gestellt); danach bedankst du dich kurz.
+FALL:
+${c.story}
+MOMENTE (jeweils nur einmal, an passender Stelle, natürlich eingebaut):
+${c.cues}`;
+  const arr=[{role:'system',content:sys}];
+  for(const m of S.msgs){const r=m.who==='doc'?'user':'assistant';const last=arr[arr.length-1];
+    if(last.role===r&&r!=='system')last.content+='\n'+m.text;else arr.push({role:r,content:m.text})}
+  if(arr[arr.length-1].role!=='user')arr.push({role:'user',content:'…'});
+  arr[arr.length-1].content+=`\n\n(Regieinfo, nicht vorlesen: ca. ${elapsed} von 11 Minuten vergangen.)`;
+  return arr;
+}
+
+/* ---------- end & feedback ---------- */
+function stopAll(){
+  clearInterval(clock);
+  if(S){if(S.ctrl)try{S.ctrl.abort()}catch(e){};if(S.listening&&rec){S.listening=false;try{rec.abort()}catch(e){}}S.listening=false}
+  stopVoice();
+}
+function endCall(timeUp){
+  if(!S||S.view!=='call')return;
+  stopAll();S.view='fb';S.timeUp=timeUp;S.dur=Math.min(CALL_SECONDS,Math.round((Date.now()-S.start)/1000));
+  const doc=S.msgs.filter(m=>m.who==='doc').length;
+  main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">${timeUp?L('Die Zeit ist abgelaufen.','Time is up.'):L('Gespräch beendet.','Conversation ended.')}</h2><p class="lead" style="margin:8px auto">${L('Die Prüferin wertet dein Gespräch aus…','The examiner is evaluating the conversation…')}</p></div>`;
+  if(!hasKey()||doc<2){renderFeedback(null);return}
+  S.fbLang=lang;feedback().then(renderFeedback).catch(()=>renderFeedback(null));
+}
+const GENERAL=['Begrüßung & Vorstellung','Persönliche Daten','Hauptbeschwerde','Aktuelle Anamnese / Schmerzanamnese','Vegetative Anamnese','Gynäkologische Anamnese','Zusammenfassung der Beschwerden','Vorerkrankungen & Operationen','Medikation','Allergien','Impfungen','Noxen','Familienanamnese','Sozialanamnese','Psyche','Abschluss & nächste Schritte'];
+async function feedback(){
+  const c=S.c,gen=GENERAL.filter(g=>c.sex==='f'||!g.startsWith('Gyn'));
+  const conv=S.msgs.map(m=>(m.who==='doc'?'ARZT: ':'PATIENT: ')+m.text).join('\n');
+  const p=`Du bist erfahrene Prüferin der FaMed-Fachsprachprüfung (Teil Anamnese: 11 Minuten, Videosprechstunde, Prüfling ist Allgemeinarzt). Bewerte dieses Anamnesegespräch eines Prüflings mit Deutsch als Fremdsprache. Kriterien: Vollständigkeit und Struktur, Gesprächsführung (Vorstellung, Laiensprache statt Fachbegriffen, Empathie, Reaktionen auf Patientenäußerungen, Zusammenfassung, Abschluss mit nächsten Schritten, konkretes Eingehen auf Patientenfragen) und sprachliche Korrektheit. Fachwissen ist zweitrangig. Sei ehrlich und streng, aber ermutigend.
+
+FALL (nur für dich):
+${c.story}
+Verdachtsdiagnose: ${c.dx}
+Momente des Patienten: ${c.cues}
+
+FALLSPEZIFISCHE CHECKLISTE:
+- ${TOPICS[c.topic].join('\n- ')}
+
+ALLGEMEINE STRUKTUR: ${gen.join('; ')}.
+Persönliche Daten = Name, Alter/Geburtsdatum, ggf. Größe/Gewicht. Abschluss = körperliche Untersuchung, Blutabnahme, Rücksprache mit Oberarzt, "Haben Sie noch Fragen?".
+
+ERWARTETE REAKTIONEN: Schmerzen → Schmerzmittel anbieten und vorher nach Allergien fragen; Luftnot → Sauerstoff / Sättigung messen anbieten; Übelkeit → Mittel oder Brechbeutel anbieten; Angst / Krebsangst → beruhigen, keine Diagnose versprechen; Rauchen → kurze Beratung und Hilfe anbieten; verstorbene Eltern → Beileid; Selbstmedikation → freundlich auf ärztliche Rücksprache hinweisen; Patientenfragen → konkret beantworten.
+
+GESPRÄCH (Dauer ${Math.round(S.dur/60)} Min., ${S.timeUp?'Zeit abgelaufen':'vom Prüfling beendet'}):
+${conv}
+
+${S.fbLang==='en'?'WICHTIG: Der Leser spricht kein Deutsch. Schreibe "summary", "strengths", "note", "why", "moment" und "next" auf ENGLISCH, und den Bereichsnamen "name" auf Englisch. "missed", "said", "better" (in reactions und language) bleiben auf DEUTSCH, mit der englischen Übersetzung in Klammern dahinter. "verdict" bleibt exakt einer der deutschen Werte.':''}
+Antworte NUR mit gültigem JSON, alle Texte (außer wie oben angegeben) auf Deutsch und knapp:
+{"score":0-100,"verdict":"Bestanden"|"Knapp"|"Nicht bestanden","summary":"2–3 Sätze","strengths":["…"],"sections":[{"name":"<Bereich aus der allgemeinen Struktur, alle in Reihenfolge>","status":"ok"|"teilweise"|"fehlt","note":"kurz"}],"missed":["fehlende fallspezifische Frage, als Frage an den Patienten formuliert"],"reactions":[{"moment":"was der Patient sagte","done":true|false,"better":"Mustersatz für die Reaktion"}],"language":[{"said":"Originalsatz des Prüflings","better":"korrigierte Version","why":"kurze Erklärung"}],"next":"wichtigster Tipp für den nächsten Versuch"}
+"language": höchstens 6 der wichtigsten Fehler (Grammatik, Wortwahl, Fachbegriffe ohne Erklärung). Diktierfehler der Spracherkennung (Groß-/Kleinschreibung, fehlende Satzzeichen) nicht bewerten.`;
+  const r=await aiChat([{role:'system',content:'Du bist eine strenge, faire Prüferin. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true});
+  const m=r.text.match(/\{[\s\S]*\}/);const v=JSON.parse(m?m[0]:r.text);
+  return v;
+}
+function ring(score){
+  const r=62,C=2*Math.PI*r,col=score>=70?'var(--ok)':score>=55?'var(--mid)':'var(--coral)';
+  return `<svg class="ring" viewBox="0 0 150 150"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="75" cy="75" r="${r}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*score/100} ${C}" transform="rotate(-90 75 75)"/><text x="75" y="84" text-anchor="middle" font-family="Inter Tight" font-weight="700" font-size="38" fill="currentColor">${score}</text></svg>`;
+}
+function renderFeedback(f){
+  const c=S.c;S.f=f;S.fbDone=true;
+  if(f&&typeof f.score==='number'&&!S.saved){S.saved=true;
+    const h=ls.get('famed-hist',[]);h.push({id:c.id,score:Math.round(f.score),t:Date.now()});ls.set('famed-hist',h.slice(-60));nav();
+  }
+  const vcol=f?(f.verdict==='Bestanden'?'var(--ok)':f.verdict==='Knapp'?'var(--mid)':'var(--coral)'):'';
+  const list=(a,fn)=>(Array.isArray(a)&&a.length)?a.map(fn).join(''):'<p class="lead" style="font-size:15px">—</p>';
+  const transcript=S.msgs.map(m=>(m.who==='doc'?'Arzt: ':'Patient: ')+m.text).join('\n');
+  const VD={Bestanden:L('Bestanden','Pass'),Knapp:L('Knapp','Borderline'),'Nicht bestanden':L('Nicht bestanden','Fail')};
+  main.innerHTML=`<div style="color:var(--mute);font-size:14px;margin-bottom:8px">Test ${c.num} · ${esc(ctitle(c))} · ${esc(c.name)}, ${c.age} ${L('J.','yrs')}</div>
+  ${f?`<div class="fhead">${ring(Math.round(f.score))}<div><span class="vd" style="background:${vcol}">${esc(VD[f.verdict]||f.verdict)}</span><h1 style="font-size:clamp(28px,3.6vw,40px)">${L('Auswertung deiner Anamnese','Evaluation of the history-taking')}</h1><p style="margin:10px 0 0;max-width:68ch">${esc(f.summary)}</p>${f.next?`<p style="margin:10px 0 0"><b>${L('Nächstes Mal:','Next time:')}</b> ${esc(f.next)}</p>`:''}</div></div>
+  <div class="grid2">
+   ${S.fbLang!==lang?`<p class="hint" style="margin:-12px 0 16px">${L('Diese Auswertung wurde auf Englisch erstellt.','This evaluation was written in German – switch language before the next attempt for English explanations.')}</p>`:''}<div class="card"><h3>${L('Struktur','Structure')}</h3>${list(f.sections,s=>`<div class="row"><span class="chip c-${esc(s.status)}">${s.status==='ok'?'✓':s.status==='fehlt'?L('fehlt','missing'):L('teilw.','partly')}</span><span><b>${esc(S.fbLang==='de'&&lang==='en'&&GEN_EN[s.name]?GEN_EN[s.name]:s.name)}</b>${s.note?' – '+esc(s.note):''}</span></div>`)}</div>
+   <div>
+    <div class="card"><h3>${L('Diese Fragen fehlten','Questions that were missed (in German)')}</h3><ul class="clean">${list(f.missed,q=>`<li>${esc(q)}</li>`)}</ul></div>
+    <div class="card" style="margin-top:18px"><h3>${L('Reaktionen auf den Patienten','Reactions to the patient')}</h3>${list(f.reactions,r=>`<div class="fix"><span class="chip ${r.done?'c-ok':'c-fehlt'}">${r.done?'✓':L('verpasst','missed')}</span> „${esc(r.moment)}“<ins>${esc(r.better)}</ins></div>`)}</div>
+   </div>
+   <div class="card"><h3>${L('Sprache','German language corrections')}</h3>${list(f.language,l=>`<div class="fix"><s>${esc(l.said)}</s><ins>${esc(l.better)}</ins><small>${esc(l.why)}</small></div>`)}</div>
+   <div class="card"><h3>${L('Stärken','Strengths')}</h3><ul class="clean">${list(f.strengths,s=>`<li>${esc(s)}</li>`)}</ul></div>
+  </div>`:`<h1 style="font-size:clamp(28px,3.6vw,40px)">${L('Gespräch beendet','Conversation ended')}</h1><p class="lead" style="margin-top:10px">${S.msgs.filter(m=>m.who==='doc').length<2?L('Das Gespräch war zu kurz für eine Auswertung.','The conversation was too short to evaluate.'):L('Die automatische Auswertung war gerade nicht möglich.','The automatic evaluation was not possible just now.')} ${L('Unten findest du die Checkliste, den Musterabschluss und den Fall zum Vergleich.','Below are the checklist, the model closing and the case for comparison.')}</p>`}
+  <details ${f?'':'open'}><summary>${L('Checkliste','Checklist (German questions)')}: ${esc(ctitle(c))}</summary><ul class="clean" style="margin-top:10px" id="src-check">${TOPICS[c.topic].map(q=>`<li>${esc(q)}</li>`).join('')}</ul>${trBtn('check','Translate checklist to English')}</details>
+  <details><summary>${L('Musterabschluss','Model closing (German)')}</summary><div id="src-close"><p>Von meiner Seite war das alles. Jetzt würde ich nochmal kurz zusammenfassen: … Habe ich alles richtig verstanden?</p><p>${esc(CLOSE[c.close])}</p><p>Außerdem werde ich Ihnen ein bisschen Blut abnehmen. Sobald alle Ergebnisse vorliegen, halte ich Rücksprache mit meinem Oberarzt und komme wieder zu Ihnen. Haben Sie noch Fragen an mich?</p></div>${trBtn('close','Translate to English')}</details>
+  <details><summary>${L('Der Fall (Lösung)','The case (solution)')}</summary><p><b>${L('Verdachtsdiagnose','Suspected diagnosis')}:</b> ${esc(L(c.dx,DX_EN[c.id]))}</p><p style="white-space:pre-line;font-size:15px" id="src-case">${esc(c.story)}</p>${trBtn('case','Translate case to English')}</details>
+  ${S.notes?`<details><summary>${L('Deine Notizen','Notes')}</summary><p style="white-space:pre-line">${esc(S.notes)}</p></details>`:''}
+  ${S.msgs.length?`<details><summary>${L('Mitschrift','Transcript')}</summary><p style="white-space:pre-line;font-size:15px" id="src-log">${esc(transcript)}</p>${trBtn('log','Translate transcript to English')}</details>`:''}
+  <div class="acts"><button class="btn" id="again">${L('Nochmal versuchen','Try again')}</button>${c.num<CASES.length?`<button class="btn ghost" id="nxt">${L('Weiter mit Test','Next: Test')} ${c.num+1}</button>`:''}<button class="btn ghost" id="cp">${L('Mitschrift kopieren','Copy transcript')}</button></div>`;
+  $('#again').onclick=()=>startCase(c);
+  if($('#nxt'))$('#nxt').onclick=()=>startCase(CASES[c.num]);
+  $('#cp').onclick=e=>{navigator.clipboard.writeText(transcript).then(()=>e.target.textContent=L('Kopiert','Copied'),()=>e.target.textContent=L('Kopieren nicht möglich','Copy not possible'))};
+}
+
+/* ---------- avatar ---------- */
+function shade(hex,k){const n=parseInt(hex.slice(1),16);const f=v=>Math.max(0,Math.min(255,Math.round(v*k)));return '#'+[n>>16,(n>>8)&255,n&255].map(v=>f(v).toString(16).padStart(2,'0')).join('')}
+function avatar(c){
+  const L=c.look,sk=L.skin,hr=L.hair,old=c.age>=55,f=c.sex==='f';
+  let back='',front='';
+  if(L.style==='long'){back=`<path d="M184 118C178 68 212 56 240 56C270 56 304 68 298 118L308 262C292 276 272 274 262 262L262 196H218L218 262C206 276 188 276 172 262Z" fill="${hr}"/>`;
+    front=`<path d="M187 132C184 78 214 60 242 60C272 60 298 80 294 132C286 104 268 92 250 90C236 108 208 116 187 132Z" fill="${hr}"/>`}
+  else if(L.style==='bun'){back=`<circle cx="240" cy="60" r="24" fill="${hr}"/>`;front=`<path d="M188 128C186 82 214 66 241 66C270 66 296 84 292 128C284 104 266 94 240 94C214 94 196 104 188 128Z" fill="${hr}"/>`}
+  else if(L.style==='ponytail'){back=`<path d="M276 84C318 96 322 170 300 214C296 176 292 130 270 104Z" fill="${hr}"/>`;front=`<path d="M188 128C186 80 214 64 241 64C270 64 296 82 292 128C282 100 262 92 240 92C216 92 198 104 188 128Z" fill="${hr}"/>`}
+  else if(L.style==='curly'){front=Array.from({length:13},(_,i)=>{const a=Math.PI*(1.02+i*0.074);return `<circle cx="${240+60*Math.cos(a)}" cy="${128+66*Math.sin(a)}" r="${f?19:15}" fill="${hr}"/>`}).join('')+(f?`<path d="M184 130C182 170 190 200 200 214L188 214C176 190 174 160 178 130ZM296 130C298 170 290 200 280 214L292 214C304 190 306 160 302 130Z" fill="${hr}"/>`:'')}
+  else if(L.style==='bald'){front=`<path d="M189 116C186 134 190 150 194 158L198 120ZM291 116C294 134 290 150 286 158L282 120Z" fill="${hr}"/>`}
+  else{front=`<path d="M188 126C184 80 212 62 242 62C272 62 296 82 292 126C288 108 274 96 262 94C246 102 210 104 188 126Z" fill="${hr}"/>`}
+  const brow=shade(hr==='#cfcfcf'||hr==='#a7a7a3'?'#6a6a66':hr,.8);
+  const wr=old?`<g stroke="${shade(sk,.78)}" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M220 104Q240 100 260 104M224 111Q240 108 256 111"/><path d="M222 160Q218 172 224 180M258 160Q262 172 256 180"/></g>`:'';
+  const gl=L.glasses?`<g fill="rgba(255,255,255,.08)" stroke="#232323" stroke-width="2.5"><rect x="207" y="127" width="28" height="22" rx="7"/><rect x="245" y="127" width="28" height="22" rx="7"/><path d="M235 136h10M207 134l-17-3M273 134l17-3" fill="none"/></g>`:'';
+  const bd=L.beard?`<path d="M196 150C198 196 222 210 240 210C258 210 282 196 284 150C278 176 266 190 240 190C214 190 202 176 196 150Z" fill="${hr}" opacity=".92"/><path d="M226 172Q240 166 254 172Q240 176 226 172Z" fill="${hr}"/>`:'';
+  return `<svg class="av" viewBox="0 0 480 300" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Patient im Videoanruf: ${esc(c.anrede)}">
+  <defs><linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9e1dc"/><stop offset="1" stop-color="#aebdb6"/></linearGradient>
+  <radialGradient id="lamp" cx=".18" cy=".2" r=".6"><stop offset="0" stop-color="#fff6df" stop-opacity=".75"/><stop offset="1" stop-color="#fff6df" stop-opacity="0"/></radialGradient>
+  <filter id="dof"><feGaussianBlur stdDeviation="2.4"/></filter></defs>
+  <rect width="480" height="300" fill="url(#wall)"/>
+  <g filter="url(#dof)" opacity=".85"><rect x="18" y="40" width="120" height="150" fill="#8c7258"/><rect x="24" y="48" width="108" height="64" fill="#6d5844"/><rect x="24" y="120" width="108" height="64" fill="#6d5844"/>
+   ${[0,1,2,3,4,5,6].map(i=>`<rect x="${28+i*14}" y="${58+(i%3)*4}" width="11" height="${50-(i%3)*4}" fill="${['#c2553f','#3f6b8c','#d8b45a','#5b8a5f','#9a6fa3','#e0dccf','#41605a'][i]}"/>`).join('')}
+   ${[0,1,2,3].map(i=>`<rect x="${30+i*18}" y="${132+(i%2)*6}" width="14" height="${46-(i%2)*6}" fill="${['#e0dccf','#c2553f','#3f6b8c','#d8b45a'][i]}"/>`).join('')}
+   <rect x="380" y="150" width="46" height="60" rx="6" fill="#c9b8a3"/><ellipse cx="403" cy="140" rx="40" ry="34" fill="#4f7d55"/><ellipse cx="388" cy="118" rx="22" ry="26" fill="#5f9466"/><ellipse cx="420" cy="122" rx="20" ry="24" fill="#456f4b"/></g>
+  <rect width="480" height="300" fill="url(#lamp)"/>
+  <g class="head">
+   ${back}
+   <path d="M108 300C116 236 170 214 240 214C310 214 364 236 372 300Z" fill="${L.shirt}"/>
+   <path d="M108 300C116 236 170 214 240 214C310 214 364 236 372 300" fill="none" stroke="${shade(L.shirt,.75)}" stroke-width="3"/>
+   <path d="M216 176H264V222C256 234 224 234 216 222Z" fill="${shade(sk,.86)}"/>
+   <path d="M218 214L240 240L262 214" fill="none" stroke="${shade(L.shirt,.7)}" stroke-width="4"/>
+   <ellipse cx="190" cy="140" rx="9" ry="14" fill="${shade(sk,.93)}"/><ellipse cx="290" cy="140" rx="9" ry="14" fill="${shade(sk,.93)}"/>
+   <ellipse cx="240" cy="134" rx="51" ry="63" fill="${sk}"/>
+   <ellipse cx="216" cy="162" rx="10" ry="6" fill="#e58b7b" opacity=".18"/><ellipse cx="264" cy="162" rx="10" ry="6" fill="#e58b7b" opacity=".18"/>
+   ${wr}${bd}${front}
+   <g stroke="${brow}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M210 122Q221 116 232 121"/><path d="M248 121Q259 116 270 122"/></g>
+   <g class="eyes"><ellipse cx="221" cy="138" rx="5" ry="6" fill="#2a211c"/><ellipse cx="259" cy="138" rx="5" ry="6" fill="#2a211c"/><circle cx="223" cy="136" r="1.6" fill="#fff"/><circle cx="261" cy="136" r="1.6" fill="#fff"/></g>
+   <path d="M240 142Q234 160 238 164Q242 166 246 163" fill="none" stroke="${shade(sk,.72)}" stroke-width="2.4" stroke-linecap="round"/>
+   <path class="m-closed" d="M227 180Q240 ${f?186:184} 253 180" fill="none" stroke="${f?'#b0525a':shade(sk,.55)}" stroke-width="3.2" stroke-linecap="round"/>
+   <ellipse class="m-open" cx="240" cy="181" rx="11" ry="7" fill="#5a2026" stroke="${f?'#b0525a':shade(sk,.6)}" stroke-width="2"/>
+   ${gl}
+  </g></svg>`;
+}
+
+nav();home();
+}
+</script>
+</body>
+</html>
