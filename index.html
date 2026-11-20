@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" translate="no">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FaMed Anamnese-Trainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -722,7 +723,6 @@ function beginCall(){
     <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span class="timer" id="tm">11:00</span></div>
     <div class="status" id="st"></div>
     <div class="self" id="self"></div>
-    <div class="cc" id="cc"></div>
    </div>
    <div class="controls">
     <button class="mic" id="mic"></button><button class="btn ghost" id="again2" title="Play again">🔊</button>
@@ -830,7 +830,7 @@ function logMsg(who,text){
   log.insertAdjacentHTML('beforeend',`<p class="msg ${who}"><b>${who==='doc'?L('Sie','You'):esc(S.c.anrede)}</b>${esc(text)}</p>`);
   log.parentElement.scrollTop=1e6;
 }
-function caption(t){const cc=$('#cc');if(cc)cc.innerHTML=t?'<span>'+esc(t)+'</span>':''}
+function caption(t){}
 function patientLine(text,done){
   S.msgs.push({who:'pat',text});logMsg('pat',text);caption(text);
   stopListening();S.phase='speaking';micUI();
@@ -916,8 +916,8 @@ function doneView(err){
 const GENERAL=['Begrüßung & Vorstellung','Persönliche Daten','Hauptbeschwerde','Aktuelle Anamnese / Schmerzanamnese','Vegetative Anamnese','Gynäkologische Anamnese','Zusammenfassung der Beschwerden','Vorerkrankungen & Operationen','Medikation','Allergien','Impfungen','Noxen','Familienanamnese','Sozialanamnese','Psyche','Abschluss & nächste Schritte'];
 async function runEval(){
   if(!hasKey()){openSettings(runEval);return}
-  S.view='eval';S.evLang=lang;
-  main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">${L('Chefarzt und Sprachprüferin werten aus…','The chief physician and the language examiner are evaluating…')}</h2><p class="lead" style="margin:8px auto">${L('Das dauert etwa 10–30 Sekunden.','This takes about 10–30 seconds.')}</p></div>`;
+  S.view='eval';S.evLang='de';
+  main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">Chefarzt und Sprachprüferin werten aus…</h2><p class="lead" style="margin:8px auto">Das dauert etwa 10–30 Sekunden.</p></div>`;
   try{
     const ev=await evaluate();
     if(!ev||!ev.level)throw new Error('empty');
@@ -928,7 +928,7 @@ async function runEval(){
 }
 async function evaluate(){
   const c=S.c,gen=GENERAL.filter(g=>c.sex==='f'||!g.startsWith('Gyn'));
-  const en=S.evLang==='en';
+  const en=false;
   const conv=S.msgs.map(m=>(m.who==='doc'?'ARZT: ':'PATIENT: ')+m.text).join('\n');
   const p=`Bewerte dieses simulierte Anamnesegespräch aus der FaMed-Fachsprachprüfung (Teil Anamnese, 11 Minuten, Videosprechstunde, der Prüfling ist Allgemeinarzt, Deutsch ist nicht seine Muttersprache). Die Äußerungen des Arztes stammen aus einer Spracherkennung: bewerte KEINE fehlenden Satzzeichen, Groß-/Kleinschreibung oder offensichtliche Erkennungsfehler.
 
@@ -958,6 +958,9 @@ const VDL=v=>({Bestanden:L('Bestanden','Pass'),Knapp:L('Knapp','Borderline'),'Ni
 const lvlCol=l=>({C2:'var(--ok)',C1:'var(--ok)',B2:'var(--mid)'}[l]||'var(--coral)');
 function itemsHTML(list){return (Array.isArray(list)&&list.length)?list.map(x=>`<div class="item"><div class="mis"><span>✗</span>${esc(x.mistake)}</div><div class="sol"><span>✓</span>${esc(x.solution)}</div></div>`).join(''):'<p class="lead">—</p>'}
 function renderEval(ev){
+  const _lang=lang;lang='de';try{renderEvalDE(ev)}finally{lang=_lang}
+}
+function renderEvalDE(ev){
   const c=S.c,d=S.date||new Date();
   main.innerHTML=`<div id="report">
    <div style="color:var(--mute);font-size:14px">FaMed Anamnese · Test ${c.num} · ${esc(ctitle(c))} · ${esc(c.name)}, ${c.age} ${L('J.','yrs')} · ${d.toLocaleDateString(L('de-DE','en-GB'))} · ${L('Dauer','Duration')} ${fmtDur(S.dur)}</div>
@@ -971,7 +974,6 @@ function renderEval(ev){
     <div class="card judge"><h3>👨‍⚕️ ${L('Chefarzt','Chief physician')}</h3><p class="op">${esc(ev.chief&&ev.chief.opinion)}</p>${itemsHTML(ev.chief&&ev.chief.mistakes)}</div>
     <div class="card judge"><h3>🗣️ ${L('Sprachprüferin','Language examiner')}</h3><p class="op">${esc(ev.linguist&&ev.linguist.opinion)}</p>${itemsHTML(ev.linguist&&ev.linguist.mistakes)}</div>
    </div>
-   ${S.evLang!==lang?`<p class="hint">${L('Diese Auswertung wurde auf Englisch erstellt.','This evaluation was written in German. Switch to English before evaluating to get English explanations.')}</p>`:''}
    <details><summary>${L('Mitschrift','Transcript')}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf())}</p></details>
   </div>
   <div class="acts"><button class="btn" id="pdf">⬇ ${L('Als PDF speichern','Save as PDF')}</button><button class="btn ghost" id="again">${L('Nochmal versuchen','Try again')}</button>${c.num<CASES.length?`<button class="btn ghost" id="nxt">${L('Weiter mit Test','Next: Test')} ${c.num+1}</button>`:''}</div>`;
@@ -981,6 +983,9 @@ function renderEval(ev){
 }
 function loadScript(src){return new Promise((res,rej)=>{if(window.html2pdf)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 function pdfHTML(ev){
+  const _lang=lang;lang='de';try{return pdfHTMLDE(ev)}finally{lang=_lang}
+}
+function pdfHTMLDE(ev){
   const c=S.c,d=S.date||new Date();
   const items=list=>(list||[]).map(x=>`<div style="padding:7px 0;border-bottom:1px solid #e3e8e8;page-break-inside:avoid"><div style="color:#b3361f"><b>✗</b> ${esc(x.mistake)}</div><div style="color:#1f6b45;margin-top:3px"><b>✓</b> ${esc(x.solution)}</div></div>`).join('');
   const box=(t,o)=>`<div style="margin-top:16px;border:1px solid #cfdcdc;border-radius:8px;padding:12px 14px"><div style="font-size:16px;font-weight:700;color:#0b5d63">${t}</div><p style="margin:6px 0 4px">${esc(o.opinion)}</p>${items(o.mistakes)}</div>`;
@@ -995,9 +1000,9 @@ function pdfHTML(ev){
   </div>`;
 }
 async function savePDF(){
-  const b=$('#pdf');const t=b.textContent;b.disabled=true;b.textContent=L('PDF wird erstellt…','Creating PDF…');
+  const b=$('#pdf');const t=b.textContent;b.disabled=true;b.textContent='PDF wird erstellt…';
   const d=S.date||new Date();
-  const name=`FaMed_Test${S.c.num}_${(lang==='en'?TITLE_EN[S.c.id]:S.c.title).replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,'-')}_${d.toISOString().slice(0,10)}.pdf`;
+  const name=`FaMed_Test${S.c.num}_${(S.c.title).replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,'-')}_${d.toISOString().slice(0,10)}.pdf`;
   try{
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
     const wrap=document.createElement('div');wrap.style.cssText='position:fixed;left:-10000px;top:0;background:#fff';wrap.innerHTML=pdfHTML(S.ev);document.body.appendChild(wrap);
