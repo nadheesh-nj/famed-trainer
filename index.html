@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FaMed Anamnese-Trainer</title>
+<title>FaMed Trainer – Anamnese & Aufklärung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -48,6 +48,7 @@ main{padding:clamp(18px,3vw,40px);max-width:1240px;width:100%}
 /* home */
 .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0}
 .step{background:var(--panel);border-radius:14px;padding:18px}
+.steps.s4{grid-template-columns:repeat(4,minmax(0,1fr))}@media(max-width:1100px){.steps.s4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .step b{display:block;font:700 30px/1 "Inter Tight";color:var(--teal);margin-bottom:8px}
 .caps{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 24px}
 .cap{font-size:14px;padding:5px 12px;border-radius:20px;background:var(--panel);border:1px solid var(--line)}
@@ -69,6 +70,15 @@ main{padding:clamp(18px,3vw,40px);max-width:1240px;width:100%}
 .mis,.sol{display:flex;gap:8px}.mis span{color:var(--coral);font-weight:700}.sol{margin-top:4px;color:var(--ok)}.sol span{font-weight:700}
 @media(max-width:600px){.lvlrow{grid-template-columns:minmax(0,1fr)}}
 @media print{aside,.acts,.hint,#modal{display:none!important}.app{display:block}main{padding:0;max-width:none}body{background:#fff;color:#000}details{display:block}details>*{display:block}.card{break-inside:avoid}}
+.sheet{font-size:15px;line-height:1.5}.sheet p{margin:2px 0 10px}.sheet ol{padding-left:20px;margin:4px 0}.sheet ol li{margin:4px 0}
+.sh-k{font-weight:700;color:var(--teal);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;margin-top:10px}
+.shi{border-collapse:collapse;width:100%;margin:4px 0 6px}.shi td{vertical-align:top;padding:4px 10px 4px 0;border-bottom:1px solid var(--line)}.shi td:first-child{color:var(--mute);white-space:nowrap;width:1%}
+#pa .sheet{font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 20px}@media(max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--panel);border-radius:14px;padding:14px 16px}.kpi small{display:block;color:var(--mute);font-size:13px}.kpi b{font:700 32px/1.1 "Inter Tight",sans-serif;font-variant-numeric:tabular-nums}
+.pbar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px}.pbar i{display:block;height:100%;border-radius:6px}
+.crit{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}.crit:last-child{border:0}.crit .pbar{margin:0}.crit em{grid-column:1/-1;font-style:normal;color:var(--mute);font-size:13.5px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:0 7px;border-radius:10px;background:var(--line);color:var(--ink);margin-right:6px;vertical-align:1px}
 .hist{width:100%;border-collapse:collapse;font-size:15px}.hist td,.hist th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}.hist .r{text-align:right;white-space:nowrap}
 /* reading */
 .task{max-width:720px;margin:6vh auto 0;background:var(--panel);border-radius:18px;padding:clamp(22px,4vw,40px);border-top:6px solid var(--teal)}
@@ -140,7 +150,7 @@ summary{cursor:pointer;font-weight:600;min-height:28px}
  .tbtn{flex:none;width:auto;background:rgba(255,255,255,.08)}
  .tt small,.best{display:none}
  .role{margin-top:4px}
- .steps,.grid2{grid-template-columns:minmax(0,1fr)}
+ .steps,.steps.s4,.grid2{grid-template-columns:minmax(0,1fr)}
  .fhead{grid-template-columns:minmax(0,1fr)}
  .cc{right:30%;bottom:10px;font-size:14px}
  .self{width:24%;bottom:10px;right:10px}
@@ -151,9 +161,9 @@ summary{cursor:pointer;font-weight:600;min-height:28px}
 <body>
 <div class="app">
 <aside>
- <div class="brand">FaMed Anamnese-Trainer<small>Videosprechstunde · 11 Minuten</small></div>
+ <div class="brand">FaMed Trainer<small>Station A · Arzt-Patient</small></div>
  <div class="role lang" aria-label="Sprache / Language" style="margin:0"><button data-l="de">Deutsch</button><button data-l="en">English</button></div>
- <button class="rnd" id="rand">Zufälliger Fall</button>
+ <button class="rnd go" id="rand">▶ Test starten</button>
  <nav id="nav" aria-label="Fälle"></nav>
  <button class="rnd" id="gear" style="margin-top:auto">⚙ Einstellungen</button>
  <div class="role" aria-label="Ich bin" style="margin-top:6px"><button data-r="m">Arzt</button><button data-r="f">Ärztin</button></div>
@@ -512,6 +522,204 @@ SOZIAL: Verheiratet, 2 Kinder (8 und 12). Wohnt in Duisburg. Arbeitet bei einer 
 3) Wenn der Arzt nach Schmerzmitteln fragt, erwähnst du das Magendrücken erst auf Nachfrage.`}
 ];
 
+/* ---------- Teil B: Aufklärungsgespräche (aus den FaMed-Aufgabenblättern / Musterlösungen) ---------- */
+const GEN_OP=['Blutung / Nachblutung','Wundinfektion, Wundheilungsstörung','Schmerzen','Allergische Reaktionen (Medikamente, Narkose)','Thrombose / Embolie'];
+const AUF=[
+{id:'mastoid',t:'Mastoidektomie',lay:'Ausräumung des Warzenfortsatzes',en:'Mastoidectomy',role:'HNO-Arzt/-Ärztin',name:'Frau Bilek',anrede:'Frau Bilek',sex:'f',age:32,proxy:'ihre 2-jährige Tochter Sandra',
+ dur:'ca. 60–90 Minuten',grund:'Mastoiditis (Entzündung des Warzenfortsatzes) links aufgrund einer akuten Mittel-/Innenohrentzündung; konservative Therapie ohne ausreichenden Erfolg',
+ ablauf:'Vollnarkose; Desinfektion; Hautschnitt hinter dem Ohr; Freilegen und Ausräumen des Warzenfortsatzes, Abtragen des entzündeten Knochens; ggf. Wunddrainage; Hautverschluss; Verband (Tamponade)',
+ vorerk:'Sandra: keine. (Mutter erzählt gern unwichtige Details über eigene Vorerkrankungen.)',med:'Sandra: zurzeit Antibiotikasaft, Fiebersaft',
+ gen:['Blutung / Nachblutung','Infektion','Wundheilungsstörungen'],
+ spec:['Gesichtsnervlähmung (N. facialis) mit Lähmung der Gesichtsmuskulatur, Gefühlsstörung an der Ohrmuschel, Geschmacksstörung','Vorübergehende oder dauerhafte Hörminderung','Ohrgeräusche (Tinnitus)','Schwindel, Übelkeit'],
+ vor:['Nüchtern bleiben (Narkose)','Bisherige Medikamente mit dem Arzt abklären','Narkosegespräch mit dem Anästhesisten'],
+ nach:['Ohr und Tamponade trocken halten','Rauchverbot in der Umgebung (stört die Wundheilung)','Keine körperliche Anstrengung','Keine Kopfhörer und keine Wattestäbchen für einige Wochen'],
+ qs:['Ist so eine Vollnarkose für eine Zweijährige nicht gefährlich?','Gibt es einen Bluttest, mit dem man sieht, ob die Narkose bei Sandra ohne Komplikationen läuft?','Wann darf Sandra nach der OP wieder essen?'],
+ persona:'Du bist die Mutter, sehr besorgt um deine Tochter. Du erzählst manchmal unnötige Details über dich selbst (Heuschnupfen, Rückenschmerzen).'},
+{id:'appendektomie',t:'Laparoskopische Appendektomie',lay:'Blinddarm-OP',en:'Appendectomy',role:'Viszeralchirurg/-in',name:'Katrin Bayer',anrede:'Frau Bayer',sex:'f',age:25,
+ dur:'ca. 1 Stunde',grund:'Akute Appendizitis (Entzündung des Wurmfortsatzes / "Blinddarmentzündung")',
+ ablauf:'Vollnarkose; 3 kleine Schnitte (Trokare): 1 unter dem Bauchnabel für die Kamera, 2 in der Leiste; Aufsuchen des Wurmfortsatzes; Abklemmen und Absetzen mit Schlingen oder Clips; Bergen des Wurmfortsatzes; Kontrolle auf Blutung, evtl. Drainage; schichtweiser Wundverschluss',
+ vorerk:'keine',med:'keine (Pille)',gen:GEN_OP,
+ spec:['Lokale Wundinfektionen (6–17 %)','Verwachsungen (1–4 %)','Undichtigkeit des Wurmfortsatzstumpfes (Stumpfinsuffizienz, 0,5–2 %)','Eiteransammlungen im Bauch, Bauchfellentzündung (0,8 %)'],
+ vor:['Vor der OP nüchtern'],
+ nach:['Am OP-Tag Ernährung über die Vene (Infusion)','1. Tag nach OP: Tee / stilles Wasser, ggf. Suppe; nach 24 h weiterer Kostaufbau','Körperliche Anstrengung ca. 8 Tage vermeiden','6 Wochen nichts Schweres heben (über 5 kg)'],
+ qs:['Wie lange muss ich hierbleiben?','Was ist eine parenterale Ernährung?','Kann ich ohne den Wurmfortsatz normal leben und essen?','Wann kann ich wieder schwimmen gehen?']},
+{id:'sigmoid',t:'Laparoskopische Sigmoidektomie',lay:'Teilentfernung des Dickdarms',en:'Sigmoid colectomy',role:'Viszeralchirurg/-in',name:'Hanna Müller',anrede:'Frau Müller',sex:'f',age:32,
+ dur:'ca. 60–120 Minuten',grund:'Divertikulitis (wiederholte Entzündung von Ausstülpungen der Darmwand im S-förmigen Dickdarm)',
+ ablauf:'Vollnarkose; 3 kleine Schnitte (Trokare): 1 unter dem Nabel für die Kamera, 2 in der Leiste; Aufsuchen des Sigmas; Entfernen des entzündeten Darmabschnitts; Verbinden des Dickdarms mit dem Mastdarm (Anastomose); Kontrolle auf Blutung, evtl. Drainage; schichtweiser Wundverschluss',
+ vorerk:'keine',med:'keine',gen:GEN_OP,
+ spec:['Verletzung benachbarter Organe (Blase, Harnleiter, Gefäße)','Undichtigkeit der Darmnaht (Anastomoseninsuffizienz) mit Bauchfellentzündung'],
+ vor:['8 Stunden nüchtern','Darm muss leer sein (Abführen)'],
+ nach:['Am OP-Tag Ernährung über die Vene','Am nächsten Morgen trinken, nach 24 h weiterer Kostaufbau','Früh aufstehen und sich bewegen','8 Tage körperliche Anstrengung vermeiden'],
+ qs:['Wie viel Darm wird denn entfernt?','Wie wird das wieder miteinander verbunden?','Wann kann ich wieder normal essen und Sport machen?']},
+{id:'chole',t:'Laparoskopische Cholezystektomie',lay:'Gallenblasenentfernung',en:'Cholecystectomy',role:'Viszeralchirurg/-in',name:'Anna Mayer',anrede:'Frau Mayer',sex:'f',age:35,
+ dur:'ca. 60–120 Minuten',grund:'Cholezystitis (Gallenblasenentzündung) bei Gallensteinen',
+ ablauf:'Vollnarkose; 3 kleine Schnitte (Trokare): 1 unter dem Nabel für die Kamera, 2 weitere; Aufsuchen der Gallenblase; Abklemmen und Absetzen mit Clips; Bergen der Gallenblase; Kontrolle auf Blutung, evtl. Drainage; schichtweiser Wundverschluss',
+ vorerk:'keine',med:'keine',gen:GEN_OP,
+ spec:['Verletzung benachbarter Organe (Gallengang, Darm, Leber, Gefäße)','Austritt von Gallenflüssigkeit (Galleleck / Sekretion)','Umstieg auf offenen Bauchschnitt möglich'],
+ vor:['8 Stunden nüchtern'],
+ nach:['Am OP-Tag Ernährung über die Vene','1. Tag nach OP: Tee / stilles Wasser, ggf. Suppe; nach 24 h Kostaufbau','Anfangs nicht allein aufstehen, essen oder trinken','Fettarm, ballaststoffreich, kleine Mahlzeiten'],
+ qs:['Kann ich ohne Gallenblase leben?','Wie lange muss ich hierbleiben?','Wann darf ich duschen?','Ich habe Angst, Frau Doktor/Herr Doktor.']},
+{id:'thyreo',t:'Totale Thyreoidektomie',lay:'Entfernung der Schilddrüse',en:'Thyroidectomy',role:'Viszeralchirurg/-in',name:'Sabine Kunze',anrede:'Frau Kunze',sex:'f',age:42,
+ dur:'ca. 1–2 Stunden',grund:'Struma multinodosa (vergrößerte Schilddrüse mit mehreren Knoten), heiße und kalte Knoten in der Szintigrafie, TSH im unteren Normbereich',
+ ablauf:'Vollnarkose; waagerechter Hautschnitt ca. 3 cm über dem Brustbein (Jugulum); Spalten von Haut, Gewebe und Muskelschichten; Entfernen der Schilddrüse; Wundverschluss; Verband',
+ vorerk:'keine',med:'keine',gen:GEN_OP,
+ spec:['Schwellung nach der OP mit vorübergehenden Schluckbeschwerden und leicht erschwerter Atmung (ca. 1:10)','Verletzung des Stimmbandnervs (N. laryngeus recurrens) → Heiserkeit (ca. 1:100)','Verletzung / Verlust der Nebenschilddrüsen → Kalziummangel mit Muskelkrämpfen (ca. 1:100)'],
+ vor:['Vor der OP nüchtern'],
+ nach:['Am OP-Tag nur klare Flüssigkeit, Tee','2–3 Wochen körperliche Anstrengung vermeiden','Lebenslang Schilddrüsenhormone als Tablette; Dosis nach 4–6 Wochen per Bluttest (TSH) kontrollieren'],
+ qs:['Muss ich die Tabletten mein ganzes Leben lang nehmen?','Bleibt eine große Narbe am Hals?','Was passiert, wenn meine Stimme danach heiser ist?']},
+{id:'kolo',t:'Koloskopie',lay:'Darmspiegelung',en:'Colonoscopy',role:'Gastroenterologe/-in',name:'Jürgen Vogel',anrede:'Herr Vogel',sex:'m',age:58,
+ dur:'ca. 30 Minuten',grund:'Blut im Stuhl und veränderte Stuhlgewohnheiten – Abklärung, Darmkrebs ausschließen',
+ ablauf:'Kurznarkose (Schlafspritze); flexibler Schlauch mit Kamera über den After bis zum Übergang in den Dünndarm; Darm wird mit Luft/Gas entfaltet; ggf. Entnahme von Gewebeproben oder Abtragung von Polypen',
+ vorerk:'Bluthochdruck',med:'Ramipril 5 mg morgens',
+ gen:['Blutung (v. a. nach Probeentnahme)','Infektion','Allergische Reaktionen (Juckreiz, Ausschlag)','Verletzung der Darmschleimhaut'],
+ spec:['Darmdurchbruch (Perforation), sehr selten – evtl. Operation nötig','Blähungen, Bauchschmerzen durch die Luft','Herz-Kreislauf- und Atemprobleme durch die Kurznarkose'],
+ vor:['Nüchtern (ab Vortag nur klare Flüssigkeit)','Darmreinigung mit Abführlösung','Blutdrucktablette mit wenig Wasser einnehmen'],
+ nach:['Nicht sofort essen oder trinken','24 Stunden kein Auto fahren, keine Maschinen (Narkose)','Abholung durch Begleitperson'],
+ qs:['Muss ich lange nüchtern sein? Bekomme ich dann nicht Hunger?','Kann ich meine Blutdrucktabletten vorher nehmen?','Was ist eigentlich ein Polyp?']},
+{id:'oegd',t:'Ösophagogastroduodenoskopie (ÖGD)',lay:'Magenspiegelung',en:'Upper endoscopy (gastroscopy)',role:'Viszeralchirurg/-in',name:'Ingrid Bayer',anrede:'Frau Bayer',sex:'f',age:54,
+ dur:'ca. 10–15 Minuten',grund:'Verdacht auf Gastritis (Magenschleimhautentzündung); Abklärung krankhafter Veränderungen in Speiseröhre, Magen und Zwölffingerdarm; gezielte Gewebeproben (Biopsie)',
+ ablauf:'Kurze Analgosedierung; flexibles Endoskop mit Kamera über den Mund; Vorschieben durch die Speiseröhre bis in den Zwölffingerdarm; Luft zur besseren Sicht; Schleimhautproben mit kleiner Zange; danach Luft absaugen, Endoskop entfernen',
+ vorerk:'keine',med:'gelegentlich Ibuprofen gegen Rückenschmerzen',
+ gen:['Blutungen','Schmerzen','Allergische Reaktionen','Infektionen'],
+ spec:['Blähungen (Meteorismus) durch die eingebrachte Luft','Schleimhautverletzungen mit Blutung (selten, 1:100)','Durchbruch (Perforation) von Speiseröhre, Magen oder Zwölffingerdarm → Notfall-OP (1:10.000)'],
+ vor:['6 Stunden vorher nichts essen','Bis 2 Stunden vorher klare Flüssigkeit (Wasser, Tee ohne Milch)','Blutverdünner nur nach Rücksprache'],
+ nach:['30 Minuten Überwachung','Kein Auto fahren, kein Alkohol, nicht rauchen, keine Maschinen','Abholung durch Begleitperson','Nach Sedierung erst am Folgetag arbeiten'],
+ qs:['Muss ich dabei würgen? Ich habe Angst davor.','Darf ich danach selbst nach Hause fahren?','Wann bekomme ich das Ergebnis der Proben?']},
+{id:'koro',t:'Koronarangiographie',lay:'Herzkatheteruntersuchung',en:'Coronary angiography',role:'Kardiologe/-in',name:'Harry Bleckert',anrede:'Herr Bleckert',sex:'m',age:48,
+ dur:'ca. 60–120 Minuten',grund:'Engegefühl in der Brust (Angina pectoris) – Darstellung der Herzkranzgefäße',
+ ablauf:'Örtliche Betäubung (Leiste oder Handgelenk); kleiner Hautschnitt; Katheter über die Arterie bis zum Herzen; Kontrastmittel; Serie von Röntgenbildern; bei Engstelle Ballon / Stent; Katheter entfernen; Druckverband',
+ vorerk:'keine',med:'keine',gen:GEN_OP.slice(0,4),
+ spec:['Herzrhythmusstörungen','Gefäßverletzung durch den Katheter','Allergie auf das Kontrastmittel (Hautausschlag, Juckreiz)','Aneurysma spurium (Bluterguss mit Verbindung zur Schlagader an der Einstichstelle)'],
+ vor:['4 Stunden nüchtern','Bei Angst Beruhigungsmittel möglich'],
+ nach:['12 Stunden Überwachung auf Station','Nicht sofort aufstehen, Bein nicht beugen (Druckverband)','Viel trinken (Kontrastmittel ausscheiden)','4 Tage keine körperliche Anstrengung'],
+ qs:['Bin ich dabei wach? Spüre ich das?','Was ist ein Stent?','Wann kann ich wieder arbeiten?']},
+{id:'tee',t:'Transösophageale Echokardiographie (TEE)',lay:'Herzultraschall über die Speiseröhre',en:'Transoesophageal echocardiography',role:'Kardiologe/-in',name:'Max Mustermann',anrede:'Herr Mustermann',sex:'m',age:55,
+ dur:'ca. 20–30 Minuten',grund:'Verdacht auf Herzklappenerkrankung oder Blutgerinnsel im linken Vorhof',
+ ablauf:'Rachen mit Spray betäuben; leichte Sedierung (optional); dünner Schlauch mit Ultraschallkopf über den Mund in die Speiseröhre bis in die Nähe des Herzens; Ultraschallbilder von Klappen, Vorhöfen und Herzwänden; ggf. Messungen',
+ vorerk:'Bluthochdruck',med:'Amlodipin 5 mg',
+ gen:['Blutungen','Schmerzen','Infektionen','Allergische Reaktionen auf Betäubungsmittel / Sedierung'],
+ spec:['Verletzung der Speiseröhre (selten)','Blutungen im Bereich der Speiseröhre','Herzrhythmusstörungen (sehr selten)','Einatmen von Mageninhalt (Aspiration)','Schluckbeschwerden, Halsschmerzen danach (vorübergehend)'],
+ vor:['6 Stunden nüchtern','Blutverdünner nur nach Rücksprache anpassen'],
+ nach:['30 Minuten Überwachung','Bei Sedierung: Begleitperson, kein Auto fahren, keine Maschinen, kein Alkohol am selben Tag','Klare Flüssigkeit erst, feste Nahrung erst wenn Schluckreflex wieder da','Am Untersuchungstag keine anstrengenden Tätigkeiten'],
+ qs:['Wie lange dauert das?','Kann ich danach normal essen?','Gibt es keine Alternative? Normaler Ultraschall?']},
+{id:'kardioversion',t:'Elektrische Kardioversion',lay:'Stromtherapie am Herzen',en:'Electrical cardioversion',role:'Kardiologe/-in',name:'Michael Schröder',anrede:'Herr Schröder',sex:'m',age:63,
+ dur:'ca. 10–15 Minuten',grund:'Symptomatisches Vorhofflimmern seit 4 Tagen mit Herzklopfen, Luftnot und Leistungsminderung',
+ ablauf:'Kurze Sedierung, ständige Überwachung (Monitor); Elektroden (Klebepads) auf die Brust; gezielter synchronisierter Stromstoß zur Wiederherstellung des normalen Rhythmus; meist ambulant oder kurzer stationärer Aufenthalt',
+ vorerk:'Bluthochdruck',med:'Bisoprolol 5 mg täglich, Marcumar',
+ gen:['Hautrötung / -reizung an den Elektroden','Schmerzen im Brustbereich','Vorübergehende Verwirrtheit nach der Sedierung'],
+ spec:['Blutgerinnsel → Schlaganfall bei unzureichender Blutverdünnung (ca. 1–2 %)','Langsamer Herzschlag oder andere Rhythmusstörungen','Misserfolg: normaler Rhythmus kommt nicht zurück'],
+ vor:['Nüchtern ab Mitternacht','Blutverdünnung kontrollieren (INR über 2,0)','Ggf. TEE, um Blutgerinnsel im Vorhof auszuschließen'],
+ nach:['Mehrere Stunden Überwachung','EKG und Vitalwerte kontrollieren','Blutverdünner mindestens 4 Wochen weiter nehmen','Bei erneuten Rhythmusstörungen Medikamente oder ggf. Ablation'],
+ qs:['Tut der Stromstoß weh?','Muss ich im Krankenhaus bleiben?','Was bedeutet INR?']},
+{id:'broncho',t:'Bronchoskopie',lay:'Lungenspiegelung',en:'Bronchoscopy',role:'Pneumologe/-in',name:'Rainer Engel',anrede:'Herr Engel',sex:'m',age:66,
+ dur:'ca. 10–30 Minuten',grund:'Seit Wochen Husten, Luftnot und Fieber, unklare Verschattung im Röntgenbild – genaue Diagnose, Gewebe- und Schleimproben',
+ ablauf:'Kurznarkose; dünner, biegsamer Schlauch (Bronchoskop) durch Nase oder Mund in die Luftröhre; Betrachtung der Atemwege; ggf. Gewebeproben (Biopsie); Absaugen / Spülen von Schleim (Lavage); Gerät entfernen',
+ vorerk:'COPD, raucht 20 Zigaretten am Tag',med:'Asthmaspray (Salbutamol) bei Bedarf',
+ gen:['Blutungen','Infektion','Allergische Reaktionen'],
+ spec:['Verletzungen im Mund / an den Zähnen','Verletzung der Stimmbänder oder Nerven im Hals','Verkrampfung der Atemwege (Bronchospasmus)','Lungenverletzung mit Luftaustritt (Pneumothorax)','Fieber nach dem Eingriff','Leichte Blutung an der Entnahmestelle (Blut im Auswurf)'],
+ vor:['6 Stunden nüchtern','Bei Angst Beruhigungsmittel möglich'],
+ nach:['Einige Stunden Überwachung','24 Stunden kein Auto, kein Fahrrad, keine Maschinen','3–5 Tage schonen: kein Alkohol, kein Sport, nicht rauchen','Ausreichend trinken'],
+ qs:['Bekomme ich da überhaupt Luft?','Darf ich danach rauchen?','Muss ich im Krankenhaus bleiben?']},
+{id:'arthro',t:'Kniegelenksarthroskopie',lay:'Gelenkspiegelung am Knie',en:'Knee arthroscopy',role:'Orthopäde/-in',name:'Silke Roth',anrede:'Frau Roth',sex:'f',age:44,
+ dur:'ca. 1–2 Stunden',grund:'Seit Monaten Knieschmerzen rechts mit Blockaden, V. a. Meniskusriss – Diagnose und gleichzeitig Behandlung (geschädigtes Gewebe entfernen)',
+ ablauf:'Örtliche Betäubung (alternativ Regional- oder Vollnarkose); Blutsperre mit Manschette; 3 kleine Schnitte über dem Gelenk; Kamera und Instrumente; Gelenk mit Flüssigkeit füllen; Meniskus, Knorpel, Bänder beurteilen; verletztes Gewebe entfernen; ggf. Drainage; Naht; Verband',
+ vorerk:'keine',med:'keine',gen:GEN_OP,
+ spec:['Verletzung großer Blutgefäße mit Blutung (gelegentlich)','Gelenkerguss, Weichteilschäden (selten)','Nervenschäden mit Lähmung oder Gefühlsstörung (sehr selten)','Gelenksteife / Bewegungseinschränkung'],
+ vor:['Nüchtern (falls Narkose)','Blutverdünner absprechen'],
+ nach:['Einige Stunden Überwachung','Körperliche Anstrengung vermeiden','Ca. 2 Wochen erholen, ggf. Gehstützen','Thromboseprophylaxe'],
+ qs:['Gibt es auch eine andere Narkose?','Wann kann ich wieder normal laufen?','Warum reicht kein MRT?']},
+{id:'hueft',t:'Hüft-TEP',lay:'künstliches Hüftgelenk',en:'Total hip replacement',role:'Orthopäde/-in',name:'Gisela Mayer',anrede:'Frau Mayer',sex:'f',age:71,
+ dur:'ca. 2–3 Stunden',grund:'Fortgeschrittener Gelenkverschleiß (Coxarthrose) rechts, starke Schmerzen, konservativ ausgeschöpft',
+ ablauf:'Voll- oder Regionalnarkose; Desinfektion, Abdecken; Schnitt im Hüftbereich; erkranktes Gelenk entfernen; künstliches Gelenk mit Knochenzement oder spezieller Beschichtung befestigen; Wundverschluss',
+ vorerk:'Bluthochdruck, Osteoporose',med:'Candesartan 8 mg, Vitamin D',
+ gen:['Übelkeit / Erbrechen','Blutung / Nachblutung','Schmerzen','Allergische Reaktionen','Wundinfektion, Wundheilungsstörung','Thrombose / Embolie'],
+ spec:['Lockerung oder Bruch der Prothese','Infektion des künstlichen Gelenks','Verletzung von Gefäßen oder Nerven → Bewegungseinschränkung, Gefühlsstörung','Ausrenken des Gelenks (Luxation)','Beinlängenunterschied'],
+ vor:['Nüchtern','Blutverdünner absprechen','Narkosegespräch'],
+ nach:['3–5 Tage Krankenhaus, dann Reha oder nach Hause','Gehstützen und Physiotherapie','Reha über Wochen bis Monate','Schmerzmittel bei Bedarf','Blutverdünner (Thromboseprophylaxe) für einige Wochen'],
+ qs:['Wie lange hält so ein künstliches Gelenk?','Kann ich danach wieder alleine laufen?','Muss ich in die Reha?']},
+{id:'kreuzband',t:'Vordere Kreuzbandplastik',lay:'Kreuzband-Ersatz-OP',en:'ACL reconstruction',role:'Orthopäde/-in',name:'Jonas Weber',anrede:'Herr Weber',sex:'m',age:27,
+ dur:'ca. 1–2 Stunden',grund:'Riss des vorderen Kreuzbandes rechts (Sportunfall), Instabilität des Knies',
+ ablauf:'Vollnarkose; Desinfektion; kleiner Hautschnitt am Knie (arthroskopisch); gerissenes Kreuzband entfernen und durch eine Sehne ersetzen; Wundverschluss, Verband',
+ vorerk:'keine',med:'keine',gen:GEN_OP.slice(0,4),
+ spec:['Infektion der neuen Sehne','Verletzung von Nerven oder Blutgefäßen','Steifheit des Knies'],
+ vor:['6 Stunden nüchtern'],
+ nach:['Gehstützen, Knie entlasten','Schmerzmittel nur nach Anweisung','Reha und Physiotherapie direkt nach der OP','Kein Laufen, Springen, Kontaktsport bis zur Heilung','Regelmäßige Kontrollen'],
+ qs:['Wann kann ich wieder Fußball spielen?','Geht es auch ohne OP?','Wie lange kann ich nicht arbeiten?']},
+{id:'leber',t:'Perkutane Leberpunktion',lay:'Gewebeprobe aus der Leber',en:'Liver biopsy',role:'Gastroenterologe/-in',name:'Renate Schulte',anrede:'Frau Schulte',sex:'f',age:56,
+ dur:'ca. 20–30 Minuten',grund:'Erhöhte Leberwerte und unklare Leberveränderungen im Ultraschall – sichere Diagnose durch Gewebeprobe',
+ ablauf:'Desinfektion am rechten Oberbauch; örtliche Betäubung; dünne Hohlnadel unter Ultraschallkontrolle in die Leber; Gewebeprobe; Nadel sofort entfernen; Verband',
+ vorerk:'Diabetes Typ 2',med:'Metformin 1000 mg, ASS 100 mg',
+ gen:['Schmerzen an der Einstichstelle','Blutung / Bluterguss','Infektion','Allergische Reaktionen auf Medikamente'],
+ spec:['Blutung aus der Leber, selten so stark, dass ein Eingriff nötig ist','Verletzung von Gallenblase, Darm oder Lunge (sehr selten)','Kurzzeitig Fieber oder Schüttelfrost'],
+ vor:['4–6 Stunden nüchtern','Blutverdünner (ASS) nach Rücksprache absetzen','Allergien / Gerinnungsstörungen mitteilen','Laborwerte (Gerinnung, Blutplättchen) prüfen'],
+ nach:['4–6 Stunden ruhig liegen zur Beobachtung','Einstichstelle sauber und trocken halten','Leichte Schmerzen normal, ggf. Schmerzmittel','24–48 Stunden keine Anstrengung','Ausreichend trinken'],
+ qs:['Muss ich mein Aspirin absetzen?','Tut das weh?','Wann bekomme ich das Ergebnis?']},
+{id:'aszites',t:'Aszitespunktion',lay:'Ablassen von Bauchwasser',en:'Paracentesis',role:'Gastroenterologe/-in',name:'Brigitte Kraft',anrede:'Frau Kraft',sex:'f',age:59,
+ dur:'ca. 20–30 Minuten',grund:'Bauchwassersucht (Aszites) mit Atemnot und Blähbauch bei alkoholbedingter Leberzirrhose',
+ ablauf:'Örtliche Betäubung (bei Bedarf Schmerz-/Beruhigungsmittel); Desinfektion am linken Unterbauch; Hohlnadel unter Ultraschall; Flüssigkeit langsam ablaufen lassen; bei mehr als 5 Litern Albumin über die Vene; Nadel entfernen, Verband',
+ vorerk:'Leberzirrhose, früher Alkohol (seit 3 Monaten trocken)',med:'Spironolacton, Furosemid',
+ gen:['Verletzung kleiner Blutgefäße oder Nerven','Bluterguss an der Einstichstelle','Infektionen','Allergische Reaktionen'],
+ spec:['Verletzung benachbarter Organe, z. B. Darm; sehr selten Darmdurchbruch → Operation','Infektion der Bauchhöhle, sehr selten Blutvergiftung','Kreislaufstörungen, sehr selten Kreislaufstillstand','Blutungen in der Bauchhöhle'],
+ vor:['Bluttest der Gerinnung vorher'],
+ nach:['2 Stunden Bettruhe','6 Stunden kein Auto fahren'],
+ qs:['Kommt das Wasser wieder?','Was ist Albumin?','Ich trinke nicht mehr – glauben Sie mir?']},
+{id:'ct',t:'CT mit Kontrastmittel',lay:'Computertomographie',en:'CT scan with contrast',role:'Radiologe/-in',name:'Frank Lehmann',anrede:'Herr Lehmann',sex:'m',age:62,
+ dur:'wenige Minuten',grund:'Unklarer Rundherd in der Lunge im Röntgenbild – genaue Abklärung (CT Thorax)',
+ ablauf:'Liegen auf der Liege, Fahrt durch die Öffnung des Geräts; Röntgenröhre dreht sich; Schichtbilder per Computer; Überwachung über Scheibe und Gegensprechanlage; Atemkommandos befolgen; Kontrastmittel über die Vene mit kurzem, harmlosem Wärmegefühl',
+ vorerk:'Bluthochdruck',med:'Ramipril',
+ gen:['Strahlenbelastung (gering)','Schmerz / Bluterguss an der Einstichstelle'],
+ spec:['Unverträglichkeit auf Kontrastmittel (Hautausschlag, Übelkeit, Atembeschwerden)','Nierenschädigung bis Nierenversagen, v. a. bei vorgeschädigten Nieren','Schilddrüsenüberfunktion durch das jodhaltige Kontrastmittel'],
+ vor:['2 Stunden nüchtern (nur bei Kontrastmittel)','Nierenwerte (und Schilddrüsenwerte) kontrollieren','Allergie gegen Kontrastmittel ausschließen'],
+ nach:['Viel trinken (Kontrastmittel ausscheiden)','Bei Ausschlag, Atemnot, Herzrasen sofort melden'],
+ qs:['Wie viel Strahlung ist das?','Ich hatte mal Ausschlag nach einer Untersuchung – ist das schlimm?','Muss ich in eine enge Röhre?']},
+{id:'mrt',t:'MRT mit Kontrastmittel',lay:'Kernspintomographie',en:'MRI with contrast',role:'Radiologe/-in',name:'Nicole Brandt',anrede:'Frau Brandt',sex:'f',age:38,
+ dur:'ca. 15–20 Minuten',grund:'Taubheitsgefühle und Sehstörung – Verdacht auf Entzündung im Gehirn (MRT Kopf)',
+ ablauf:'Liege fährt langsam in die Röhre; starkes Magnetfeld, keine Röntgenstrahlen; ruhig liegen; laute Klopfgeräusche → Gehörschutz; Klingel für Notfälle; Überwachung; bei Platzangst Beruhigungsmittel; Kontrastmittel über die Vene mit harmlosem Wärmegefühl',
+ vorerk:'keine',med:'Pille',
+ gen:['Schmerz / Bluterguss an der Einstichstelle'],
+ spec:['Unverträglichkeit auf Kontrastmittel (Hautausschlag, Übelkeit, Atembeschwerden)','Nierenschädigung bei vorgeschädigten Nieren','Platzangst, Lärm'],
+ vor:['2 Stunden nüchtern (nur bei Kontrastmittel)','Nierenwert kontrollieren, Kontrastmittelallergie ausschließen','Alle Metallgegenstände ablegen (Uhr, Schmuck, Haarnadeln, Zahnprothese, Hörgerät, Schlüssel, Geld); Implantate / Herzschrittmacher erfragen'],
+ nach:['Nach Beruhigungsspritze 24 Stunden kein Auto fahren','Viel trinken'],
+ qs:['Ich habe Platzangst – was mache ich da?','Ich habe ein Tattoo und ein Piercing, ist das ein Problem?','Ist das Strahlung?']},
+{id:'leiste',t:'Leistenhernien-OP nach Lichtenstein',lay:'Leistenbruch-OP mit Netz',en:'Inguinal hernia repair (Lichtenstein)',role:'Chirurg/-in',name:'Werner Fuchs',anrede:'Herr Fuchs',sex:'m',age:52,
+ dur:'ca. 45–60 Minuten',grund:'Leistenbruch rechts (Bauchinhalt wölbt sich durch eine Schwachstelle der Bauchwand); Gefahr der Einklemmung',
+ ablauf:'Teil- oder Vollnarkose; Desinfektion; Hautschnitt ca. 5–7 cm in der Leiste; Bruchsack freilegen und zurückschieben; Bruchlücke mit Kunststoffnetz verstärken; schichtweiser Wundverschluss; Verband',
+ vorerk:'keine',med:'keine',gen:['Blutung / Nachblutung','Wundinfektion, Wundheilungsstörung','Allergische Reaktionen','Schmerzen oder Taubheitsgefühl in der Leiste'],
+ spec:['Verletzung von Nerven oder Gefäßen','Wiederauftreten des Bruchs (Rezidiv)','Verletzung des Samenstrangs mit möglicher Beeinträchtigung der Fruchtbarkeit (sehr selten)'],
+ vor:['8 Stunden nüchtern: nicht essen, trinken, rauchen','Blutverdünner ggf. pausieren','Narkoseaufklärung'],
+ nach:['In den ersten Tagen nichts über 5 kg heben','2–4 Wochen kein Sport, kein Schwimmen','Am selben oder nächsten Tag nach Hause','Bei Schmerzen, Fieber, Schwellung sofort melden'],
+ qs:['Was passiert, wenn ich die OP nicht mache?','Bleibt das Netz für immer drin?','Wann kann ich wieder arbeiten? Ich bin Lagerarbeiter.']},
+{id:'haemo',t:'Hämorrhoidektomie',lay:'Entfernung von Hämorrhoiden',en:'Haemorrhoidectomy',role:'Viszeralchirurg/-in',name:'Claudia Bauer',anrede:'Frau Bauer',sex:'f',age:46,
+ dur:'ca. 30–60 Minuten',grund:'Vergrößerte Hämorrhoiden mit Blutungen, Schmerzen, Juckreiz, Nässen; Salben, Zäpfchen und Gummibandligatur ohne ausreichenden Erfolg',
+ ablauf:'Vollnarkose oder Spinalanästhesie; Analkanal vorsichtig erweitern; Hämorrhoidenknoten mit Schere, Skalpell oder Elektrokoagulation entfernen; Blutstillung mit Nähten oder Veröden; Wunde teils offen; Verband; 2–3 Tage stationär',
+ vorerk:'keine',med:'keine',gen:['Blutung / Nachblutung','Schmerzen','Wundinfektion','Allergische Reaktionen'],
+ spec:['Vorübergehende Schmerzen / Brennen beim Stuhlgang','Schwierigkeiten, Winde oder selten Stuhl zu halten (vorübergehende Inkontinenz)','Verengung des Analkanals durch Narben (sehr selten)','Starke Nachblutung mit erneuter OP (Ausnahmefall)'],
+ vor:['6 Stunden nüchtern, bis 2 Stunden vorher klare Flüssigkeit','Blutverdünner nach Rücksprache absetzen','Rasur und Reinigung des Analbereichs'],
+ nach:['Schmerztherapie (Tabletten / Zäpfchen)','Mehrmals täglich Sitzbäder','Stuhl weich halten: Ballaststoffe, viel trinken, ggf. Abführmittel','Kein schweres Heben, nicht stark pressen','Einige Tage kein Auto fahren; 1–3 Wochen arbeitsunfähig; Nachkontrollen'],
+ qs:['Tut der erste Stuhlgang danach sehr weh?','Wie lange bin ich krankgeschrieben?','Können die Hämorrhoiden wiederkommen?']},
+{id:'pta',t:'PTA mit Stentimplantation',lay:'Aufdehnung einer Beinarterie',en:'Percutaneous transluminal angioplasty',role:'Gefäßchirurg/-in oder interventionelle Radiologie',name:'Peter Sahin',anrede:'Herr Sahin',sex:'m',age:67,
+ dur:'ca. 45–90 Minuten',grund:'Periphere arterielle Verschlusskrankheit (Schaufensterkrankheit) des rechten Beins mit Ruheschmerz und kurzer Gehstrecke, Medikamente und Gehtraining ohne Erfolg',
+ ablauf:'Örtliche Betäubung mit leichter Sedierung; Punktion der Leistenarterie; Kontrastmittel macht Engstelle sichtbar; Ballonkatheter aufblasen (Angioplastie); ggf. Stent (Metallgitterröhrchen); Katheter entfernen, Punktionsstelle verschließen, Druckverband',
+ vorerk:'Diabetes, Raucher',med:'ASS 100 mg, Metformin',
+ gen:['Blutung / Nachblutung an der Punktionsstelle','Gefäßverletzung oder -verschluss','Wundheilungsstörung, Infektion','Allergische Reaktion auf das Kontrastmittel'],
+ spec:['Akuter Gefäßverschluss nach der PTA','Erneute Verengung (Restenose) nach Wochen oder Monaten','Gefäßriss (sehr selten)','Thrombose oder Embolie','Vorübergehende Nierenfunktionsstörung durch Kontrastmittel'],
+ vor:['Nüchtern: 6 h vorher nichts essen, 2 h vorher nichts trinken','Blutverdünner nach Rücksprache absetzen','Rasur der Leiste im Krankenhaus','Kontrastmittelallergie erfragen'],
+ nach:['6 Stunden Bettruhe','Bein auf Schmerzen, Durchblutung, Hautfarbe kontrollieren','Viel trinken (2–3 Liter)','2–3 Tage körperliche Schonung','Plättchenhemmer (ASS / Clopidogrel) regelmäßig nehmen','Nachkontrolle mit Ultraschall (Duplex) nach einigen Wochen'],
+ qs:['Muss ich danach immer Tabletten nehmen?','Kann das wieder zugehen?','Darf ich danach rauchen?']},
+{id:'bypass',t:'Koronare Bypass-Operation',lay:'Herz-Bypass-OP',en:'Coronary artery bypass surgery',role:'Herzchirurg/-in',name:'Helga Schmitt',anrede:'Frau Schmitt',sex:'f',age:68,
+ dur:'ca. 4–6 Stunden',grund:'Verengung mehrerer Herzkranzgefäße (koronare Herzkrankheit); Stent nicht sinnvoll; ohne OP Gefahr von Herzinfarkt, Rhythmusstörungen, Herzschwäche',
+ ablauf:'Vollnarkose; großer Schnitt am Brustbein, Brustkorb öffnen; Herz-Lungen-Maschine übernimmt Pumpfunktion; Umleitung mit eigenen Gefäßen (Beinvene / Brustwandarterie) zwischen Hauptschlagader und Herzkranzgefäß hinter der Engstelle; schichtweiser Verschluss; Verband',
+ vorerk:'Diabetes, Bluthochdruck',med:'ASS, Metformin, Bisoprolol',
+ gen:['Übelkeit','Schmerzen','Nachblutung','Allergische Reaktionen','Wundinfektion, Wundheilungsstörung'],
+ spec:['Verletzung benachbarter Organe, Blut- oder Lymphgefäße, evtl. Bluttransfusion','Nervenschäden mit Lähmungen, Heiserkeit, Sprech- oder Atemstörungen','Blutgerinnsel → Schlaganfall oder Lungenembolie (sehr selten)','Vorübergehend schwaches Herz → Herzschrittmacher / Defibrillator'],
+ vor:['8 Stunden nüchtern','Blutverdünner und Metformin nach Rücksprache pausieren'],
+ nach:['Überwachung auf der Intensivstation','Beatmung, bis selbstständige Atmung möglich','6–8 Wochen keine körperliche Anstrengung, dann leichter Sport nach Rücksprache','Regelmäßige Kontrollen von EKG, Blutdruck, Blutzucker'],
+ qs:['Wird mein Herz dabei angehalten?','Wie lange bin ich auf der Intensivstation?','Gibt es keine andere Möglichkeit?']}
+];
+const AUF_GENERAL=['Begrüßung, Vorstellung (Name, Funktion) und Ziel des Gesprächs','Angebot, bei Fragen zu unterbrechen; Einverständnis für das Gespräch','Grund des Eingriffs laienverständlich erklärt','Alternativen bzw. Folgen ohne Eingriff angesprochen','Dauer und Art der Betäubung erklärt','Ablauf Schritt für Schritt erklärt','Allgemeine Risiken genannt'];
+const AUF_END=['Beruhigung nach den Risiken (selten, Team gut vorbereitet)','Fachbegriffe in Alltagssprache erklärt','Verständnis geprüft und Rückfragen beantwortet','Einwilligung / Unterschrift des Aufklärungsbogens','Verabschiedung'];
+function aufChecklist(a){return [...AUF_GENERAL,...a.spec.map(s=>'Spezielles Risiko: '+s),AUF_END[0],...a.vor.map(s=>'Vorher: '+s),...a.nach.map(s=>'Nachher: '+s),...AUF_END.slice(1)]}
+
 </script>
 <script>
 {
@@ -519,6 +727,20 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ls={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const CALL_SECONDS=660, READ_SECONDS=30;
+const AUF_TOTAL=660, AUF_READ=150, BREAK_SECONDS=60; // Teil B: 11 Min. gesamt, davon 2:30 Lesezeit; 1 Min. Pause zwischen A und B
+let ST=null; // current station (Test N: A = Anamnese, B = Aufklärung)
+const PART_NAME={anam:'Anamnesegespräch',auf:'Aufklärungsgespräch'};
+const PART_EN={anam:'History taking',auf:'Informed consent talk'};
+function bagPick(key,n){let bag=ls.get(key,[]).filter(i=>i<n);if(!bag.length){bag=[...Array(n).keys()];for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}}const x=bag.pop();ls.set(key,bag);return x}
+function hashStr(s){let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)}
+function aufPatient(a){
+  const h=hashStr(a.name),pick=arr=>arr[h%arr.length];
+  const skin=pick(['#efcfb6','#e9c3a6','#e3b796','#f1d2bd','#dcae8c','#c99772','#f3d6c3']);
+  const hair=a.age>=62?pick(['#cfcfcf','#a7a7a3','#bdbdb8']):pick(['#3b2a20','#6b4b34','#2a211b','#8a6a4e','#c79a5a','#9c4a2a']);
+  const style=a.sex==='f'?pick(['long','bun','ponytail','curly']):(a.age>=60?pick(['short','bald']):pick(['short','curly','short']));
+  const shirt=pick(['#5a6b7d','#7a4e63','#3c7a74','#2f4f6e','#6b7d4a','#8a5a3a','#4b5563','#9b4d6a']);
+  return {id:'auf-'+a.id,aufId:a.id,name:a.name,anrede:a.anrede,sex:a.sex,age:a.age,look:{skin,hair,style,shirt,glasses:a.age>=50&&h%3===0,beard:a.sex==='m'&&h%4===1},title:a.t}
+}
 let lang=ls.get('famed-lang','de');
 const L=(de,en)=>lang==='en'?en:de;
 const SEC_EN={krebs:'Cancer history',neuro:'Neurological history',unfall:'Accident / injury history',hals:'Throat / infection / fatigue',schmerz:'Pain history'};
@@ -630,22 +852,24 @@ const LEVELS=['A2','B1','B2','C1','C2'];
 function bestOf(id){const h=ls.get('famed-hist',[]).filter(x=>x.id===id&&x.level);if(!h.length)return null;return h.map(x=>x.level).sort((a,b)=>LEVELS.indexOf(b)-LEVELS.indexOf(a))[0]}
 function nav(){
   let n=0;
-  $('#nav').innerHTML=SECTIONS.map(sec=>'<div class="sec">'+esc(L(sec.name,SEC_EN[sec.id]))+'</div>'+CASES.filter(c=>c.sec===sec.id).map(c=>{n++;const b=bestOf(c.id);c.num=n;
-    return `<button class="tbtn${S&&S.c===c?' on':''}" data-id="${c.id}"><span class="tnum">${n}</span><span class="tt">Test ${n}<small>${esc(lang==='en'?TITLE_EN[c.id]:c.title)}</small></span>${b?`<span class="best">${b}</span>`:''}</button>`}).join('')).join('');
+  const cur=ST&&ST.a,curB=ST&&ST.b;
+  $('#nav').innerHTML='<div class="sec">'+L('Teil A · Anamnese – Fall wählen (danach zufällige Aufklärung)','Part A · History – pick a case (then a random consent talk)')+'</div>'+SECTIONS.map(sec=>'<div class="sec" style="opacity:.55;font-size:12px">'+esc(L(sec.name,SEC_EN[sec.id]))+'</div>'+CASES.filter(c=>c.sec===sec.id).map(c=>{n++;const b=bestOf(c.id);c.num=n;
+    return `<button class="tbtn${cur===c?' on':''}" data-id="${c.id}"><span class="tnum">${n}</span><span class="tt">${esc(lang==='en'?TITLE_EN[c.id]:c.title)}<small>${esc(c.anrede)}</small></span>${b?`<span class="best">${b}</span>`:''}</button>`}).join('')).join('')
+   +'<div class="sec" style="margin-top:16px">'+L('Teil B · Aufklärung allein üben','Part B · Practise a consent talk only')+'</div>'+AUF.map((a,i)=>`<button class="tbtn${curB===a&&!cur?' on':''}" data-auf="${a.id}"><span class="tnum">B${i+1}</span><span class="tt">${esc(lang==='en'?a.en:a.t)}<small>${esc(a.lay)}</small></span></button>`).join('');
   document.querySelectorAll('.role:not(.lang) button').forEach(b=>{b.classList.toggle('on',b.dataset.r===role);b.textContent=b.dataset.r==='m'?L('Arzt','Male doctor'):L('Ärztin','Female doctor')});
   document.querySelectorAll('.lang button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
-  $('#rand').textContent=L('Zufälliger Fall','Random case');
+  $('#rand').textContent='▶ '+L('Test starten (A + B)','Start test (A + B)');
   $('#gear').textContent='⚙ '+L('Einstellungen','Settings');
-  $('.brand small').textContent=L('Videosprechstunde · 11 Minuten','Video consultation · 11 minutes');
+  $('.brand small').textContent=L('Station A · Anamnese + Aufklärung','Station A · History + consent talk');
   document.documentElement.lang=lang;
 }
-$('#nav').addEventListener('click',e=>{const b=e.target.closest('.tbtn');if(b)startCase(CASES.find(c=>c.id===b.dataset.id))});
-$('#rand').addEventListener('click',()=>startCase(CASES[Math.floor(Math.random()*CASES.length)]));
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('.tbtn');if(!b)return;if(b.dataset.auf)startAufOnly(AUF.find(a=>a.id===b.dataset.auf));else startCase(CASES.find(c=>c.id===b.dataset.id))});
+$('#rand').addEventListener('click',()=>startExam());
 $('#gear').addEventListener('click',()=>openSettings());
 document.querySelector('.role:not(.lang)').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;role=b.dataset.r;ls.set('famed-role',role);nav()});
 document.querySelector('.lang').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.l===lang)return;lang=b.dataset.l;ls.set('famed-lang',lang);nav();
   if($('#modal'))openSettings(S&&S.after);
-  if(!S||S.view==='home')home();else if(S.view==='read')readView();else if(S.view==='call'){callLabels();micUI()}else if(S.view==='done')doneView();else if(S.view==='eval'&&S.ev)renderEval(S.ev)});
+  if(!S||S.view==='home')home();else if(S.view==='read')readView();else if(S.view==='call'){callLabels();micUI()}else if(S.view==='break')renderBreak();else if(S.view==='done')doneView();else if(S.view==='eval'&&S.ev)renderEval(S.ev)});
 
 /* ---------- settings (hidden in a dialog) ---------- */
 function openSettings(after){
@@ -676,34 +900,67 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings()});
 
 /* ---------- home ---------- */
 function home(){
-  stopAll();S={view:'home'};nav();
+  stopAll();S={view:'home'};ST=null;nav();
   const hist=ls.get('famed-hist',[]).filter(h=>h.level).slice(-8).reverse();
-  main.innerHTML=`<h1 style="font-size:clamp(32px,4.4vw,48px);max-width:16ch">${L('Anamnese üben wie in der echten Prüfung','Practise the history-taking exam, just like the real one')}</h1>
-  <p class="lead" style="margin-top:14px">${L('Wähle links einen Test. 30 Sekunden Aufgabenstellung, dann 11 Minuten Videosprechstunde – du sprichst einfach, der Patient antwortet. Danach werten ein Chefarzt und eine Sprachprüferin dein Gespräch aus.','Pick a test on the left. 30 seconds to read the task, then an 11-minute video consultation – just talk, the patient answers in German. Afterwards a chief physician and a language examiner evaluate the conversation.')}</p>
-  <div class="steps">
-   <div class="step"><b>30 s</b>${L('Aufgabenstellung lesen. Du bist Allgemeinarzt bzw. Allgemeinärztin.','Read the task. The candidate is a GP (family doctor).')}</div>
-   <div class="step"><b>11:00</b>${L('Freies Gespräch wie am Telefon: sprechen, kurz pausieren, der Patient antwortet.','A free conversation, like a phone call: speak, pause briefly, the patient answers.')}</div>
-   <div class="step"><b>B1–C2</b>${L('Auswertung: Sprachniveau, Sicht des Chefarztes und der Sprachprüferin, als PDF speicherbar.','Evaluation: language level, chief physician’s and language examiner’s view, savable as PDF.')}</div>
+  const nextN=ls.get('famed-run',0)+1;
+  main.innerHTML=`<h1 style="font-size:clamp(32px,4.4vw,48px);max-width:18ch">${L('Station A üben wie in der echten Prüfung','Practise Station A just like the real exam')}</h1>
+  <p class="lead" style="margin-top:14px">${L('Ein Test = Anamnesegespräch (A) + Aufklärungsgespräch (B), dazwischen 1 Minute Pause. Beide Fälle werden zufällig gezogen. Danach werten ein Chefarzt und eine Sprachprüferin beide Gespräche gemeinsam aus.','One test = history taking (A) + informed-consent talk (B), with a 1-minute break in between. Both cases are drawn at random. Afterwards a chief physician and a language examiner evaluate both conversations together.')}</p>
+  <div class="steps s4">
+   <div class="step"><b>A · 11:00</b>${L('Anamnese: 30 s Aufgabe lesen, dann 11 Minuten Videosprechstunde mit einem zufälligen Patienten.','History: 30 s to read the task, then an 11-minute video consultation with a random patient.')}</div>
+   <div class="step"><b>1:00</b>${L('Pause.','Break.')}</div>
+   <div class="step"><b>B · 11:00</b>${L('Aufklärung: 2:30 Aufgabenblatt lesen, dann 8:30 dem Patienten den Eingriff erklären. Das Blatt bleibt sichtbar.','Consent talk: 2:30 to read the task sheet, then 8:30 explaining the procedure. The sheet stays visible.')}</div>
+   <div class="step"><b>%</b>${L('Auswertung: Checkliste in Prozent (Chefarzt), Patientenverständnis, 8 Sprachkriterien (Sprachprüferin), Niveau – als PDF.','Evaluation: checklist in percent (chief physician), patient understanding, 8 language criteria (language examiner), level – as PDF.')}</div>
   </div>
   ${hasKey()?'':`<div class="card" style="max-width:680px;margin-bottom:22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 260px">${L('Noch nicht eingerichtet: einmalig einen kostenlosen Gemini-Schlüssel eintragen.','Not set up yet: add a free Gemini key once.')}</span><button class="btn ghost" id="setup">⚙ ${L('Einrichten','Set up')}</button></div>`}
-  <button class="btn" id="go1">${L('Mit Test 1 beginnen','Start with Test 1')}</button>
-  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id);return `<tr><td>${esc(c?(lang==='en'?TITLE_EN[c.id]:c.title):h.id)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r"><b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
-  $('#go1').onclick=()=>startCase(CASES[0]);
+  <button class="btn" id="go1" style="font-size:18px;min-height:54px;padding:12px 28px">▶ ${L('Test','Test')} ${nextN} ${L('starten','– start')}</button>
+  <p class="hint">${L('Zum gezielten Üben: links einen Anamnesefall wählen (mit zufälliger Aufklärung danach) oder eine Aufklärung allein.','For targeted practice: pick a history case on the left (followed by a random consent talk), or a consent talk alone.')}</p>
+  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id),a=AUF.find(x=>x.id===h.auf);const nm=[c?(lang==='en'?TITLE_EN[c.id]:c.title):'',a?a.t:''].filter(Boolean).join(' + ')||h.id;return `<tr><td>${h.n?'Test '+h.n+' · ':''}${esc(nm)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r">${h.pct!=null?h.pct+' % · ':''}<b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
+  $('#go1').onclick=()=>startExam();
   if($('#setup'))$('#setup').onclick=()=>openSettings();
 }
 
 /* ---------- reading phase ---------- */
+function startExam(){startCase(CASES[bagPick('famed-bagA',CASES.length)])}
 function startCase(c){
   if(!hasKey()){openSettings(()=>startCase(c));return}
+  newStation(c,AUF[bagPick('famed-bagB',AUF.length)],['anam','auf']);
+}
+function startAufOnly(a){
+  if(!hasKey()){openSettings(()=>startAufOnly(a));return}
+  newStation(null,a,['auf']);
+}
+function newStation(c,a,order){
   stopAll();closeSettings();
-  S={view:'read',c,msgs:[],buf:'',partial:'',busy:false,left:CALL_SECONDS,notes:'',hf:!!SR,phase:'idle'};nav();
-  S.r=READ_SECONDS;readView();
-  clock=setInterval(()=>{S.r--;const el=$('#rc');if(el)el.textContent='0:'+String(Math.max(S.r,0)).padStart(2,'0');if(S.r<=0)beginCall()},1000);
+  const n=ls.get('famed-run',0)+1;ls.set('famed-run',n);
+  ST={a:c,b:a,bp:aufPatient(a),order,i:0,parts:[],date:new Date(),n};
+  startPart();
+}
+const partCode=k=>'Test '+ST.n+(ST.order.length>1?'.'+(k==='anam'?'A':'B'):'');
+function startPart(){
+  stopAll();closeSettings();
+  const kind=ST.order[ST.i],c=kind==='anam'?ST.a:ST.bp;
+  S={view:'read',kind,c,msgs:[],buf:'',partial:'',busy:false,total:kind==='anam'?CALL_SECONDS:AUF_TOTAL-AUF_READ,notes:'',hf:!!SR,phase:'idle'};S.left=S.total;nav();
+  S.r=kind==='anam'?READ_SECONDS:AUF_READ;readView();
+  clock=setInterval(()=>{S.r--;const el=$('#rc');if(el)el.textContent=fmtDur(Math.max(S.r,0));if(S.r<=0)beginCall()},1000);
+}
+function aufSheet(a){
+  const li=arr=>'<ul class="clean">'+arr.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  const who=a.proxy?`${esc(a.name)}, ${a.age} J. (Mutter) – Patientin: ${esc(a.proxy)}`:`${esc(a.name)}, ${a.age} Jahre`;
+  return `<div class="sheet">
+   <div class="sh-k">Kurzbeschreibung</div><p>Führen Sie das Aufklärungsgespräch über einen medizinischen Eingriff durch. Sie sprechen mit <b>${esc(a.anrede)}</b>. Sie haben für die gesamte Situation maximal 11 Minuten Zeit.</p>
+   <div class="sh-k">Ihre Rolle</div><p>${esc(a.role)}</p>
+   <div class="sh-k">Situation</div><p>Aufklärung über einen Eingriff, der am nächsten Tag stattfinden soll.</p>
+   <div class="sh-k">Patienteninformationen</div>
+   <table class="shi"><tr><td>Name, Alter</td><td>${who}</td></tr><tr><td>Eingriff</td><td><b>${esc(a.t)}</b> (${esc(a.lay)})</td></tr><tr><td>Dauer</td><td>${esc(a.dur)}</td></tr><tr><td>Grund</td><td>${esc(a.grund)}</td></tr><tr><td>Ablauf</td><td>${esc(a.ablauf)}</td></tr><tr><td>Vorerkrankungen</td><td>${esc(a.vorerk)}</td></tr><tr><td>Dauermedikation</td><td>${esc(a.med)}</td></tr></table>
+   <div class="sh-k">Aufgabentext – erklären Sie ${esc(a.anrede)}:</div>
+   <ol><li>den Ablauf des Eingriffs (siehe oben)</li><li>die allgemeinen Risiken: ${esc(a.gen.join(', '))}</li><li>die speziellen Risiken:${li(a.spec)}</li><li>das Vorgehen vor dem Eingriff:${li(a.vor)}</li><li>das Vorgehen nach dem Eingriff:${li(a.nach)}</li></ol>
+   <p style="margin-top:8px"><b>Gehen Sie auf eventuelle Rückfragen ein.</b></p></div>`;
 }
 function readView(){
+  if(S.kind==='auf')return readViewAuf();
   const c=S.c,r=S.r;
   const de=`Sie sind ${role==='f'?'Allgemeinärztin':'Allgemeinarzt'}. <b>${esc(c.anrede)}</b> stellt sich heute per Videoanruf bei Ihnen vor. Führen Sie das Anamnesegespräch: Stellen Sie sich vor, erheben Sie eine vollständige Anamnese, fassen Sie die Beschwerden zusammen, erklären Sie die nächsten Schritte und gehen Sie auf die Fragen des Patienten ein.`;
-  main.innerHTML=`<div class="task"><div style="color:var(--mute);font-size:14px">Test ${c.num} · ${esc(ctitle(c))} · ${L('Aufgabenstellung','Task')}</div>
+  main.innerHTML=`<div class="task"><div style="color:var(--mute);font-size:14px">${partCode('anam')} · ${L('Anamnesegespräch','History taking')} · ${esc(ctitle(c))} · ${L('Aufgabenstellung','Task')}</div>
    <h2 style="font-size:clamp(26px,3.4vw,36px);margin-top:10px">Videosprechstunde in der Hausarztpraxis</h2>
    <p style="font-size:18px;margin:16px 0 0">${de}</p>
    <p class="lead" style="margin-top:10px">Sie haben 11 Minuten Zeit. Ein Notizblock steht Ihnen zur Verfügung.</p>
@@ -712,15 +969,45 @@ function readView(){
    <div class="acts"><button class="btn" id="now">${L('Jetzt verbinden','Connect now')}</button><button class="btn ghost" id="back">${L('Zurück','Back')}</button></div></div>`;
   $('#now').onclick=()=>beginCall();$('#back').onclick=home;
 }
+function readViewAuf(){
+  const a=ST.b;
+  main.innerHTML=`<div class="task" style="max-width:860px;margin-top:3vh">
+   <div style="color:var(--mute);font-size:14px">${partCode('auf')} · ${L('Aufklärungsgespräch','Informed consent talk')} · ${esc(lang==='en'?a.en+' · '+a.t:a.t)} · ${L('Aufgabenblatt','Task sheet')}</div>
+   <h2 style="font-size:clamp(24px,3vw,32px);margin:8px 0 14px">Prüfung: Aufklärungsgespräch</h2>
+   ${aufSheet(a)}
+   ${lang==='en'?`<p class="en">English: explain to the patient the procedure, the general and special risks, what to do before and after the procedure, check that the patient understood, answer the questions and ask for consent. The sheet stays visible during the talk.</p>`:''}
+   <div style="display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-top:6px"><div><div class="count" id="rc" style="margin-bottom:0">${fmtDur(Math.max(S.r,0))}</div><div class="lead">${L('Lesezeit – danach startet das Gespräch (8:30). Das Blatt bleibt sichtbar.','Reading time – then the talk starts (8:30). The sheet stays visible.')}</div></div></div>
+   <div class="acts"><button class="btn" id="now">${L('Jetzt beginnen','Start now')}</button><button class="btn ghost" id="back">${L('Test abbrechen','Cancel test')}</button></div></div>`;
+  $('#now').onclick=()=>beginCall();$('#back').onclick=home;
+}
+/* ---------- 1-minute break between A and B ---------- */
+function breakView(){
+  stopAll();S={view:'break',c:ST.a};ST.br=BREAK_SECONDS;renderBreak();
+  clock=setInterval(()=>{ST.br--;const el=$('#bc');if(el)el.textContent=fmtDur(Math.max(ST.br,0));if(ST.br<=0)nextPart()},1000);
+}
+function nextPart(){clearInterval(clock);ST.i++;startPart()}
+function renderBreak(){
+  const p=ST.parts[ST.i];
+  main.innerHTML=`<div class="task" style="text-align:center">
+   <div style="color:var(--mute);font-size:14px">${partCode('anam')} ${L('beendet','finished')} · ${L('Dauer','Duration')} ${fmtDur(p.dur)}</div>
+   <h1 style="font-size:clamp(30px,4vw,44px);margin-top:10px">${L('Pause','Break')}</h1>
+   <div class="count" id="bc">${fmtDur(Math.max(ST.br,0))}</div>
+   <p class="lead" style="margin:6px auto 0">${L('Gleich folgt','Next:')} <b>${partCode('auf')} · ${L('Aufklärungsgespräch','Informed consent talk')}</b>. ${L('Die Auswertung kommt nach beiden Gesprächen.','The evaluation comes after both conversations.')}</p>
+   <div class="acts" style="justify-content:center"><button class="btn" id="now">${L('Weiter zu Teil B','Continue to part B')}</button><button class="btn ghost" id="skip">${L('Nur Teil A auswerten','Evaluate part A only')}</button></div></div>`;
+  $('#now').onclick=nextPart;
+  $('#skip').onclick=()=>{clearInterval(clock);ST.order=ST.order.slice(0,1);S={view:'done',c:ST.a};doneView()};
+}
 
 /* ---------- call: hands-free conversation ---------- */
 const MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 const MICOFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M3 3l18 18"/></svg>';
 function beginCall(){
   clearInterval(clock);const c=S.c;S.view='call';S.start=Date.now();
+  if(S.kind==='auf'){S.total=AUF_TOTAL-(AUF_READ-Math.max(S.r||0,0));S.left=S.total}
+  const isB=S.kind==='auf';
   main.innerHTML=`<div class="call"><div>
    <div class="stage">${avatar(c)}
-    <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span class="timer" id="tm">11:00</span></div>
+    <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span class="timer" id="tm">${fmtDur(S.total)}</span></div>
     <div class="status" id="st"></div>
     <div class="self" id="self"></div>
    </div>
@@ -731,8 +1018,9 @@ function beginCall(){
    </div>
    <div class="hint" id="hint"></div>
   </div>
-  <div class="side"><div class="tabs"><button class="on" data-p="pn" id="tab-n"></button><button data-p="pt" id="tab-t"></button></div>
-   <div class="pane on" id="pn"><textarea id="notes" aria-label="Notizblock"></textarea></div>
+  <div class="side"><div class="tabs">${isB?'<button class="on" data-p="pa" id="tab-a"></button>':''}<button class="${isB?'':'on'}" data-p="pn" id="tab-n"></button><button data-p="pt" id="tab-t"></button></div>
+   ${isB?`<div class="pane on" id="pa">${aufSheet(ST.b)}</div>`:''}
+   <div class="pane${isB?'':' on'}" id="pn"><textarea id="notes" aria-label="Notizblock"></textarea></div>
    <div class="pane" id="pt"><div id="log"><p class="lead" style="font-size:14px" id="lognote"></p></div><div id="trbox"></div></div>
   </div></div>`;
   if(!SR)$('#mic').style.display='none';
@@ -740,21 +1028,23 @@ function beginCall(){
   if(IS_BRAVE){S.hf=false;$('#hint').textContent=BRAVE_MSG();$('#hint').classList.add('warn');micUI()}
   $('#mic').onclick=micClick;
   $('#again2').onclick=()=>{const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(!last||S.busy)return;stopListening();S.phase='speaking';micUI();speak(last.text,()=>{S.phase='idle';listen()})};
-  $('#send').onclick=()=>{const t=$('#txt').value.trim();if(t){$('#txt').value='';S.buf='';S.partial='';doctorSays(t)}};
+  $('#send').onclick=()=>{const t=$('#txt').value.trim();if(t){$('#txt').value='';S.buf='';S.partial='';doctorSays(t,true)}};
   $('#txt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#send').click()}});
   $('#end').onclick=()=>endCall(false);
   $('#notes').addEventListener('input',e=>S.notes=e.target.value);
   document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p))});
   clock=setInterval(tick,1000);tick();
-  setTimeout(()=>{if(S&&S.view==='call'&&!S.msgs.length)patientLine('Hallo? Ja, ich kann Sie hören. Guten Tag.',()=>listen())},1000);
+  const first=isB?(ST.b.proxy?'Guten Tag. Ich bin die Mutter von Sandra.':'Guten Tag.'):'Hallo? Ja, ich kann Sie hören. Guten Tag.';
+  setTimeout(()=>{if(S&&S.view==='call'&&!S.msgs.length)patientLine(first,()=>listen())},1000);
 }
 function callLabels(){
   if(!$('#end'))return;
-  $('#lbl-call').textContent=L('Videosprechstunde','Video consultation');
+  $('#lbl-call').textContent=S.kind==='auf'?partCode('auf')+' · '+L('Aufklärungsgespräch','Consent talk'):(ST.order.length>1?partCode('anam')+' · ':'')+L('Videosprechstunde','Video consultation');
+  const ta=$('#tab-a');if(ta)ta.textContent=L('Aufgabe','Task');
   $('#self').textContent=L('Sie','You');
   $('#txt').placeholder=SR?L('Optional: hier tippen statt sprechen (Enter = senden)','Optional: type here instead of speaking (Enter = send)'):L('Frage hier eintippen (Enter = senden)','Type your question here (Enter = send)');
   $('#send').textContent=L('Senden','Send');$('#end').textContent=L('Beenden','End');
-  $('#hint').textContent=(SR?L('Einfach sprechen wie in einem echten Gespräch. Nach einer kurzen Pause antwortet der Patient, danach hört das Mikrofon automatisch wieder zu. Mikrofon-Knopf = stumm schalten. 🔊 = letzte Antwort nochmal.','Just talk, like a real conversation. After a short pause the patient answers, then the microphone listens again automatically. Microphone button = mute. 🔊 = replay the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'));
+  $('#hint').textContent=(SR&&S.kind==='auf')?L('Erklären Sie Schritt für Schritt wie am Aufgabenblatt. Nach ca. 2 Sekunden Pause reagiert der Patient – kurze Pausen beim Erklären sind also kein Problem. Mikrofon-Knopf = stumm.','Explain step by step, following the task sheet. After about a 2-second pause the patient reacts – short pauses while explaining are fine. Microphone button = mute.'):(SR?L('Einfach sprechen wie in einem echten Gespräch. Nach einer kurzen Pause antwortet der Patient, danach hört das Mikrofon automatisch wieder zu. Mikrofon-Knopf = stumm schalten. 🔊 = letzte Antwort nochmal.','Just talk, like a real conversation. After a short pause the patient answers, then the microphone listens again automatically. Microphone button = mute. 🔊 = replay the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'));
   $('#tab-n').textContent=L('Notizblock','Notepad');$('#tab-t').textContent=L('Mitschrift','Transcript');
   $('#notes').placeholder=L('Notizen wie im Prüfungsraum…','Notes, like in the exam room…');
   const ln=$('#lognote');if(ln)ln.textContent=L('Die Mitschrift erscheint hier. In der echten Prüfung gibt es sie nicht – nutze sie nur zur Kontrolle.','The transcript appears here. There is none in the real exam – use it only to check.');
@@ -763,7 +1053,7 @@ function callLabels(){
 }
 function tick(){
   if(!S||S.view!=='call')return;
-  S.left=CALL_SECONDS-Math.floor((Date.now()-S.start)/1000);
+  S.left=S.total-Math.floor((Date.now()-S.start)/1000);
   const t=$('#tm');if(!t)return;const l=Math.max(S.left,0);
   t.textContent=Math.floor(l/60)+':'+String(l%60).padStart(2,'0');t.classList.toggle('low',l<=60);
   if(S.left<=0)endCall(true);
@@ -795,7 +1085,7 @@ function listen(){
   rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
   rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
     if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft();
-    clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},1300)};
+    clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},S.kind==='auf'?2000:1300)};
   rec.onerror=e=>{
     const er=e.error;if(er==='no-speech'||er==='aborted')return;
     let msg='';
@@ -836,11 +1126,11 @@ function patientLine(text,done){
   stopListening();S.phase='speaking';micUI();
   speak(text,()=>{if(S.view!=='call')return;S.lastVoiceEnd=Date.now();S.phase='idle';micUI();if(done)done()});
 }
-async function doctorSays(text){
+async function doctorSays(text,typed){
   if(!S||S.view!=='call')return;
   const me=S;
   stopListening();
-  S.msgs.push({who:'doc',text});logMsg('doc',text);
+  S.msgs.push({who:'doc',text,typed:!!typed});logMsg('doc',text);
   if(!hasKey()){openSettings();return}
   if(S.busy)return;
   S.busy=true;S.phase='thinking';caption('');micUI();
@@ -860,7 +1150,35 @@ async function doctorSays(text){
   }finally{me.busy=false}
 }
 function clean(t){return String(t||'').replace(/\*[^*]*\*/g,'').replace(/\[[^\]]*\]/g,'').replace(/^(Patient(in)?|[A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+)\s*:\s*/,'').replace(/^["„]|["“]$/g,'').trim()}
+function patientInputAuf(){
+  const a=ST.b,dr=role==='f'?'Frau Doktor':'Herr Doktor';
+  const elapsed=Math.round((Date.now()-S.start)/60000);
+  const who=a.proxy?`die Mutter (${a.name}, ${a.age} J.). Der Eingriff ist für ${a.proxy}.`:`${a.name}, ${a.age} Jahre.`;
+  const sys=`Du spielst in einer Übungssimulation der FaMed-Fachsprachprüfung (Teil Aufklärungsgespräch) ${who} Der Nutzer ist ${role==='f'?'die Ärztin':'der Arzt'} (${a.role}, Prüfling, Deutsch ist nicht die Muttersprache) und klärt dich über einen Eingriff auf, der morgen stattfinden soll. Sprich ${role==='f'?'sie':'ihn'} mit "${dr}" an. Die Sätze kommen über Spracherkennung: ignoriere fehlende Satzzeichen und kleine Erkennungsfehler.
+DEIN WISSEN: Du weißt nur, dass morgen eine "${a.lay}" geplant ist und warum ungefähr (${a.grund}) – in Laienworten. Medizinisch weißt du sonst NICHTS über Ablauf, Risiken oder Vorbereitung.
+REGELN:
+- Bleib immer in der Rolle. Natürliches, gesprochenes Alltagsdeutsch, Laiensprache, sehr kurz (meist 1 Satz, höchstens 2).
+- Der Arzt soll erklären, nicht du. Erkläre nie selbst etwas, nenne keine Risiken, Schritte oder Fachbegriffe, die der Arzt nicht gesagt hat.
+- Wenn der Arzt gerade erklärt und keine Frage stellt, reagiere nur ganz kurz und natürlich (z. B. "Mhm, okay." / "Ah, verstehe." / "Okay." / "Hm, und dann?"). Wiederhole dich nicht.
+- Benutzt der Arzt einen Fachbegriff ohne Erklärung (z. B. Anästhesie, Sedierung, Trokar, Perforation, Insuffizienz, Anastomose, parenteral, Thrombose, Embolie, Hämatom, Kontrastmittel, Punktion, Rezidiv, Stenose, Endoskop, Biopsie, nüchtern), frag nach, was das bedeutet – aber nicht bei jedem Wort, höchstens 3–4 Mal im Gespräch.
+- Spricht der Arzt unverständlich oder grammatisch so falsch, dass man es nicht versteht, sag freundlich, dass du es nicht verstanden hast.
+- Fragt der Arzt, ob du alles verstanden hast, oder bittet er dich, es mit eigenen Worten zu sagen: fasse kurz und laienhaft NUR das zusammen, was er wirklich erklärt hat. Hat er etwas Wichtiges nicht erklärt (z. B. Risiken, Nüchternheit), sag ehrlich, dass dir das noch unklar ist.
+- Fragen zu deiner Gesundheit beantwortest du kurz: Vorerkrankungen: ${a.vorerk}. Medikamente: ${a.med}. Allergien: keine bekannt. Sonst: unauffällig, plausibel, konsistent.
+- DEINE FRAGEN (stelle sie im Lauf des Gesprächs natürlich, jeweils nur einmal, am besten wenn der Arzt eine Pause macht oder nach Fragen fragt; spätestens wenn er fragt "Haben Sie noch Fragen?"): ${a.qs.map((q,i)=>(i+1)+') '+q).join(' ')}
+- Ist die Antwort des Arztes auf deine Frage unklar, frag einmal nach.
+- Bittet der Arzt um deine Einwilligung / Unterschrift: Wurden Ablauf und Risiken verständlich erklärt, stimmst du zu ("Ja, dann unterschreibe ich."). Fehlt Wichtiges, fragst du erst danach.
+- Nenne nie eine Diagnose, hilf dem Arzt nicht, gib keine Prüfungstipps, verlasse nie die Rolle.
+- Antworte ausschließlich mit dem gesprochenen Text: keine Regieanweisungen, Sternchen, Klammern, Anführungszeichen oder Sprecher-Präfixe.
+${a.persona?'PERSÖNLICHKEIT: '+a.persona:''}`;
+  const arr=[{role:'system',content:sys}];
+  for(const m of S.msgs){const r=m.who==='doc'?'user':'assistant';const last=arr[arr.length-1];
+    if(last.role===r&&r!=='system')last.content+='\n'+m.text;else arr.push({role:r,content:m.text})}
+  if(arr[arr.length-1].role!=='user')arr.push({role:'user',content:'…'});
+  arr[arr.length-1].content+=`\n\n(Regieinfo, nicht vorlesen: ca. ${elapsed} von ${Math.round(S.total/60)} Minuten vergangen.)`;
+  return arr;
+}
 function patientInput(){
+  if(S.kind==='auf')return patientInputAuf();
   const c=S.c,dr=role==='f'?'Frau Doktor':'Herr Doktor';
   const elapsed=Math.round((Date.now()-S.start)/60000);
   const sys=`Du spielst in einer Übungssimulation der FaMed-Fachsprachprüfung den Patienten / die Patientin in einer Videosprechstunde bei einer Hausarztpraxis. Der Nutzer ist ${role==='f'?'die Ärztin':'der Arzt'} (Prüfling, Deutsch ist nicht die Muttersprache). Sprich ${role==='f'?'sie':'ihn'} mit "${dr}" an. Die Fragen kommen über Spracherkennung: ignoriere fehlende Satzzeichen und kleine Erkennungsfehler.
@@ -893,121 +1211,197 @@ function stopAll(){
 }
 function endCall(timeUp){
   if(!S||S.view!=='call')return;
-  stopAll();S.view='done';S.timeUp=timeUp;S.dur=Math.min(CALL_SECONDS,Math.round((Date.now()-S.start)/1000));S.date=new Date();
-  doneView();
+  stopAll();
+  const dur=Math.min(S.total,Math.round((Date.now()-S.start)/1000));
+  ST.parts[ST.i]={kind:S.kind,msgs:S.msgs,dur,timeUp};
+  if(ST.i<ST.order.length-1){breakView();return}
+  S={view:'done',c:ST.a||ST.bp};doneView();
 }
 const fmtDur=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-const transcriptOf=()=>S.msgs.map(m=>(m.who==='doc'?L('Arzt','Doctor')+': ':S.c.anrede+': ')+m.text).join('\n');
+const doneParts=()=>ST.parts.filter(Boolean);
+const whoOf=k=>k==='anam'?ST.a.anrede:ST.b.anrede;
+const partTitle=k=>k==='anam'?ctitle(ST.a):(lang==='en'?ST.b.en+' · ':'')+ST.b.t;
+const transcriptOf=p=>p.msgs.map(m=>(m.who==='doc'?L('Arzt','Doctor')+': ':whoOf(p.kind)+': ')+m.text).join('\n');
+function restartSame(){const a=ST.a,b=ST.b,o=ST.order.slice();newStation(a,b,o)}
 function doneView(err){
-  const c=S.c,nq=S.msgs.filter(m=>m.who==='doc').length,ok=nq>=2;
-  main.innerHTML=`<div class="task" style="max-width:760px">
-   <div style="color:var(--mute);font-size:14px">Test ${c.num} · ${esc(ctitle(c))} · ${esc(c.anrede)}</div>
-   <h1 style="font-size:clamp(28px,3.6vw,40px);margin-top:8px">${S.timeUp?L('Die Zeit ist abgelaufen','Time is up'):L('Gespräch beendet','Conversation ended')}</h1>
-   <p class="lead" style="margin-top:10px">${L('Dauer','Duration')} ${fmtDur(S.dur)} · ${nq} ${L('Äußerungen des Arztes','doctor turns')}</p>
+  const parts=doneParts(),ok=parts.some(p=>p.msgs.filter(m=>m.who==='doc').length>=2);
+  main.innerHTML=`<div class="task" style="max-width:780px">
+   <div style="color:var(--mute);font-size:14px">Test ${ST.n}</div>
+   <h1 style="font-size:clamp(28px,3.6vw,40px);margin-top:8px">${L('Test abgeschlossen','Test finished')}</h1>
+   <div style="margin-top:14px">${parts.map(p=>`<div class="row"><span class="tag">${partCode(p.kind)}</span><span style="flex:1">${L(PART_NAME[p.kind],PART_EN[p.kind])} · ${esc(partTitle(p.kind))}</span><span style="white-space:nowrap">${fmtDur(p.dur)} · ${p.msgs.filter(m=>m.who==='doc').length} ${L('Beiträge','turns')}${p.timeUp?' · ⏱':''}</span></div>`).join('')}</div>
    ${err?`<p style="color:var(--coral);margin-top:10px">${esc(err)}</p>`:''}
-   ${ok?`<p style="margin-top:14px">${L('Lass das Gespräch jetzt von einem Chefarzt und einer Sprachprüferin auswerten.','Have the conversation evaluated by a chief physician and a language examiner.')}</p>`:`<p style="margin-top:14px">${L('Das Gespräch ist zu kurz für eine Auswertung.','The conversation is too short to evaluate.')}</p>`}
-   <div class="acts">${ok?`<button class="btn" id="eval">${L('Auswerten','Evaluate')}</button>`:''}<button class="btn ghost" id="again">${L('Nochmal versuchen','Try again')}</button>${c.num<CASES.length?`<button class="btn ghost" id="nxt">${L('Weiter mit Test','Next: Test')} ${c.num+1}</button>`:''}</div>
-   ${S.msgs.length?`<details><summary>${L('Mitschrift','Transcript')}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf())}</p></details>`:''}
+   ${ok?`<p style="margin-top:14px">${parts.length>1?L('Jetzt werten der Chefarzt und die Sprachprüferin beide Gespräche gemeinsam aus.','Now the chief physician and the language examiner evaluate both conversations together.'):L('Jetzt werten der Chefarzt und die Sprachprüferin das Gespräch aus.','Now the chief physician and the language examiner evaluate the conversation.')}</p>`:`<p style="margin-top:14px">${L('Die Gespräche sind zu kurz für eine Auswertung.','The conversations are too short to evaluate.')}</p>`}
+   <div class="acts">${ok?`<button class="btn" id="eval">${L('Auswerten','Evaluate')}</button>`:''}<button class="btn ghost" id="again">${L('Gleiche Fälle nochmal','Same cases again')}</button><button class="btn ghost" id="nxt">${L('Neuer Test','New test')}</button></div>
+   ${parts.filter(p=>p.msgs.length).map(p=>`<details><summary>${L('Mitschrift','Transcript')} ${partCode(p.kind)}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf(p))}</p></details>`).join('')}
   </div>`;
   if($('#eval'))$('#eval').onclick=runEval;
-  $('#again').onclick=()=>startCase(c);
-  if($('#nxt'))$('#nxt').onclick=()=>startCase(CASES[c.num]);
+  $('#again').onclick=restartSame;
+  $('#nxt').onclick=startExam;
 }
 const GENERAL=['Begrüßung & Vorstellung','Persönliche Daten','Hauptbeschwerde','Aktuelle Anamnese / Schmerzanamnese','Vegetative Anamnese','Gynäkologische Anamnese','Zusammenfassung der Beschwerden','Vorerkrankungen & Operationen','Medikation','Allergien','Impfungen','Noxen','Familienanamnese','Sozialanamnese','Psyche','Abschluss & nächste Schritte'];
+const CRIT=[['fluessig','Flüssigkeit','spontan und flüssig sprechen, selten nach Wörtern suchen'],['wortschatz','Wortschatz','großer Wortschatz; unbekannte Wörter problemlos umschreiben'],['spektrum','Spektrum','breites Spektrum sprachlicher Mittel, klar und nuanciert'],['aussprache','Aussprache','Akzent darf hörbar sein, stört die Verständlichkeit nicht; korrigiert sich selbst'],['fehler','Korrektheit','selten Fehler; sie fallen kaum auf und führen nicht zu Missverständnissen'],['kohaerenz','Kohärenz','klar und strukturiert, vielfältige Verbindungswörter'],['rechtschreibung','Rechtschreibung','Rechtschreibung und Zeichensetzung korrekt (nur bei getippten Beiträgen)'],['genauigkeit','Genauigkeit','auch detaillierte Informationen in anspruchsvollen Situationen korrekt vermitteln']];
+function anamList(c){return [...GENERAL.filter(g=>c.sex==='f'||!g.startsWith('Gyn')).map(g=>'Struktur: '+g),...TOPICS[c.topic]]}
 async function runEval(){
   if(!hasKey()){openSettings(runEval);return}
-  S.view='eval';S.evLang='de';
-  main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">Chefarzt und Sprachprüferin werten aus…</h2><p class="lead" style="margin:8px auto">Das dauert etwa 10–30 Sekunden.</p></div>`;
+  S.view='eval';
+  main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">Chefarzt und Sprachprüferin werten aus…</h2><p class="lead" style="margin:8px auto">Das dauert etwa 20–60 Sekunden.</p></div>`;
   try{
     const ev=await evaluate();
     if(!ev||!ev.level)throw new Error('empty');
-    S.ev=ev;
-    const h=ls.get('famed-hist',[]);h.push({id:S.c.id,level:ev.level,verdict:ev.verdict,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
+    scoreEval(ev);S.ev=ev;
+    const h=ls.get('famed-hist',[]);h.push({id:ev.has.a?ST.a.id:null,auf:ev.has.b?ST.b.id:null,n:ST.n,level:ev.level,verdict:ev.verdict,pct:ev.sc.total,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
     renderEval(ev);
-  }catch(e){S.view='done';doneView(L('Auswertung fehlgeschlagen: ','Evaluation failed: ')+(e&&e.status?errText(e):L('bitte nochmal versuchen.','please try again.')))}
+  }catch(e){console.error(e);S.view='done';doneView(L('Auswertung fehlgeschlagen: ','Evaluation failed: ')+(e&&e.status?errText(e):L('bitte nochmal versuchen.','please try again.')))}
 }
 async function evaluate(){
-  const c=S.c,gen=GENERAL.filter(g=>c.sex==='f'||!g.startsWith('Gyn'));
-  const en=false;
-  const conv=S.msgs.map(m=>(m.who==='doc'?'ARZT: ':'PATIENT: ')+m.text).join('\n');
-  const p=`Bewerte dieses simulierte Anamnesegespräch aus der FaMed-Fachsprachprüfung (Teil Anamnese, 11 Minuten, Videosprechstunde, der Prüfling ist Allgemeinarzt, Deutsch ist nicht seine Muttersprache). Die Äußerungen des Arztes stammen aus einer Spracherkennung: bewerte KEINE fehlenden Satzzeichen, Groß-/Kleinschreibung oder offensichtliche Erkennungsfehler.
-
-Zwei Prüfer bewerten unabhängig:
-1) CHEFARZT (ärztliche Sicht): Struktur und Vollständigkeit der Anamnese, fehlende wichtige Fragen, Gesprächsführung, Empathie und Reaktionen auf den Patienten, Laiensprache statt Fachbegriffen, Zusammenfassung, Abschluss mit nächsten Schritten, Eingehen auf Patientenfragen.
-2) SPRACHPRÜFERIN (sprachliche Sicht): Grammatik, Satzbau, Wortschatz, medizinische Fachsprache vs. Laiensprache, Höflichkeitsform (Sie), Verständlichkeit, Flüssigkeit.
-Gemeinsam bestimmen sie das kommunikative Sprachniveau nach GER (A2, B1, B2, C1 oder C2). Für die Fachsprachprüfung wird C1 erwartet.
-
+  const pa=ST.parts.find(p=>p&&p.kind==='anam'),pb=ST.parts.find(p=>p&&p.kind==='auf');
+  const has={a:!!(pa&&pa.msgs.some(m=>m.who==='doc')),b:!!(pb&&pb.msgs.some(m=>m.who==='doc'))};
+  const lists={a:has.a?anamList(ST.a):[],b:has.b?aufChecklist(ST.b):[]};
+  const conv=(p,pat)=>p.msgs.map(m=>(m.who==='doc'?(m.typed?'ARZT (getippt): ':'ARZT: '):pat+': ')+m.text).join('\n');
+  const num=l=>l.map((t,i)=>(i+1)+': '+t).join('\n');
+  let body='';
+  if(has.a){const c=ST.a;body+=`
+=== TEIL A – ANAMNESEGESPRÄCH (Videosprechstunde, Prüfling ist Allgemeinarzt, 11 Minuten) ===
 FALL (nur für die Prüfer): ${c.story}
 Verdachtsdiagnose: ${c.dx}
 Momente des Patienten: ${c.cues}
-Fallspezifische Checkliste: ${TOPICS[c.topic].join('; ')}
-Allgemeine Struktur: ${gen.join('; ')}.
-Erwartete Reaktionen: Schmerzen → Schmerzmittel anbieten und vorher nach Allergien fragen; Luftnot → Sauerstoff/Sättigung anbieten; Übelkeit → Mittel/Brechbeutel anbieten; Angst → beruhigen ohne Diagnose zu versprechen; Rauchen → kurze Beratung; verstorbene Eltern → Beileid; Selbstmedikation → auf ärztliche Rücksprache hinweisen; Patientenfragen → konkret beantworten.
+Erwartete Reaktionen: Schmerzen → Schmerzmittel anbieten und vorher nach Allergien fragen; Luftnot → Sauerstoff anbieten; Übelkeit → Mittel anbieten; Angst → beruhigen ohne Diagnose zu versprechen; Rauchen → kurze Beratung; verstorbene Eltern → Beileid; Selbstmedikation → auf ärztliche Rücksprache hinweisen; Patientenfragen → konkret beantworten.
+CHECKLISTE A:
+${num(lists.a)}
+GESPRÄCH A (Dauer ${fmtDur(pa.dur)}, ${pa.timeUp?'Zeit abgelaufen':'vom Prüfling beendet'}):
+${conv(pa,'PATIENT')}
+`}
+  if(has.b){const a=ST.b;body+=`
+=== TEIL B – AUFKLÄRUNGSGESPRÄCH (11 Minuten inkl. 2:30 Lesezeit, Aufgabenblatt war sichtbar) ===
+Rolle des Prüflings: ${a.role}. Patient: ${a.proxy?a.name+' (Mutter, Eingriff für '+a.proxy+')':a.name+', '+a.age+' J.'}
+Eingriff: ${a.t} (${a.lay}), Dauer ${a.dur}. Grund: ${a.grund}
+Ablauf laut Blatt: ${a.ablauf}
+Allgemeine Risiken: ${a.gen.join('; ')}
+Spezielle Risiken: ${a.spec.join('; ')}
+Vorher: ${a.vor.join('; ')}
+Nachher: ${a.nach.join('; ')}
+Fragen des Patienten: ${a.qs.join(' ')}
+CHECKLISTE B:
+${num(lists.b)}
+GESPRÄCH B (Dauer ${fmtDur(pb.dur)}, ${pb.timeUp?'Zeit abgelaufen':'vom Prüfling beendet'}):
+${conv(pb,'PATIENT')}
+`}
+  const p=`Bewerte diese simulierte Station A (Arzt-Patienten-Gespräch) der FaMed-Fachsprachprüfung. Der Prüfling ist Arzt/Ärztin, Deutsch ist nicht die Muttersprache; erwartet wird C1. Die Äußerungen des Arztes stammen meist aus einer Spracherkennung: bewerte KEINE fehlenden Satzzeichen, Groß-/Kleinschreibung oder offensichtliche Erkennungsfehler (Ausnahme: Beiträge mit "(getippt)" – dort zählt auch die Rechtschreibung).
 
-GESPRÄCH (Dauer ${fmtDur(S.dur)}, ${S.timeUp?'Zeit abgelaufen':'vom Prüfling beendet'}):
-${conv}
-
-${en?'SPRACHE DER AUSGABE: Der Leser spricht kein Deutsch. Schreibe "levelReason", "opinion" und "mistake" auf ENGLISCH. In "solution": zuerst der korrekte deutsche Satz bzw. die deutsche Frage, danach in Klammern die englische Übersetzung und eine kurze englische Erklärung.':'SPRACHE DER AUSGABE: alles auf Deutsch.'}
+Zwei Prüfer bewerten unabhängig:
+1) CHEFARZT: prüft JEDEN Punkt der Checklisten mit "ok" (klar und sachlich richtig angesprochen), "teilweise" (nur angedeutet, unvollständig, ungenau oder Fachbegriff ohne Erklärung) oder "fehlt". ${has.b?'Im Aufklärungsgespräch beurteilt er außerdem, ob der Patient wirklich alles verstanden hat: laienverständliche Sprache, Fachbegriffe erklärt, Struktur, Verständnis geprüft, Patientenfragen korrekt beantwortet, Reaktionen und Rückfragen des Patienten.':''} Außerdem Gesprächsführung, Empathie, Reaktion auf den Patienten.
+2) SPRACHPRÜFERIN: bewertet die Kommunikation des Prüflings anhand von 8 Kriterien, je Score 1–5 (5 = C1 sicher erreicht, 4 = knapp C1, 3 = B2, 2 = B1, 1 = darunter):
+${CRIT.map(c=>'- '+c[0]+' ('+c[1]+'): '+c[2]).join('\n')}
+"aussprache" ist aus der Mitschrift nur indirekt beurteilbar (Erkennungsfehler, Selbstkorrekturen): gib einen vorsichtigen Wert und erwähne das im Kommentar. "rechtschreibung" nur bewerten, wenn getippte Beiträge vorhanden sind, sonst score null.
+Gemeinsam bestimmen sie das Sprachniveau nach GER (A2–C2) und ein Urteil.
+${body}
 Antworte NUR mit gültigem JSON in genau diesem Format:
-{"level":"A2|B1|B2|C1|C2","verdict":"Bestanden|Knapp|Nicht bestanden","levelReason":"1–2 Sätze","chief":{"opinion":"2–4 Sätze","mistakes":[{"mistake":"was falsch war oder fehlte","solution":"wie man es richtig macht, mit Mustersatz"}]},"linguist":{"opinion":"2–4 Sätze","mistakes":[{"mistake":"Originalsatz oder Fehler des Prüflings","solution":"korrigierte Version und kurze Erklärung"}]}}
-Je Prüfer 4–8 der wichtigsten Punkte, nach Wichtigkeit sortiert. Sei ehrlich und streng, aber ermutigend.`;
-  const r=await aiChat([{role:'system',content:'Du bist ein Prüfungsgremium aus einem Chefarzt und einer Sprachprüferin. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true,think:'low'});
-  const m=r.text.match(/\{[\s\S]*\}/);return JSON.parse(m?m[0]:r.text);
+{"level":"A2|B1|B2|C1|C2","verdict":"Bestanden|Knapp|Nicht bestanden","levelReason":"1–2 Sätze",${has.a?'"a":[{"i":1,"s":"ok|teilweise|fehlt","n":"max. 10 Wörter, nur bei teilweise/fehlt"}],':''}${has.b?'"b":[{"i":1,"s":"ok|teilweise|fehlt","n":"..."}],"understanding":{"pct":0,"note":"2 Sätze: Hat der Patient alles verstanden? Woran erkennt man das?"},':''}"chief":{"opinion":"2–4 Sätze","mistakes":[{"part":"A|B","mistake":"was falsch war oder fehlte","solution":"wie man es richtig macht, mit deutschem Mustersatz"}]},"linguist":{"opinion":"2–4 Sätze","criteria":[{"k":"fluessig","score":4,"comment":"1 Satz"}],"mistakes":[{"part":"A|B","mistake":"Originalsatz des Prüflings","solution":"korrigierte Version + kurze Erklärung"}]}}
+${has.a?'"a" muss alle '+lists.a.length+' Punkte von CHECKLISTE A enthalten. ':''}${has.b?'"b" muss alle '+lists.b.length+' Punkte von CHECKLISTE B enthalten. ':''}"criteria" muss alle 8 Kriterien enthalten. Je Prüfer 4–8 wichtigste Fehler, nach Wichtigkeit sortiert. Alles auf Deutsch. Sei ehrlich und streng, aber ermutigend.`;
+  const r=await aiChat([{role:'system',content:'Du bist ein Prüfungsgremium aus einem Chefarzt und einer Sprachprüferin der FaMed-Fachsprachprüfung. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true,think:'low'});
+  const m=r.text.match(/\{[\s\S]*\}/);const ev=JSON.parse(m?m[0]:r.text);
+  ev.has=has;ev.lists=lists;ev.durs={a:pa&&pa.dur,b:pb&&pb.dur};
+  return ev;
+}
+function normList(list,n){const m={};(Array.isArray(list)?list:[]).forEach(x=>{if(x&&x.i)m[+x.i]=x});return Array.from({length:n},(_,i)=>{const x=m[i+1]||{};const s=['ok','teilweise','fehlt'].includes(x.s)?x.s:'fehlt';return {s,n:x.n||''}})}
+function scoreEval(ev){
+  const pct=l=>l.length?Math.round(100*l.reduce((t,x)=>t+(x.s==='ok'?1:x.s==='teilweise'?.5:0),0)/l.length):null;
+  ev.ra=normList(ev.a,ev.lists.a.length);ev.rb=normList(ev.b,ev.lists.b.length);
+  const crit=CRIT.map(c=>{const x=((ev.linguist&&ev.linguist.criteria)||[]).find(y=>y&&y.k===c[0])||{};const sc=typeof x.score==='number'?Math.max(1,Math.min(5,x.score)):null;return {k:c[0],name:c[1],desc:c[2],score:sc,comment:x.comment||''}});
+  ev.crit=crit;
+  const scored=crit.filter(c=>c.score!=null);
+  const sc={a:ev.has.a?pct(ev.ra):null,b:ev.has.b?pct(ev.rb):null,u:ev.has.b&&ev.understanding&&typeof ev.understanding.pct==='number'?Math.max(0,Math.min(100,Math.round(ev.understanding.pct))):null,lang:scored.length?Math.round(100*scored.reduce((t,c)=>t+c.score,0)/(5*scored.length)):null};
+  const chiefParts=[sc.a,sc.b,sc.u].filter(v=>v!=null);sc.chief=chiefParts.length?Math.round(chiefParts.reduce((t,v)=>t+v,0)/chiefParts.length):null;
+  const tot=[sc.chief,sc.lang].filter(v=>v!=null);sc.total=tot.length?Math.round(tot.reduce((t,v)=>t+v,0)/tot.length):null;
+  ev.sc=sc;
 }
 const VDL=v=>({Bestanden:L('Bestanden','Pass'),Knapp:L('Knapp','Borderline'),'Nicht bestanden':L('Nicht bestanden','Fail')}[v]||v||'');
 const lvlCol=l=>({C2:'var(--ok)',C1:'var(--ok)',B2:'var(--mid)'}[l]||'var(--coral)');
-function itemsHTML(list){return (Array.isArray(list)&&list.length)?list.map(x=>`<div class="item"><div class="mis"><span>✗</span>${esc(x.mistake)}</div><div class="sol"><span>✓</span>${esc(x.solution)}</div></div>`).join(''):'<p class="lead">—</p>'}
+const pCol=p=>p==null?'var(--line)':p>=75?'var(--ok)':p>=50?'var(--mid)':'var(--coral)';
+const pHex=p=>p==null?'#cfdcdc':p>=75?'#1f7a4d':p>=50?'#a86a00':'#e5533d';
+const ST_LBL={ok:'✓ erfüllt',teilweise:'◐ teilweise',fehlt:'✗ fehlt'};
+function itemsHTML(list){return (Array.isArray(list)&&list.length)?list.map(x=>`<div class="item"><div class="mis"><span>✗</span><span style="color:inherit;font-weight:400">${x.part?`<span class="tag">${esc(x.part)}</span>`:''}${esc(x.mistake)}</span></div><div class="sol"><span>✓</span>${esc(x.solution)}</div></div>`).join(''):'<p class="lead">—</p>'}
 function renderEval(ev){
   const _lang=lang;lang='de';try{renderEvalDE(ev)}finally{lang=_lang}
 }
+function evMeta(ev){
+  const d=ST.date||new Date(),bits=[];
+  if(ev.has.a)bits.push(`A: ${ctitle(ST.a)} (${ST.a.name}, ${ST.a.age} J., ${fmtDur(ev.durs.a||0)})`);
+  if(ev.has.b)bits.push(`B: ${ST.b.t} (${ST.b.name}, ${fmtDur(ev.durs.b||0)})`);
+  return `FaMed Station A · Test ${ST.n} · ${d.toLocaleDateString('de-DE')} · ${bits.join(' · ')}`;
+}
 function renderEvalDE(ev){
-  const c=S.c,d=S.date||new Date();
+  const sc=ev.sc;
+  const kpi=(lbl,v,sub)=>`<div class="kpi"><small>${lbl}</small><b style="color:${pCol(v)}">${v==null?'–':v+' %'}</b><div class="pbar"><i style="width:${v||0}%;background:${pCol(v)}"></i></div>${sub?`<small style="margin-top:6px">${sub}</small>`:''}</div>`;
+  const cnt=l=>`${l.filter(x=>x.s==='ok').length} ✓ · ${l.filter(x=>x.s==='teilweise').length} ◐ · ${l.filter(x=>x.s==='fehlt').length} ✗`;
+  const list=(items,rs)=>items.map((t,i)=>`<div class="row"><span class="chip c-${rs[i].s}">${ST_LBL[rs[i].s]}</span><span style="flex:1">${esc(t)}${rs[i].n?`<br><small style="color:var(--mute)">${esc(rs[i].n)}</small>`:''}</span></div>`).join('');
+  const bar=(lbl,v)=>`<div class="crit"><span>${lbl}</span><div class="pbar"><i style="width:${v||0}%;background:${pCol(v)}"></i></div><b>${v==null?'–':v+' %'}</b></div>`;
   main.innerHTML=`<div id="report">
-   <div style="color:var(--mute);font-size:14px">FaMed Anamnese · Test ${c.num} · ${esc(ctitle(c))} · ${esc(c.name)}, ${c.age} ${L('J.','yrs')} · ${d.toLocaleDateString(L('de-DE','en-GB'))} · ${L('Dauer','Duration')} ${fmtDur(S.dur)}</div>
+   <div style="color:var(--mute);font-size:14px">${esc(evMeta(ev))}</div>
    <div class="lvlrow">
-    <div class="lvl" style="border-color:${lvlCol(ev.level)}"><small>${L('Sprachniveau','Level')}</small><b style="color:${lvlCol(ev.level)}">${esc(ev.level)}</b><small>${L('Ziel: C1','Target: C1')}</small></div>
+    <div class="lvl" style="border-color:${lvlCol(ev.level)}"><small>Sprachniveau</small><b style="color:${lvlCol(ev.level)}">${esc(ev.level)}</b><small>Ziel: C1</small></div>
     <div><span class="vd" style="background:${ev.verdict==='Bestanden'?'var(--ok)':ev.verdict==='Knapp'?'var(--mid)':'var(--coral)'}">${esc(VDL(ev.verdict))}</span>
-     <h1 style="font-size:clamp(26px,3.4vw,38px)">${L('Auswertung des Anamnesegesprächs','Evaluation of the history-taking')}</h1>
+     <h1 style="font-size:clamp(26px,3.4vw,38px)">Auswertung Test ${ST.n}${sc.total!=null?` · <span style="color:${pCol(sc.total)}">${sc.total} %</span>`:''}</h1>
      <p style="margin:10px 0 0;max-width:70ch">${esc(ev.levelReason)}</p></div>
    </div>
-   <div class="grid2">
-    <div class="card judge"><h3>👨‍⚕️ ${L('Chefarzt','Chief physician')}</h3><p class="op">${esc(ev.chief&&ev.chief.opinion)}</p>${itemsHTML(ev.chief&&ev.chief.mistakes)}</div>
-    <div class="card judge"><h3>🗣️ ${L('Sprachprüferin','Language examiner')}</h3><p class="op">${esc(ev.linguist&&ev.linguist.opinion)}</p>${itemsHTML(ev.linguist&&ev.linguist.mistakes)}</div>
+   <div class="kpis">
+    ${ev.has.a?kpi('Checkliste A · Anamnese',sc.a,cnt(ev.ra)):''}
+    ${ev.has.b?kpi('Checkliste B · Aufklärung',sc.b,cnt(ev.rb)):''}
+    ${ev.has.b?kpi('Patient hat verstanden',sc.u,'Sicht des Chefarztes'):''}
+    ${kpi('Sprache · 8 Kriterien',sc.lang,'Sicht der Sprachprüferin')}
    </div>
-   <details><summary>${L('Mitschrift','Transcript')}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf())}</p></details>
+   <div class="grid2">
+    <div class="card judge"><h3>👨‍⚕️ Chefarzt${sc.chief!=null?` · ${sc.chief} %`:''}</h3><p class="op">${esc(ev.chief&&ev.chief.opinion)}</p>
+     ${ev.has.a?bar('A · Checkliste',sc.a):''}${ev.has.b?bar('B · Checkliste',sc.b)+bar('B · Verständnis',sc.u):''}
+     ${ev.has.b&&ev.understanding&&ev.understanding.note?`<p class="op" style="margin-top:8px"><b>Patientenverständnis:</b> ${esc(ev.understanding.note)}</p>`:''}
+     ${itemsHTML(ev.chief&&ev.chief.mistakes)}</div>
+    <div class="card judge"><h3>🗣️ Sprachprüferin${sc.lang!=null?` · ${sc.lang} %`:''}</h3><p class="op">${esc(ev.linguist&&ev.linguist.opinion)}</p>
+     ${ev.crit.map(c=>`<div class="crit"><span title="${esc(c.desc)}">${esc(c.name)}</span><div class="pbar"><i style="width:${c.score?c.score*20:0}%;background:${pCol(c.score?c.score*20:null)}"></i></div><b>${c.score?c.score+'/5':'n. b.'}</b>${c.comment?`<em>${esc(c.comment)}</em>`:''}</div>`).join('')}
+     <div style="margin-top:10px">${itemsHTML(ev.linguist&&ev.linguist.mistakes)}</div></div>
+   </div>
+   ${ev.has.a?`<details open><summary>Checkliste A · Anamnese – ${sc.a} % (${cnt(ev.ra)})</summary>${list(ev.lists.a,ev.ra)}</details>`:''}
+   ${ev.has.b?`<details open><summary>Checkliste B · Aufklärung ${esc(ST.b.t)} – ${sc.b} % (${cnt(ev.rb)})</summary>${list(ev.lists.b,ev.rb)}</details>`:''}
+   ${doneParts().filter(p=>p.msgs.length).map(p=>`<details><summary>Mitschrift ${partCode(p.kind)} · ${PART_NAME[p.kind]}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf(p))}</p></details>`).join('')}
   </div>
-  <div class="acts"><button class="btn" id="pdf">⬇ ${L('Als PDF speichern','Save as PDF')}</button><button class="btn ghost" id="again">${L('Nochmal versuchen','Try again')}</button>${c.num<CASES.length?`<button class="btn ghost" id="nxt">${L('Weiter mit Test','Next: Test')} ${c.num+1}</button>`:''}</div>`;
+  <div class="acts"><button class="btn" id="pdf">⬇ ${L('Als PDF speichern','Save as PDF')}</button><button class="btn ghost" id="again">${L('Gleiche Fälle nochmal','Same cases again')}</button><button class="btn ghost" id="nxt">${L('Neuer Test','New test')}</button></div>`;
   $('#pdf').onclick=savePDF;
-  $('#again').onclick=()=>startCase(c);
-  if($('#nxt'))$('#nxt').onclick=()=>startCase(CASES[c.num]);
+  $('#again').onclick=restartSame;
+  $('#nxt').onclick=startExam;
 }
 function loadScript(src){return new Promise((res,rej)=>{if(window.html2pdf)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 function pdfHTML(ev){
   const _lang=lang;lang='de';try{return pdfHTMLDE(ev)}finally{lang=_lang}
 }
 function pdfHTMLDE(ev){
-  const c=S.c,d=S.date||new Date();
-  const items=list=>(list||[]).map(x=>`<div style="padding:7px 0;border-bottom:1px solid #e3e8e8;page-break-inside:avoid"><div style="color:#b3361f"><b>✗</b> ${esc(x.mistake)}</div><div style="color:#1f6b45;margin-top:3px"><b>✓</b> ${esc(x.solution)}</div></div>`).join('');
-  const box=(t,o)=>`<div style="margin-top:16px;border:1px solid #cfdcdc;border-radius:8px;padding:12px 14px"><div style="font-size:16px;font-weight:700;color:#0b5d63">${t}</div><p style="margin:6px 0 4px">${esc(o.opinion)}</p>${items(o.mistakes)}</div>`;
-  return `<div style="font-family:Inter,Arial,sans-serif;color:#11191b;font-size:12px;line-height:1.45;width:720px;padding:6px">
-   <div style="border-bottom:3px solid #0b5d63;padding-bottom:8px"><div style="font-size:20px;font-weight:700">${L('FaMed Anamnese – Auswertung','FaMed history-taking – evaluation')}</div>
-   <div style="color:#5b6b6e">Test ${c.num}: ${esc(ctitle(c))} · ${L('Patient','Patient')}: ${esc(c.name)}, ${c.age} · ${d.toLocaleString(L('de-DE','en-GB'))} · ${L('Dauer','Duration')} ${fmtDur(S.dur)}</div></div>
-   <div style="display:flex;gap:16px;align-items:center;margin-top:12px"><div style="border:3px solid #0b5d63;border-radius:10px;padding:6px 14px;text-align:center"><div style="font-size:10px;color:#5b6b6e">${L('Sprachniveau','Level')}</div><div style="font-size:30px;font-weight:700;color:#0b5d63">${esc(ev.level)}</div><div style="font-size:10px;color:#5b6b6e">${L('Ziel: C1','Target: C1')}</div></div>
-   <div><div style="font-weight:700">${esc(VDL(ev.verdict))}</div><div>${esc(ev.levelReason)}</div></div></div>
-   ${box('👨‍⚕️ '+L('Chefarzt','Chief physician'),ev.chief||{})}
-   ${box('🗣️ '+L('Sprachprüferin','Language examiner'),ev.linguist||{})}
-   <div style="margin-top:16px;page-break-before:auto"><div style="font-size:14px;font-weight:700;color:#0b5d63">${L('Mitschrift','Transcript')}</div><div style="white-space:pre-line;margin-top:4px">${esc(transcriptOf())}</div></div>
+  const sc=ev.sc;
+  const items=list=>(list||[]).map(x=>`<div style="padding:6px 0;border-bottom:1px solid #e3e8e8;page-break-inside:avoid"><div style="color:#b3361f"><b>✗</b> ${x.part?`<b>[${esc(x.part)}]</b> `:''}${esc(x.mistake)}</div><div style="color:#1f6b45;margin-top:2px"><b>✓</b> ${esc(x.solution)}</div></div>`).join('');
+  const bar=(lbl,v)=>`<div style="display:flex;align-items:center;gap:8px;margin:3px 0;page-break-inside:avoid"><span style="width:150px">${lbl}</span><span style="flex:1;height:7px;background:#e3e8e8;border-radius:4px;overflow:hidden;display:block"><span style="display:block;height:7px;width:${v||0}%;background:${pHex(v)}"></span></span><b style="width:52px;text-align:right">${v==null?'–':v+' %'}</b></div>`;
+  const kpi=(lbl,v)=>`<td style="border:1px solid #cfdcdc;border-radius:6px;padding:6px 8px;text-align:center;width:25%"><div style="font-size:10px;color:#5b6b6e">${lbl}</div><div style="font-size:20px;font-weight:700;color:${pHex(v)}">${v==null?'–':v+' %'}</div></td>`;
+  const col={ok:'#1f7a4d',teilweise:'#a86a00',fehlt:'#e5533d'};
+  const list=(t,items,rs)=>`<div style="margin-top:14px"><div style="font-size:14px;font-weight:700;color:#0b5d63">${t}</div>${items.map((x,i)=>`<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid #eef2f2;page-break-inside:avoid"><span style="flex:none;width:72px;color:#fff;background:${col[rs[i].s]};border-radius:8px;text-align:center;font-size:10px;font-weight:700;padding:1px 0;height:fit-content">${ST_LBL[rs[i].s]}</span><span style="flex:1">${esc(x)}${rs[i].n?` <span style="color:#5b6b6e">– ${esc(rs[i].n)}</span>`:''}</span></div>`).join('')}</div>`;
+  const box=(t,inner)=>`<div style="margin-top:14px;border:1px solid #cfdcdc;border-radius:8px;padding:10px 12px">${'<div style="font-size:15px;font-weight:700;color:#0b5d63">'+t+'</div>'}${inner}</div>`;
+  return `<div style="font-family:Inter,Arial,sans-serif;color:#11191b;font-size:11.5px;line-height:1.45;width:720px;padding:6px">
+   <div style="border-bottom:3px solid #0b5d63;padding-bottom:8px"><div style="font-size:20px;font-weight:700">FaMed Station A – Auswertung Test ${ST.n}</div>
+   <div style="color:#5b6b6e">${esc(evMeta(ev))}</div></div>
+   <div style="display:flex;gap:16px;align-items:center;margin-top:12px"><div style="border:3px solid #0b5d63;border-radius:10px;padding:6px 14px;text-align:center"><div style="font-size:10px;color:#5b6b6e">Sprachniveau</div><div style="font-size:30px;font-weight:700;color:#0b5d63">${esc(ev.level)}</div><div style="font-size:10px;color:#5b6b6e">Ziel: C1</div></div>
+   <div><div style="font-weight:700;font-size:14px">${esc(VDL(ev.verdict))}${sc.total!=null?' · Gesamt '+sc.total+' %':''}</div><div>${esc(ev.levelReason)}</div></div></div>
+   <table style="width:100%;border-collapse:separate;border-spacing:6px;margin-top:10px"><tr>${ev.has.a?kpi('Checkliste A · Anamnese',sc.a):''}${ev.has.b?kpi('Checkliste B · Aufklärung',sc.b)+kpi('Patient hat verstanden',sc.u):''}${kpi('Sprache · 8 Kriterien',sc.lang)}</tr></table>
+   ${box('👨‍⚕️ Chefarzt'+(sc.chief!=null?' · '+sc.chief+' %':''),`<p style="margin:6px 0 4px">${esc(ev.chief&&ev.chief.opinion)}</p>${ev.has.a?bar('A · Checkliste',sc.a):''}${ev.has.b?bar('B · Checkliste',sc.b)+bar('B · Verständnis',sc.u):''}${ev.has.b&&ev.understanding&&ev.understanding.note?`<p style="margin:6px 0"><b>Patientenverständnis:</b> ${esc(ev.understanding.note)}</p>`:''}${items(ev.chief&&ev.chief.mistakes)}`)}
+   ${box('🗣️ Sprachprüferin'+(sc.lang!=null?' · '+sc.lang+' %':''),`<p style="margin:6px 0 4px">${esc(ev.linguist&&ev.linguist.opinion)}</p>${ev.crit.map(c=>`<div style="page-break-inside:avoid">${bar(c.name+' '+(c.score?c.score+'/5':'n. b.'),c.score?c.score*20:null)}${c.comment?`<div style="color:#5b6b6e;margin:0 0 4px 158px">${esc(c.comment)}</div>`:''}</div>`).join('')}${items(ev.linguist&&ev.linguist.mistakes)}`)}
+   ${ev.has.a?list('Checkliste A · Anamnese – '+sc.a+' %',ev.lists.a,ev.ra):''}
+   ${ev.has.b?list('Checkliste B · Aufklärung '+esc(ST.b.t)+' – '+sc.b+' %',ev.lists.b,ev.rb):''}
+   ${doneParts().filter(p=>p.msgs.length).map(p=>`<div style="margin-top:14px"><div style="font-size:14px;font-weight:700;color:#0b5d63">Mitschrift ${partCode(p.kind)} · ${PART_NAME[p.kind]}</div><div style="white-space:pre-line;margin-top:4px">${esc(transcriptOf(p))}</div></div>`).join('')}
   </div>`;
 }
 async function savePDF(){
   const b=$('#pdf');const t=b.textContent;b.disabled=true;b.textContent='PDF wird erstellt…';
-  const d=S.date||new Date();
-  const name=`FaMed_Test${S.c.num}_${(S.c.title).replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,'-')}_${d.toISOString().slice(0,10)}.pdf`;
+  const d=ST.date||new Date(),ev=S.ev;
+  const slug=x=>String(x).replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,'-').replace(/^-|-$/g,'');
+  const name=`FaMed_Test${ST.n}_${[ev.has.a?slug(ST.a.title):'',ev.has.b?slug(ST.b.t):''].filter(Boolean).join('_')}_${d.toISOString().slice(0,10)}.pdf`;
   try{
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
-    const wrap=document.createElement('div');wrap.style.cssText='position:fixed;left:-10000px;top:0;background:#fff';wrap.innerHTML=pdfHTML(S.ev);document.body.appendChild(wrap);
-    await html2pdf().set({margin:[12,10,12,10],filename:name,image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(wrap.firstElementChild).save();
-    wrap.remove();
+    window.scrollTo(0,0);
+    await html2pdf().set({margin:[12,10,12,10],filename:name,image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,backgroundColor:'#ffffff',scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(pdfHTML(ev),'string').save();
   }catch(e){
     try{window.print()}catch(err){}
   }
