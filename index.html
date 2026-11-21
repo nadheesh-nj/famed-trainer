@@ -86,6 +86,17 @@ aside details.grp>summary::before{content:"▸";margin-right:2px;transition:tran
 aside details.grp>summary span{margin-left:auto;font:600 12px Inter;opacity:.7;background:rgba(255,255,255,.14);padding:1px 8px;border-radius:10px}
 aside details.grp>summary:hover{background:rgba(255,255,255,.09)}
 aside .glist{padding:2px 0 8px 6px}
+.call.b{grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr)}
+.call.b .stage{aspect-ratio:4/3}
+.call.b .bar .rec{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:10px}
+.call.b .side{min-height:calc(100vh - 110px)}
+.call.b .pane{max-height:calc(100vh - 170px)}
+.call.b #pa{padding:14px 18px}
+.call.b #pa .sheet{font-size:16px;line-height:1.55}
+.call.b #pa .shi td{padding:5px 12px 5px 0}
+.call.b .controls .say{flex-basis:100%;order:3}
+.qbadge{position:absolute;right:14px;top:52px;color:#fff;font-size:13px;font-weight:600;background:var(--coral);padding:4px 10px;border-radius:20px}
+@media(max-width:980px){.call.b{grid-template-columns:minmax(0,1fr)}.call.b .side{min-height:60vh}.call.b .pane{max-height:70vh}}
 .hist{width:100%;border-collapse:collapse;font-size:15px}.hist td,.hist th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}.hist .r{text-align:right;white-space:nowrap}
 /* reading */
 .task{max-width:720px;margin:6vh auto 0;background:var(--panel);border-radius:18px;padding:clamp(22px,4vw,40px);border-top:6px solid var(--teal)}
@@ -1026,7 +1037,7 @@ function beginCall(){
   clearInterval(clock);const c=S.c;S.view='call';S.start=Date.now();
   if(S.kind==='auf'){S.total=AUF_TOTAL-(AUF_READ-Math.max(S.r||0,0));S.left=S.total}
   const isB=S.kind==='auf';
-  main.innerHTML=`<div class="call"><div>
+  main.innerHTML=`<div class="call${isB?' b':''}"><div>
    <div class="stage">${avatar(c)}
     <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span class="timer" id="tm">${fmtDur(S.total)}</span></div>
     <div class="status" id="st"></div>
@@ -1065,7 +1076,7 @@ function callLabels(){
   $('#self').textContent=L('Sie','You');
   $('#txt').placeholder=SR?L('Optional: hier tippen statt sprechen (Enter = senden)','Optional: type here instead of speaking (Enter = send)'):L('Frage hier eintippen (Enter = senden)','Type your question here (Enter = send)');
   $('#send').textContent=L('Senden','Send');$('#end').textContent=L('Beenden','End');
-  $('#hint').textContent=(SR&&S.kind==='auf')?L('Erklären Sie Schritt für Schritt wie am Aufgabenblatt. Nach ca. 2 Sekunden Pause reagiert der Patient – kurze Pausen beim Erklären sind also kein Problem. Mikrofon-Knopf = stumm.','Explain step by step, following the task sheet. After about a 2-second pause the patient reacts – short pauses while explaining are fine. Microphone button = mute.'):(SR?L('Einfach sprechen wie in einem echten Gespräch. Nach einer kurzen Pause antwortet der Patient, danach hört das Mikrofon automatisch wieder zu. Mikrofon-Knopf = stumm schalten. 🔊 = letzte Antwort nochmal.','Just talk, like a real conversation. After a short pause the patient answers, then the microphone listens again automatically. Microphone button = mute. 🔊 = replay the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'));
+  $('#hint').textContent=(SR&&S.kind==='auf')?L('Erklären Sie alles am Stück wie am Aufgabenblatt. Der Patient hört zu und sagt nur „Mhm“. Er unterbricht nur, wenn Sie ihn direkt fragen oder ein Fachbegriff unklar ist. In den letzten 2 Minuten (Fragerunde) stellt er seine Fragen – auch zu Punkten, die Sie vergessen haben. Mikrofon-Knopf = stumm.','Explain everything in one go, following the task sheet. The patient listens and only says “Mhm”. He interrupts only if you ask him directly or a medical term is unclear. In the last 2 minutes (question time) he asks his questions – including about points you missed. Microphone button = mute.'):(SR?L('Einfach sprechen wie in einem echten Gespräch. Nach einer kurzen Pause antwortet der Patient, danach hört das Mikrofon automatisch wieder zu. Mikrofon-Knopf = stumm schalten. 🔊 = letzte Antwort nochmal.','Just talk, like a real conversation. After a short pause the patient answers, then the microphone listens again automatically. Microphone button = mute. 🔊 = replay the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'));
   $('#tab-n').textContent=L('Notizblock','Notepad');$('#tab-t').textContent=L('Mitschrift','Transcript');
   $('#notes').placeholder=L('Notizen wie im Prüfungsraum…','Notes, like in the exam room…');
   const ln=$('#lognote');if(ln)ln.textContent=L('Die Mitschrift erscheint hier. In der echten Prüfung gibt es sie nicht – nutze sie nur zur Kontrolle.','The transcript appears here. There is none in the real exam – use it only to check.');
@@ -1077,6 +1088,7 @@ function tick(){
   S.left=S.total-Math.floor((Date.now()-S.start)/1000);
   const t=$('#tm');if(!t)return;const l=Math.max(S.left,0);
   t.textContent=Math.floor(l/60)+':'+String(l%60).padStart(2,'0');t.classList.toggle('low',l<=60);
+  if(S.kind==='auf'&&!S.qStarted&&S.left<=QROUND_SECONDS&&S.msgs.some(m=>m.who==='doc')){S.qStarted=true;showQBadge();triggerQuestions()}
   if(S.left<=0)endCall(true);
 }
 function setStatus(s){const e=$('#st');if(e)e.textContent=s}
@@ -1089,6 +1101,7 @@ function micUI(){
   if(S.phase==='thinking')setStatus(S.c.anrede+L(' überlegt…',' is thinking…'));
   else if(S.phase==='speaking')setStatus(S.c.anrede+L(' spricht…',' is speaking…'));
   else if(!S.hf)setStatus(SR?L('Mikrofon aus','Microphone muted'):L('Verbunden','Connected'));
+  else if(S.kind==='auf'&&!S.qStarted)setStatus(S.c.anrede+L(' hört zu – erklären Sie',' is listening – explain'));
   else setStatus(L('Ich höre zu – sprechen Sie','Listening – speak now'));
 }
 function voiceBusy(){return window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending)}
@@ -1096,7 +1109,7 @@ const norm=t=>String(t||'').toLowerCase().replace(/[^a-zäöüß ]/g,' ').split(
 function isEcho(t){const last=[...S.msgs].reverse().find(m=>m.who==='pat');if(!last)return false;const a=norm(t),b=new Set(norm(last.text));if(a.length<2)return false;return a.filter(w=>b.has(w)).length/a.length>=0.7}
 function listen(){
   if(!SR||!S||S.view!=='call'||!S.hf||S.busy||S.phase==='speaking'||S.phase==='thinking'||S.recOn)return;
-  if(voiceBusy()){if(!S.vbSince)S.vbSince=Date.now();
+  if(voiceBusy()&&!S.bcOn){if(!S.vbSince)S.vbSince=Date.now();
     if(Date.now()-S.vbSince<1500){clearTimeout(S.lw);S.lw=setTimeout(listen,300);return}
     try{speechSynthesis.cancel()}catch(e){}}
   S.vbSince=0;
@@ -1125,7 +1138,7 @@ function listen(){
 }
 function sendBuf(){
   const t=(S.buf+' '+(S.partial||'')).trim();S.buf='';S.partial='';const tx=$('#txt');if(tx)tx.value='';
-  if(t&&!isEcho(t))doctorSays(t);else listen();
+  if(t&&!isEcho(t)&&!(S.kind==='auf'&&isFiller(t)))doctorSays(t);else listen();
 }
 function stopListening(){clearTimeout(S&&S.sil);clearTimeout(S&&S.lw);if(rec&&S&&S.recOn){S.sending=false;try{rec.abort()}catch(e){}}if(S)S.recOn=false}
 function micClick(){
@@ -1145,7 +1158,7 @@ function caption(t){}
 function patientLine(text,done){
   S.msgs.push({who:'pat',text});logMsg('pat',text);caption(text);
   stopListening();S.phase='speaking';micUI();
-  speak(text,()=>{if(S.view!=='call')return;S.lastVoiceEnd=Date.now();S.phase='idle';micUI();if(done)done()});
+  speak(text,()=>{if(S.view!=='call')return;S.lastVoiceEnd=Date.now();S.phase='idle';micUI();if(S.qPending){S.qPending=false;triggerQuestions();return}if(done)done()});
 }
 async function doctorSays(text,typed){
   if(!S||S.view!=='call')return;
@@ -1154,7 +1167,16 @@ async function doctorSays(text,typed){
   S.msgs.push({who:'doc',text,typed:!!typed});logMsg('doc',text);
   if(!hasKey()){openSettings();return}
   if(S.busy)return;
-  S.busy=true;S.phase='thinking';caption('');micUI();
+  if(S.kind==='auf'){
+    const r=aufRoute(text);
+    if(r.mode==='mhm'){backchannel();listen();return}
+    S.aufMode=r.mode;S.aufTerm=r.term||'';
+  }
+  patientRespond();
+}
+async function patientRespond(){
+  const me=S;if(!me||me.view!=='call'||me.busy)return;
+  me.busy=true;S.phase='thinking';caption('');micUI();
   try{
     while(true){
       const n=S.msgs.length;
@@ -1170,6 +1192,48 @@ async function doctorSays(text,typed){
     if(S===me&&me.view==='call'&&!(e&&e.name==='AbortError')){me.busy=false;S.phase='idle';setStatus(errText(e));setTimeout(()=>{if(S===me){micUI();listen()}},2500)}
   }finally{me.busy=false}
 }
+/* ---------- part B: the patient listens, says "Mhm", interrupts only when needed ---------- */
+const QROUND_SECONDS=120;
+const FILLER=/^(m+h*m+|hm+|mhm+|aha|ja+|okay|ok|gut|genau|verstehe|ah|ach so)( (m+h*m+|hm+|mhm+|aha|ja+|okay|ok|gut|genau|verstehe|ah|so))*$/;
+const isFiller=t=>FILLER.test(String(t).toLowerCase().replace(/[^a-zäöüß ]/g,' ').replace(/\s+/g,' ').trim());
+const JARGON=['analgosedierung','sedierung','anästhesie','spinalanästhesie','periduralanästhesie','lokalanästhesie','trokar','perforation','insuffizienz','anastomose','parenteral','thrombose','embolie','hämatom','aneurysma','spurium','punktion','punktieren','rezidiv','stenose','restenose','endoskop','biopsie','exploration','laparoskop','meteorismus','aspiration','pneumothorax','bronchospasmus','bronchoskop','tamponade','drainage','apoplex','arrhythmie','bradykardie','duplex','thrombozyten','antikoagul','inr','appendix','appendizitis','cholezystitis','divertikulitis','mastoiditis','struma','rekurrens','recurrens','tetanie','epithelkörperchen','nebenschilddrüse','fazialis','facialis','parese','inkontinenz','koagulation','sklerosierung','angioplastie','angina pectoris','sinusrhythmus','hämoptyse','lavage','luxation','albumin','aszites','zirrhose','intravenös','subkutan','postoperativ','präoperativ','perioperativ','exanthem','sepsis','peritonitis','ileus','sigma','kolon','ösophagus','duodenum','jugulum','femur','arthroskop','anastom','kardioversion','echokardiograph','koronar','stent','katheter','intubation','extubation','reposition','osteosynthese'];
+const EXPLAIN=/(das heißt|das bedeutet|bedeutet|sogenannt|auch genannt|also |mit anderen worten|beziehungsweise|oder auch|im klartext|das ist ein|das sind|man nennt|umgangssprachlich|auf deutsch)/;
+const QUESTION=/(^|\s)(haben sie|hatten sie|sind sie|waren sie|nehmen sie|können sie|könnten sie|wissen sie|verstehen sie|möchten sie|wollen sie|dürfen sie|darf ich|gibt es|ist das|ist es|ist alles|sind wir|wie geht|wie fühlen|alles klar|in ordnung|einverstanden|noch fragen|fragen haben|irgendwelche fragen|verstanden)(\s|$)/;
+const WSTART=/^(wie|was|wann|wo|warum|wieso|weshalb|welche|welcher|welches|wer|haben|hatten|sind|nehmen|können|wissen|möchten|dürfen|gibt|ist)\b/;
+const CLOSING=/(noch fragen|irgendwelche fragen|fragen haben|haben sie fragen|das war alles|von meiner seite|unterschreiben|unterschrift|einverstanden|einwilligung)/;
+function aufRoute(text){
+  const t=String(text).toLowerCase().replace(/[.,!;:]/g,' ').replace(/\s+/g,' ').trim();
+  const words=t.split(' '),tail=words.slice(-9).join(' ');
+  const isQ=/\?\s*$/.test(text)||QUESTION.test(' '+tail+' ')||(words.length<=9&&WSTART.test(t));
+  if(!S.qStarted&&isQ&&CLOSING.test(tail)&&Date.now()-S.start>180000){S.qStarted=true;showQBadge();return {mode:'questions'}}
+  if(S.qStarted)return {mode:isQ?'answer_q':'questions'};
+  if(isQ)return {mode:'answer'};
+  S.asked=S.asked||[];
+  if(S.asked.length<2&&Date.now()-(S.lastAsk||0)>45000&&!EXPLAIN.test(t)){
+    const term=JARGON.find(j=>t.includes(j)&&!S.asked.includes(j));
+    if(term){S.asked.push(term);S.lastAsk=Date.now();const m=String(text).match(new RegExp('\\S*'+term.replace(/ /g,'\\s')+'\\S*','i'));return {mode:'clarify',term:m?m[0].replace(/[^\wäöüÄÖÜß-]/g,''):term}}
+  }
+  return {mode:'mhm'};
+}
+const BC=['Mhm.','Mhm.','Hm, ja.','Mhm, okay.','Okay.','Ja.'];
+function backchannel(){
+  const t=BC[Math.floor(Math.random()*BC.length)];
+  setStatus(S.c.anrede+': „'+t.replace('.','')+'“');talking(true);S.bcOn=true;
+  const end=()=>{talking(false);S.bcOn=false;if(S.view==='call')micUI()};
+  try{
+    if(!window.speechSynthesis)throw 0;
+    const u=new SpeechSynthesisUtterance(t);u.lang='de-DE';const v=germanVoice();if(v)u.voice=v;u.pitch=S.c.sex==='f'?1.1:0.85;u.rate=0.95;u.volume=0.8;
+    u.onend=u.onerror=end;keepU=[u];speechSynthesis.speak(u);setTimeout(end,1600);
+  }catch(e){setTimeout(end,600)}
+}
+function showQBadge(){const st=document.querySelector('.stage');if(st&&!st.querySelector('.qbadge'))st.insertAdjacentHTML('beforeend',`<div class="qbadge">${L('Fragerunde','Question time')}</div>`)}
+function triggerQuestions(){
+  if(!S||S.view!=='call')return;
+  if(S.busy||S.phase==='speaking'){S.qPending=true;return}
+  const t=(S.buf+' '+(S.partial||'')).trim();stopListening();S.buf='';S.partial='';const tx=$('#txt');if(tx)tx.value='';
+  if(t&&!isFiller(t)){S.msgs.push({who:'doc',text:t});logMsg('doc',t)}
+  S.aufMode='questions';S.interrupt=true;patientRespond();
+}
 function clean(t){return String(t||'').replace(/\*[^*]*\*/g,'').replace(/\[[^\]]*\]/g,'').replace(/^(Patient(in)?|[A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+)\s*:\s*/,'').replace(/^["„]|["“]$/g,'').trim()}
 function patientInputAuf(){
   const a=ST.b,dr=role==='f'?'Frau Doktor':'Herr Doktor';
@@ -1180,8 +1244,9 @@ DEIN WISSEN: Du weißt nur, dass morgen eine "${a.lay}" geplant ist und warum un
 REGELN:
 - Bleib immer in der Rolle. Natürliches, gesprochenes Alltagsdeutsch, Laiensprache, sehr kurz (meist 1 Satz, höchstens 2).
 - Der Arzt soll erklären, nicht du. Erkläre nie selbst etwas, nenne keine Risiken, Schritte oder Fachbegriffe, die der Arzt nicht gesagt hat.
-- Wenn der Arzt gerade erklärt und keine Frage stellt, reagiere nur ganz kurz und natürlich (z. B. "Mhm, okay." / "Ah, verstehe." / "Okay." / "Hm, und dann?"). Wiederhole dich nicht.
-- Benutzt der Arzt einen Fachbegriff ohne Erklärung (z. B. Anästhesie, Sedierung, Trokar, Perforation, Insuffizienz, Anastomose, parenteral, Thrombose, Embolie, Hämatom, Kontrastmittel, Punktion, Rezidiv, Stenose, Endoskop, Biopsie, nüchtern), frag nach, was das bedeutet – aber nicht bei jedem Wort, höchstens 3–4 Mal im Gespräch.
+- GESPRÄCHSFORM: Der Arzt erklärt den Eingriff am Stück, du hörst zu (dein "Mhm" wird automatisch eingespielt). Du kommst nur zu Wort, wenn die Regieinfo am Ende es sagt: (a) der Arzt hat dich direkt gefragt, (b) ein Fachbegriff war unverständlich, (c) FRAGERUNDE.
+- In der FRAGERUNDE stellst du pro Beitrag genau EINE Frage: zuerst zu Punkten vom AUFGABENBLATT, die der Arzt bisher NICHT oder nur unklar erklärt hat (frag laienhaft, z. B. "Muss ich vorher eigentlich nüchtern sein?" oder "Gibt es auch Risiken?" – nenne die Antwort nicht selbst), dann deine eigenen Fragen, die noch nicht beantwortet sind. Wurde alles erklärt und beantwortet: bedanke dich kurz und sag, dass du keine Fragen mehr hast und einverstanden bist.
+AUFGABENBLATT (nur damit du erkennst, was fehlt – du kennst die Antworten NICHT und sagst sie nie): Ablauf: ${a.ablauf}. Dauer: ${a.dur}. Allgemeine Risiken: ${a.gen.join('; ')}. Spezielle Risiken: ${a.spec.join('; ')}. Vorher: ${a.vor.join('; ')}. Nachher: ${a.nach.join('; ')}.
 - Spricht der Arzt unverständlich oder grammatisch so falsch, dass man es nicht versteht, sag freundlich, dass du es nicht verstanden hast.
 - Fragt der Arzt, ob du alles verstanden hast, oder bittet er dich, es mit eigenen Worten zu sagen: fasse kurz und laienhaft NUR das zusammen, was er wirklich erklärt hat. Hat er etwas Wichtiges nicht erklärt (z. B. Risiken, Nüchternheit), sag ehrlich, dass dir das noch unklar ist.
 - Fragen zu deiner Gesundheit beantwortest du kurz: Vorerkrankungen: ${a.vorerk}. Medikamente: ${a.med}. Allergien: keine bekannt. Sonst: unauffällig, plausibel, konsistent.
@@ -1195,7 +1260,14 @@ ${a.persona?'PERSÖNLICHKEIT: '+a.persona:''}`;
   for(const m of S.msgs){const r=m.who==='doc'?'user':'assistant';const last=arr[arr.length-1];
     if(last.role===r&&r!=='system')last.content+='\n'+m.text;else arr.push({role:r,content:m.text})}
   if(arr[arr.length-1].role!=='user')arr.push({role:'user',content:'…'});
-  arr[arr.length-1].content+=`\n\n(Regieinfo, nicht vorlesen: ca. ${elapsed} von ${Math.round(S.total/60)} Minuten vergangen.)`;
+  const left=Math.max(0,Math.round((S.left||0)/60));
+  const mode=S.aufMode||'answer';
+  const task={answer:'Der Arzt hat dich direkt gefragt oder angesprochen. Antworte kurz (1 Satz). Stell noch keine eigenen Fragen.',
+   clarify:`Der Arzt hat gerade den Fachbegriff "${S.aufTerm}" benutzt, ohne ihn zu erklären. Unterbrich ihn kurz und höflich und frag, was das bedeutet. Nur diese eine kurze Frage.`,
+   questions:(S.interrupt?'Die letzten 2 Minuten beginnen: unterbrich den Arzt höflich (z. B. "Entschuldigung, darf ich kurz etwas fragen?") und stelle ':'FRAGERUNDE: Stelle ')+'genau EINE Frage nach den Regeln der FRAGERUNDE. Ist die letzte Antwort des Arztes unklar, frag stattdessen kurz nach.',
+   answer_q:'FRAGERUNDE: Der Arzt hat dich etwas gefragt. Antworte kurz; wenn du noch offene Fragen hast, stell danach EINE davon. Fragt er nach der Unterschrift: einverstanden, wenn das Wichtigste erklärt wurde.'}[mode]||'';
+  S.interrupt=false;
+  arr[arr.length-1].content+=`\n\n(Regieinfo, nicht vorlesen: ca. ${elapsed} Min. vergangen, noch ca. ${left} Min. AUFGABE JETZT: ${task})`;
   return arr;
 }
 function patientInput(){
