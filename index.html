@@ -79,6 +79,13 @@ main{padding:clamp(18px,3vw,40px);max-width:1240px;width:100%}
 .pbar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px}.pbar i{display:block;height:100%;border-radius:6px}
 .crit{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}.crit:last-child{border:0}.crit .pbar{margin:0}.crit em{grid-column:1/-1;font-style:normal;color:var(--mute);font-size:13.5px}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:0 7px;border-radius:10px;background:var(--line);color:var(--ink);margin-right:6px;vertical-align:1px}
+aside details.grp{background:transparent;padding:0;margin:2px 0;border-radius:0}
+aside details.grp>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:42px;padding:6px 10px;border-radius:10px;font:600 15px Inter;color:var(--onteal);cursor:pointer}
+aside details.grp>summary::-webkit-details-marker{display:none}
+aside details.grp>summary::before{content:"▸";margin-right:2px;transition:transform .15s}aside details.grp[open]>summary::before{transform:rotate(90deg)}
+aside details.grp>summary span{margin-left:auto;font:600 12px Inter;opacity:.7;background:rgba(255,255,255,.14);padding:1px 8px;border-radius:10px}
+aside details.grp>summary:hover{background:rgba(255,255,255,.09)}
+aside .glist{padding:2px 0 8px 6px}
 .hist{width:100%;border-collapse:collapse;font-size:15px}.hist td,.hist th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}.hist .r{text-align:right;white-space:nowrap}
 /* reading */
 .task{max-width:720px;margin:6vh auto 0;background:var(--panel);border-radius:18px;padding:clamp(22px,4vw,40px);border-top:6px solid var(--teal)}
@@ -145,8 +152,7 @@ summary{cursor:pointer;font-weight:600;min-height:28px}
 @media(max-width:760px){
  .app{grid-template-columns:minmax(0,1fr)}
  aside{position:static;height:auto;padding:14px 12px;gap:8px}
- #nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
- #nav .sec{display:none}
+ #nav .glist{display:flex;flex-wrap:wrap;gap:6px}
  .tbtn{flex:none;width:auto;background:rgba(255,255,255,.08)}
  .tt small,.best{display:none}
  .role{margin-top:4px}
@@ -850,20 +856,33 @@ function stopVoice(){sayId++;try{window.speechSynthesis&&speechSynthesis.cancel(
 /* ---------- sidebar ---------- */
 const LEVELS=['A2','B1','B2','C1','C2'];
 function bestOf(id){const h=ls.get('famed-hist',[]).filter(x=>x.id===id&&x.level);if(!h.length)return null;return h.map(x=>x.level).sort((a,b)=>LEVELS.indexOf(b)-LEVELS.indexOf(a))[0]}
+/* rooms: fixed shuffled pairings (same on every device). Each room = Test A (Anamnese) → 1 min break → Test B (Aufklärung) */
+function seeded(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffledIdx(n,rnd){const a=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const ROOMS=(()=>{const rnd=seeded(2026),bo=shuffledIdx(AUF.length,rnd);let ao=[];while(ao.length<bo.length)ao=ao.concat(shuffledIdx(CASES.length,rnd));return bo.map((bi,k)=>({n:k+1,a:CASES[ao[k]],b:AUF[bi]}))})();
+function bestPct(key){const h=ls.get('famed-hist',[]).filter(x=>x.key===key&&x.pct!=null);return h.length?Math.max(...h.map(x=>x.pct)):null}
+const navOpen=()=>ls.get('famed-nav',{rooms:window.innerWidth>760,a:false,b:false});
 function nav(){
-  let n=0;
-  const cur=ST&&ST.a,curB=ST&&ST.b;
-  $('#nav').innerHTML='<div class="sec">'+L('Teil A · Anamnese – Fall wählen (danach zufällige Aufklärung)','Part A · History – pick a case (then a random consent talk)')+'</div>'+SECTIONS.map(sec=>'<div class="sec" style="opacity:.55;font-size:12px">'+esc(L(sec.name,SEC_EN[sec.id]))+'</div>'+CASES.filter(c=>c.sec===sec.id).map(c=>{n++;const b=bestOf(c.id);c.num=n;
-    return `<button class="tbtn${cur===c?' on':''}" data-id="${c.id}"><span class="tnum">${n}</span><span class="tt">${esc(lang==='en'?TITLE_EN[c.id]:c.title)}<small>${esc(c.anrede)}</small></span>${b?`<span class="best">${b}</span>`:''}</button>`}).join('')).join('')
-   +'<div class="sec" style="margin-top:16px">'+L('Teil B · Aufklärung allein üben','Part B · Practise a consent talk only')+'</div>'+AUF.map((a,i)=>`<button class="tbtn${curB===a&&!cur?' on':''}" data-auf="${a.id}"><span class="tnum">B${i+1}</span><span class="tt">${esc(lang==='en'?a.en:a.t)}<small>${esc(a.lay)}</small></span></button>`).join('');
+  CASES.forEach((c,i)=>c.num=i+1);
+  const o=navOpen(),key=ST&&ST.key;
+  const badge=k=>{const v=bestPct(k);return v==null?'':`<span class="best">${v} %</span>`};
+  const btn=(k,num,label,sub,data)=>`<button class="tbtn${key===k?' on':''}" ${data}><span class="tnum">${num}</span><span class="tt">${label}<small>${sub}</small></span>${badge(k)}</button>`;
+  $('#nav').innerHTML=
+   `<details class="grp" data-g="rooms"${o.rooms?' open':''}><summary>${L('Prüfungsräume','Exam rooms')} <span>${ROOMS.length}</span></summary><div class="glist">`+ROOMS.map(r=>btn('R'+r.n,r.n,L('Raum','Room')+' '+r.n,L('Test A + Pause + Test B','Test A + break + Test B'),`data-room="${r.n}"`)).join('')+'</div></details>'
+  +`<details class="grp" data-g="a"${o.a?' open':''}><summary>${L('Teil 1 · Anamnese','Part 1 · History taking')} <span>${CASES.length}</span></summary><div class="glist">`+CASES.map((c,i)=>btn('A:'+c.id,i+1,'Test '+(i+1),L('Anamnesegespräch','History taking'),`data-id="${c.id}"`)).join('')+'</div></details>'
+  +`<details class="grp" data-g="b"${o.b?' open':''}><summary>${L('Teil 2 · Aufklärung','Part 2 · Consent talk')} <span>${AUF.length}</span></summary><div class="glist">`+AUF.map((a,i)=>btn('B:'+a.id,i+1,'Test '+(i+1),L('Aufklärungsgespräch','Consent talk'),`data-auf="${a.id}"`)).join('')+'</div></details>';
+  document.querySelectorAll('#nav details.grp').forEach(d=>d.addEventListener('toggle',()=>{const v=navOpen();v[d.dataset.g]=d.open;ls.set('famed-nav',v)}));
   document.querySelectorAll('.role:not(.lang) button').forEach(b=>{b.classList.toggle('on',b.dataset.r===role);b.textContent=b.dataset.r==='m'?L('Arzt','Male doctor'):L('Ärztin','Female doctor')});
   document.querySelectorAll('.lang button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
-  $('#rand').textContent='▶ '+L('Test starten (A + B)','Start test (A + B)');
+  $('#rand').textContent='▶ '+L('Zufälligen Raum betreten','Enter a random room');
   $('#gear').textContent='⚙ '+L('Einstellungen','Settings');
   $('.brand small').textContent=L('Station A · Anamnese + Aufklärung','Station A · History + consent talk');
   document.documentElement.lang=lang;
 }
-$('#nav').addEventListener('click',e=>{const b=e.target.closest('.tbtn');if(!b)return;if(b.dataset.auf)startAufOnly(AUF.find(a=>a.id===b.dataset.auf));else startCase(CASES.find(c=>c.id===b.dataset.id))});
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('.tbtn');if(!b)return;
+  if(b.dataset.room)startRoom(ROOMS[+b.dataset.room-1]);
+  else if(b.dataset.auf)startAufOnly(AUF.find(a=>a.id===b.dataset.auf));
+  else startAnamOnly(CASES.find(c=>c.id===b.dataset.id))});
 $('#rand').addEventListener('click',()=>startExam());
 $('#gear').addEventListener('click',()=>openSettings());
 document.querySelector('.role:not(.lang)').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;role=b.dataset.r;ls.set('famed-role',role);nav()});
@@ -902,9 +921,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings()});
 function home(){
   stopAll();S={view:'home'};ST=null;nav();
   const hist=ls.get('famed-hist',[]).filter(h=>h.level).slice(-8).reverse();
-  const nextN=ls.get('famed-run',0)+1;
   main.innerHTML=`<h1 style="font-size:clamp(32px,4.4vw,48px);max-width:18ch">${L('Station A üben wie in der echten Prüfung','Practise Station A just like the real exam')}</h1>
-  <p class="lead" style="margin-top:14px">${L('Ein Test = Anamnesegespräch (A) + Aufklärungsgespräch (B), dazwischen 1 Minute Pause. Beide Fälle werden zufällig gezogen. Danach werten ein Chefarzt und eine Sprachprüferin beide Gespräche gemeinsam aus.','One test = history taking (A) + informed-consent talk (B), with a 1-minute break in between. Both cases are drawn at random. Afterwards a chief physician and a language examiner evaluate both conversations together.')}</p>
+  <p class="lead" style="margin-top:14px">${L('Ein Prüfungsraum = Test A (Anamnesegespräch) + 1 Minute Pause + Test B (Aufklärungsgespräch). Danach werten ein Chefarzt und eine Sprachprüferin beide Gespräche gemeinsam aus.','One exam room = Test A (history taking) + 1-minute break + Test B (informed-consent talk). Afterwards a chief physician and a language examiner evaluate both conversations together.')}</p>
   <div class="steps s4">
    <div class="step"><b>A · 11:00</b>${L('Anamnese: 30 s Aufgabe lesen, dann 11 Minuten Videosprechstunde mit einem zufälligen Patienten.','History: 30 s to read the task, then an 11-minute video consultation with a random patient.')}</div>
    <div class="step"><b>1:00</b>${L('Pause.','Break.')}</div>
@@ -912,30 +930,33 @@ function home(){
    <div class="step"><b>%</b>${L('Auswertung: Checkliste in Prozent (Chefarzt), Patientenverständnis, 8 Sprachkriterien (Sprachprüferin), Niveau – als PDF.','Evaluation: checklist in percent (chief physician), patient understanding, 8 language criteria (language examiner), level – as PDF.')}</div>
   </div>
   ${hasKey()?'':`<div class="card" style="max-width:680px;margin-bottom:22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 260px">${L('Noch nicht eingerichtet: einmalig einen kostenlosen Gemini-Schlüssel eintragen.','Not set up yet: add a free Gemini key once.')}</span><button class="btn ghost" id="setup">⚙ ${L('Einrichten','Set up')}</button></div>`}
-  <button class="btn" id="go1" style="font-size:18px;min-height:54px;padding:12px 28px">▶ ${L('Test','Test')} ${nextN} ${L('starten','– start')}</button>
-  <p class="hint">${L('Zum gezielten Üben: links einen Anamnesefall wählen (mit zufälliger Aufklärung danach) oder eine Aufklärung allein.','For targeted practice: pick a history case on the left (followed by a random consent talk), or a consent talk alone.')}</p>
-  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id),a=AUF.find(x=>x.id===h.auf);const nm=[c?(lang==='en'?TITLE_EN[c.id]:c.title):'',a?a.t:''].filter(Boolean).join(' + ')||h.id;return `<tr><td>${h.n?'Test '+h.n+' · ':''}${esc(nm)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r">${h.pct!=null?h.pct+' % · ':''}<b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
+  <button class="btn" id="go1" style="font-size:18px;min-height:54px;padding:12px 28px">▶ ${L('Zufälligen Raum betreten','Enter a random room')}</button>
+  <p class="hint">${L('Links: Prüfungsräume (Raum 1–'+ROOMS.length+', je Test A + Pause + Test B) oder einzelne Tests aus Teil 1 (Anamnese) und Teil 2 (Aufklärung) gezielt üben.','On the left: exam rooms (Room 1–'+ROOMS.length+', each Test A + break + Test B) or single tests from Part 1 (history) and Part 2 (consent talk).')}</p>
+  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id),a=AUF.find(x=>x.id===h.auf);const nm=[c?(lang==='en'?TITLE_EN[c.id]:c.title):'',a?a.t:''].filter(Boolean).join(' + ')||h.id;return `<tr><td>${h.label?esc(h.label)+' · ':''}${esc(nm)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r">${h.pct!=null?h.pct+' % · ':''}<b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
   $('#go1').onclick=()=>startExam();
   if($('#setup'))$('#setup').onclick=()=>openSettings();
 }
 
 /* ---------- reading phase ---------- */
-function startExam(){startCase(CASES[bagPick('famed-bagA',CASES.length)])}
-function startCase(c){
-  if(!hasKey()){openSettings(()=>startCase(c));return}
-  newStation(c,AUF[bagPick('famed-bagB',AUF.length)],['anam','auf']);
+function startExam(){startRoom(ROOMS[bagPick('famed-bagR',ROOMS.length)])}
+function startRoom(r){
+  if(!hasKey()){openSettings(()=>startRoom(r));return}
+  newStation(r.a,r.b,['anam','auf'],{key:'R'+r.n,label:L('Raum','Room')+' '+r.n,room:r.n});
+}
+function startAnamOnly(c){
+  if(!hasKey()){openSettings(()=>startAnamOnly(c));return}
+  newStation(c,null,['anam'],{key:'A:'+c.id,label:L('Teil 1 · Test','Part 1 · Test')+' '+c.num});
 }
 function startAufOnly(a){
   if(!hasKey()){openSettings(()=>startAufOnly(a));return}
-  newStation(null,a,['auf']);
+  newStation(null,a,['auf'],{key:'B:'+a.id,label:L('Teil 2 · Test','Part 2 · Test')+' '+(AUF.indexOf(a)+1)});
 }
-function newStation(c,a,order){
+function newStation(c,a,order,meta){
   stopAll();closeSettings();
-  const n=ls.get('famed-run',0)+1;ls.set('famed-run',n);
-  ST={a:c,b:a,bp:aufPatient(a),order,i:0,parts:[],date:new Date(),n};
+  ST=Object.assign({a:c,b:a,bp:a?aufPatient(a):null,order,i:0,parts:[],date:new Date()},meta);
   startPart();
 }
-const partCode=k=>'Test '+ST.n+(ST.order.length>1?'.'+(k==='anam'?'A':'B'):'');
+const partCode=k=>ST.label+(ST.order.length>1?' · Test '+(k==='anam'?'A':'B'):'');
 function startPart(){
   stopAll();closeSettings();
   const kind=ST.order[ST.i],c=kind==='anam'?ST.a:ST.bp;
@@ -960,7 +981,7 @@ function readView(){
   if(S.kind==='auf')return readViewAuf();
   const c=S.c,r=S.r;
   const de=`Sie sind ${role==='f'?'Allgemeinärztin':'Allgemeinarzt'}. <b>${esc(c.anrede)}</b> stellt sich heute per Videoanruf bei Ihnen vor. Führen Sie das Anamnesegespräch: Stellen Sie sich vor, erheben Sie eine vollständige Anamnese, fassen Sie die Beschwerden zusammen, erklären Sie die nächsten Schritte und gehen Sie auf die Fragen des Patienten ein.`;
-  main.innerHTML=`<div class="task"><div style="color:var(--mute);font-size:14px">${partCode('anam')} · ${L('Anamnesegespräch','History taking')} · ${esc(ctitle(c))} · ${L('Aufgabenstellung','Task')}</div>
+  main.innerHTML=`<div class="task"><div style="color:var(--mute);font-size:14px">${partCode('anam')} · ${L('Anamnesegespräch','History taking')} · ${L('Aufgabenstellung','Task')}</div>
    <h2 style="font-size:clamp(26px,3.4vw,36px);margin-top:10px">Videosprechstunde in der Hausarztpraxis</h2>
    <p style="font-size:18px;margin:16px 0 0">${de}</p>
    <p class="lead" style="margin-top:10px">Sie haben 11 Minuten Zeit. Ein Notizblock steht Ihnen zur Verfügung.</p>
@@ -972,7 +993,7 @@ function readView(){
 function readViewAuf(){
   const a=ST.b;
   main.innerHTML=`<div class="task" style="max-width:860px;margin-top:3vh">
-   <div style="color:var(--mute);font-size:14px">${partCode('auf')} · ${L('Aufklärungsgespräch','Informed consent talk')} · ${esc(lang==='en'?a.en+' · '+a.t:a.t)} · ${L('Aufgabenblatt','Task sheet')}</div>
+   <div style="color:var(--mute);font-size:14px">${partCode('auf')} · ${L('Aufklärungsgespräch','Informed consent talk')} · ${L('Aufgabenblatt','Task sheet')}</div>
    <h2 style="font-size:clamp(24px,3vw,32px);margin:8px 0 14px">Prüfung: Aufklärungsgespräch</h2>
    ${aufSheet(a)}
    ${lang==='en'?`<p class="en">English: explain to the patient the procedure, the general and special risks, what to do before and after the procedure, check that the patient understood, answer the questions and ask for consent. The sheet stays visible during the talk.</p>`:''}
@@ -1222,11 +1243,11 @@ const doneParts=()=>ST.parts.filter(Boolean);
 const whoOf=k=>k==='anam'?ST.a.anrede:ST.b.anrede;
 const partTitle=k=>k==='anam'?ctitle(ST.a):(lang==='en'?ST.b.en+' · ':'')+ST.b.t;
 const transcriptOf=p=>p.msgs.map(m=>(m.who==='doc'?L('Arzt','Doctor')+': ':whoOf(p.kind)+': ')+m.text).join('\n');
-function restartSame(){const a=ST.a,b=ST.b,o=ST.order.slice();newStation(a,b,o)}
+function restartSame(){const {a,b,key,label,room}=ST;newStation(a,b,ST.order.slice(),{key,label,room})}
 function doneView(err){
   const parts=doneParts(),ok=parts.some(p=>p.msgs.filter(m=>m.who==='doc').length>=2);
   main.innerHTML=`<div class="task" style="max-width:780px">
-   <div style="color:var(--mute);font-size:14px">Test ${ST.n}</div>
+   <div style="color:var(--mute);font-size:14px">${esc(ST.label)}</div>
    <h1 style="font-size:clamp(28px,3.6vw,40px);margin-top:8px">${L('Test abgeschlossen','Test finished')}</h1>
    <div style="margin-top:14px">${parts.map(p=>`<div class="row"><span class="tag">${partCode(p.kind)}</span><span style="flex:1">${L(PART_NAME[p.kind],PART_EN[p.kind])} · ${esc(partTitle(p.kind))}</span><span style="white-space:nowrap">${fmtDur(p.dur)} · ${p.msgs.filter(m=>m.who==='doc').length} ${L('Beiträge','turns')}${p.timeUp?' · ⏱':''}</span></div>`).join('')}</div>
    ${err?`<p style="color:var(--coral);margin-top:10px">${esc(err)}</p>`:''}
@@ -1246,10 +1267,10 @@ async function runEval(){
   S.view='eval';
   main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">Chefarzt und Sprachprüferin werten aus…</h2><p class="lead" style="margin:8px auto">Das dauert etwa 20–60 Sekunden.</p></div>`;
   try{
-    const ev=await evaluate();
+    const ev=await evaluate();if(ST)ev.label=ST.label;
     if(!ev||!ev.level)throw new Error('empty');
     scoreEval(ev);S.ev=ev;
-    const h=ls.get('famed-hist',[]);h.push({id:ev.has.a?ST.a.id:null,auf:ev.has.b?ST.b.id:null,n:ST.n,level:ev.level,verdict:ev.verdict,pct:ev.sc.total,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
+    const h=ls.get('famed-hist',[]);h.push({id:ev.has.a?ST.a.id:null,auf:ev.has.b?ST.b.id:null,key:ST.key,label:ST.label,level:ev.level,verdict:ev.verdict,pct:ev.sc.total,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
     renderEval(ev);
   }catch(e){console.error(e);S.view='done';doneView(L('Auswertung fehlgeschlagen: ','Evaluation failed: ')+(e&&e.status?errText(e):L('bitte nochmal versuchen.','please try again.')))}
 }
@@ -1328,7 +1349,7 @@ function evMeta(ev){
   const d=ST.date||new Date(),bits=[];
   if(ev.has.a)bits.push(`A: ${ctitle(ST.a)} (${ST.a.name}, ${ST.a.age} J., ${fmtDur(ev.durs.a||0)})`);
   if(ev.has.b)bits.push(`B: ${ST.b.t} (${ST.b.name}, ${fmtDur(ev.durs.b||0)})`);
-  return `FaMed Station A · Test ${ST.n} · ${d.toLocaleDateString('de-DE')} · ${bits.join(' · ')}`;
+  return `FaMed Station A · ${ST.label} · ${d.toLocaleDateString('de-DE')} · ${bits.join(' · ')}`;
 }
 function renderEvalDE(ev){
   const sc=ev.sc;
@@ -1341,7 +1362,7 @@ function renderEvalDE(ev){
    <div class="lvlrow">
     <div class="lvl" style="border-color:${lvlCol(ev.level)}"><small>Sprachniveau</small><b style="color:${lvlCol(ev.level)}">${esc(ev.level)}</b><small>Ziel: C1</small></div>
     <div><span class="vd" style="background:${ev.verdict==='Bestanden'?'var(--ok)':ev.verdict==='Knapp'?'var(--mid)':'var(--coral)'}">${esc(VDL(ev.verdict))}</span>
-     <h1 style="font-size:clamp(26px,3.4vw,38px)">Auswertung Test ${ST.n}${sc.total!=null?` · <span style="color:${pCol(sc.total)}">${sc.total} %</span>`:''}</h1>
+     <h1 style="font-size:clamp(26px,3.4vw,38px)">Auswertung ${esc(ST.label)}${sc.total!=null?` · <span style="color:${pCol(sc.total)}">${sc.total} %</span>`:''}</h1>
      <p style="margin:10px 0 0;max-width:70ch">${esc(ev.levelReason)}</p></div>
    </div>
    <div class="kpis">
@@ -1381,7 +1402,7 @@ function pdfHTMLDE(ev){
   const list=(t,items,rs)=>`<div style="margin-top:14px"><div style="font-size:14px;font-weight:700;color:#0b5d63">${t}</div>${items.map((x,i)=>`<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid #eef2f2;page-break-inside:avoid"><span style="flex:none;width:72px;color:#fff;background:${col[rs[i].s]};border-radius:8px;text-align:center;font-size:10px;font-weight:700;padding:1px 0;height:fit-content">${ST_LBL[rs[i].s]}</span><span style="flex:1">${esc(x)}${rs[i].n?` <span style="color:#5b6b6e">– ${esc(rs[i].n)}</span>`:''}</span></div>`).join('')}</div>`;
   const box=(t,inner)=>`<div style="margin-top:14px;border:1px solid #cfdcdc;border-radius:8px;padding:10px 12px">${'<div style="font-size:15px;font-weight:700;color:#0b5d63">'+t+'</div>'}${inner}</div>`;
   return `<div style="font-family:Inter,Arial,sans-serif;color:#11191b;font-size:11.5px;line-height:1.45;width:720px;padding:6px">
-   <div style="border-bottom:3px solid #0b5d63;padding-bottom:8px"><div style="font-size:20px;font-weight:700">FaMed Station A – Auswertung Test ${ST.n}</div>
+   <div style="border-bottom:3px solid #0b5d63;padding-bottom:8px"><div style="font-size:20px;font-weight:700">FaMed Station A – Auswertung ${esc(ST.label)}</div>
    <div style="color:#5b6b6e">${esc(evMeta(ev))}</div></div>
    <div style="display:flex;gap:16px;align-items:center;margin-top:12px"><div style="border:3px solid #0b5d63;border-radius:10px;padding:6px 14px;text-align:center"><div style="font-size:10px;color:#5b6b6e">Sprachniveau</div><div style="font-size:30px;font-weight:700;color:#0b5d63">${esc(ev.level)}</div><div style="font-size:10px;color:#5b6b6e">Ziel: C1</div></div>
    <div><div style="font-weight:700;font-size:14px">${esc(VDL(ev.verdict))}${sc.total!=null?' · Gesamt '+sc.total+' %':''}</div><div>${esc(ev.levelReason)}</div></div></div>
@@ -1397,7 +1418,7 @@ async function savePDF(){
   const b=$('#pdf');const t=b.textContent;b.disabled=true;b.textContent='PDF wird erstellt…';
   const d=ST.date||new Date(),ev=S.ev;
   const slug=x=>String(x).replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,'-').replace(/^-|-$/g,'');
-  const name=`FaMed_Test${ST.n}_${[ev.has.a?slug(ST.a.title):'',ev.has.b?slug(ST.b.t):''].filter(Boolean).join('_')}_${d.toISOString().slice(0,10)}.pdf`;
+  const name=`FaMed_${slug(ST.label)}_${[ev.has.a?slug(ST.a.title):'',ev.has.b?slug(ST.b.t):''].filter(Boolean).join('_')}_${d.toISOString().slice(0,10)}.pdf`;
   try{
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
     window.scrollTo(0,0);
