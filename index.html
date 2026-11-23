@@ -178,7 +178,7 @@ summary{cursor:pointer;font-weight:600;min-height:28px}
 <body>
 <div class="app">
 <aside>
- <div class="brand">FaMed Trainer<small>Station A · Arzt-Patient</small></div>
+ <div class="brand">FaMed Trainer<small>Anamnese · Aufklärung · Patientenvorstellung</small></div>
  <div class="role lang" aria-label="Sprache / Language" style="margin:0"><button data-l="de">Deutsch</button><button data-l="en">English</button></div>
  <button class="rnd go" id="rand">▶ Test starten</button>
  <nav id="nav" aria-label="Fälle"></nav>
@@ -736,6 +736,409 @@ const AUF=[
 const AUF_GENERAL=['Begrüßung, Vorstellung (Name, Funktion) und Ziel des Gesprächs','Angebot, bei Fragen zu unterbrechen; Einverständnis für das Gespräch','Grund des Eingriffs laienverständlich erklärt','Alternativen bzw. Folgen ohne Eingriff angesprochen','Dauer und Art der Betäubung erklärt','Ablauf Schritt für Schritt erklärt','Allgemeine Risiken genannt'];
 const AUF_END=['Beruhigung nach den Risiken (selten, Team gut vorbereitet)','Fachbegriffe in Alltagssprache erklärt','Verständnis geprüft und Rückfragen beantwortet','Einwilligung / Unterschrift des Aufklärungsbogens','Verabschiedung'];
 function aufChecklist(a){return [...AUF_GENERAL,...a.spec.map(s=>'Spezielles Risiko: '+s),AUF_END[0],...a.vor.map(s=>'Vorher: '+s),...a.nach.map(s=>'Nachher: '+s),...AUF_END.slice(1)]}
+/* ---------- Teil 3 + 4: Patientenvorstellung (Arzt-Arzt-Gespräch) – 38 Fälle aus den PDFs ---------- */
+const PV_RS='Stationsarzt/-ärztin', PV_SIT='Vorstellung eines neuen Patienten bei der Chefarzt-Visite.';
+const PV=[
+{id:'pank',dx:'Akute Pankreatitis',name:'Frau Anna Müller',age:48,sex:'f',s:[
+ ['Vorstellungsgrund','Überweisung durch die Notfallaufnahme wegen seit 24 Stunden bestehender starker Bauchschmerzen: plötzlich einsetzend, gürtelförmig im Oberbauch mit Ausstrahlung in den Rücken, 9/10 auf der Schmerzskala, verschlimmert nach fettigem Essen. Begleitsymptome: Übelkeit, Erbrechen (gelb-grünlich), Appetitlosigkeit, Fiebergefühl.'],
+ ['Vorgeschichte','Bluthochdruck, erhöhte Blutfettwerte, Gallensteine (vor 2 Jahren diagnostiziert, keine Intervention), Blinddarmentfernung mit 18 Jahren. Nichtraucherin, trinkt viel Alkohol, unsportlich. Keine bekannten Allergien.'],
+ ['Körperliche Untersuchung','RR 110/70 mmHg, Puls 100/min, Temperatur 38,2 °C, verminderter Allgemeinzustand (geschwächt, blass, unruhig). Abdomen: Druckempfindlichkeit im Oberbauch, besonders im Bereich der Bauchspeicheldrüse, gürtelförmige Schmerzausstrahlung in den Rücken, keine tastbaren Verhärtungen. Blässe der Haut, leichte Gelbfärbung der Augen (Ikterus).\nUnauffällig: Herz, Lunge, Milz, Lymphknoten, Neurostatus (außer Unruhe).'],
+ ['Labor (Hausarzt)','Hämoglobin ↓, Lipase ↑, Amylase ↑, CRP ↑, Leukozytose, Bilirubin ↑, Transaminasen leicht erhöht.\nUnauffällig: Urinstix, Blutzucker, Elektrolyte.'],
+ ['Bisherige Medikation','Amlodipin 5 mg 1-0-0 (Hypertonie)\nAtorvastatin 20 mg 1-0-0 (Hyperlipidämie)'],
+ ['Einweisung','Einweisung in unser Krankenhaus mit der Bitte um spezielle Behandlung.']],
+ kern:['Gürtelförmiger Oberbauchschmerz 9/10 mit Ausstrahlung in den Rücken, Übelkeit/Erbrechen','Cholezystolithiasis bekannt und Alkoholabusus als Risikofaktoren genannt','Tachykardie 100/min, Fieber 38,2 °C, Ikterus','Lipase und Amylase erhöht, Bilirubin ↑, CRP ↑, Leukozytose','Verdachtsdiagnose akute (biliäre / äthyltoxische) Pankreatitis, sinnvolle DD (z. B. Cholezystitis, Choledocholithiasis, Ulkusperforation)','Sinnvolles Procedere vorgeschlagen (stationär, Nahrungskarenz, Volumentherapie, Analgesie, Abdomensonographie, ggf. ERCP)'],
+ qs:['Was halten Sie für die wahrscheinlichste Ursache – biliär oder alkoholisch?','Warum ist die Patientin ikterisch?','Welche Bildgebung möchten Sie als Nächstes machen?','Wie behandeln Sie die Patientin in den ersten 24 Stunden?']},
+{id:'anv',dx:'Akutes Nierenversagen (ANV)',name:'Herr Peter Müller',age:72,sex:'m',s:[
+ ['Vorstellungsgrund','Seit drei Tagen zunehmende Müdigkeit, Appetitlosigkeit und Übelkeit. Reduzierte Urinproduktion (weniger als 400 ml/Tag). Seit einem Tag Verwirrtheit und Schwindelgefühl.'],
+ ['Vorgeschichte','Arterielle Hypertonie seit 15 Jahren, Diabetes mellitus Typ 2 seit 10 Jahren, chronische Nierenerkrankung (CKD) Stadium 3. Keine bekannten Allergien. Nichtraucher, trinkt gelegentlich Alkohol.'],
+ ['Körperliche Untersuchung','RR 160/95 mmHg, Puls 88/min, Temperatur 36,8 °C, Gewicht 85 kg. Haut blass, leichte Ödeme an den Unterschenkeln. Herz und Lunge ohne pathologischen Befund. Abdomen weich, nicht druckschmerzhaft. Neurologisch: mäßig reduzierte Vigilanz.'],
+ ['Labor','Kreatinin 4,8 mg/dl ↑, Harnstoff 85 mg/dl ↑, Kalium 5,9 mmol/l ↑, Natrium 133 mmol/l ↓, eGFR < 15 ml/min, Hämoglobin 11,5 g/dl (leicht ↓).'],
+ ['Verdachtsdiagnose','Akutes Nierenversagen (prärenale Genese möglich bei möglicher Dehydratation und Hypotonie-Episoden).'],
+ ['Bisherige Medikation','Ramipril 5 mg 1-0-0\nMetformin 850 mg 1-0-1\nASS 100 mg 1-0-0'],
+ ['Diagnostisches und therapeutisches Vorgehen','Akut: Flüssigkeitssubstitution mit NaCl 0,9 % i.v., Absetzen nephrotoxischer Medikamente, Kaliumsenkung medikamentös oder Dialyse prüfen.\nDiagnostik: Nierensonographie, Blutgasanalyse (Azidose), Urinsediment.\nWeiter: engmaschige Kontrolle von Kreatinin, Elektrolyten und Säure-Basen-Haushalt, Dialyseindikation prüfen, Absprache mit der Nephrologie.']],
+ kern:['Oligurie < 400 ml/Tag, Müdigkeit, Übelkeit, Verwirrtheit','Vorbekannte CKD Stadium 3, Hypertonie, DM Typ 2','Kreatinin 4,8 mg/dl, Kalium 5,9 mmol/l (Hyperkaliämie), eGFR < 15','Medikation Ramipril, Metformin, ASS genannt – nephrotoxisch/absetzen','Verdachtsdiagnose ANV (prärenal) auf dem Boden einer CKD','Procedere: Volumen, Absetzen (Metformin, Ramipril), Kaliumsenkung, Sono, BGA, Urinsediment, Dialyseindikation, Nephrologie'],
+ qs:['Welche Medikamente setzen Sie ab und warum?','Wie gefährlich ist das Kalium von 5,9 – was machen Sie dagegen?','Wann würden Sie dialysieren?','Wie unterscheiden Sie prärenal und renal?']},
+{id:'copd',dx:'COPD-Exazerbation',name:'Herr Karl Becker',age:62,sex:'m',s:[
+ ['Vorstellungsgrund','Seit 3 Tagen zunehmende Atemnot, Husten und Auswurf (leichte Besserung nach Salbutamol).'],
+ ['Vorgeschichte','Langjährige COPD, langjährige berufliche Staubexposition (Bergbauarbeiter), Raucher (35 Packungsjahre), trinkt wenig Alkohol, unsportlich, keine bekannten Allergien.'],
+ ['Körperliche Untersuchung','RR 130/90 mmHg, Puls 107/min, AF 29/min, Temperatur 37,8 °C, SpO₂ 89 % unter Raumluft, ziemlich guter Allgemeinzustand. Lunge: Giemen und verlängertes Exspirium. Haut: Zyanose der Lippen. Keine peripheren Ödeme.\nUnauffällig: Herz, Bauch, Neurostatus.'],
+ ['Labor (Hausarzt)','Hämoglobin ↑, Leukozyten ↑, CRP ↑.\nBlutgas: pH 7,32 (↓), pCO₂ 55 mmHg ↑, pO₂ 60 mmHg ↓, HCO₃ 28 mmol/l (↑).\nUnauffällig: Urinstix, Blutzucker, Elektrolyte.'],
+ ['Bisherige Medikation','Salbutamol-Spray 100 µg bei Bedarf\nTiotropium 18 µg 1x täglich\nBudesonid/Formoterol 320/9 µg 2x täglich'],
+ ['Einweisung','Einweisung in unser Krankenhaus mit der Bitte um spezielle Behandlung.']],
+ kern:['Zunehmende Dyspnoe, Husten, Auswurf seit 3 Tagen','Raucher 35 py + berufliche Staubexposition','Tachypnoe 29/min, Tachykardie 107/min, SpO₂ 89 %, Zyanose, Giemen, verlängertes Exspirium','BGA: respiratorische Azidose mit Hyperkapnie (pH 7,32, pCO₂ 55) und Hypoxämie; Infektzeichen','Verdachtsdiagnose infektexazerbierte COPD, DD (Pneumonie, kardiale Dekompensation, Lungenembolie)','Procedere vorgeschlagen: kontrollierte O₂-Gabe (Ziel 88–92 %), Bronchodilatatoren, systemische Steroide, ggf. Antibiose, BGA-Kontrolle, ggf. NIV, Röntgen-Thorax'],
+ qs:['Wie interpretieren Sie die Blutgasanalyse?','Wie viel Sauerstoff geben Sie – und was ist das Ziel?','Wann würden Sie eine NIV-Beatmung beginnen?','Braucht der Patient ein Antibiotikum?']},
+{id:'chole',dx:'Akute Cholezystitis',name:'Frau Elena Weber',age:42,sex:'f',s:[
+ ['Vorstellungsgrund','Seit 2 Tagen plötzlich zunehmende, intermittierende Schmerzen im rechten Oberbauch, Übelkeit und Fieber. Schmerzen verstärken sich nach fettreichen Mahlzeiten und strahlen in die rechte Schulter und den Rücken aus.'],
+ ['Vorgeschichte','Gallensteine vor einem Jahr (keine Intervention), erhöhte Blutfettwerte, Bluthochdruck. Keine bekannten Allergien, Nichtraucherin, trinkt selten Alkohol, leicht übergewichtig (BMI 28).'],
+ ['Körperliche Untersuchung','RR 150/100 mmHg, Puls 92/min, Temperatur 38,7 °C, SpO₂ 97 %. Abdomen: Druckschmerz im rechten Oberbauch, positives Murphy-Zeichen.\nUnauffällig: Haut (kein Ikterus), rektale Untersuchung, Herz, Lunge.'],
+ ['Labor (Hausarzt)','Leukozyten ↑, CRP ↑, Transaminasen (GOT, GPT) leicht ↑, Gesamtcholesterin ↑, LDL ↑, HDL leicht ↓. Normal: Bilirubin, Lipase/Amylase. Blutgruppe A Rh+.\nUnauffällig: Nierenfunktion, Gerinnung, Elektrolyte, Blutzucker, Urinstix.'],
+ ['Bildgebung','Abdomensonographie: Wandverdickung der Gallenblase, pericholezystische Flüssigkeit, mehrere Gallensteine. Kein Hinweis auf einen Gallengangsverschluss.'],
+ ['Bisherige Medikation','Captopril 50 mg 1-0-0\nSimvastatin 80 mg 0-0-1\nIbuprofen 600 mg bei Bedarf'],
+ ['Behandlungsplan','Stationär: Stabilisierung der Vitalparameter, Infusionstherapie.\nAnalgesie: Metamizol i.v. 3x täglich. Spasmolyse: Butylscopolamin i.v. 3x täglich.\nAntibiose: Ceftriaxon 1–2 g i.v. 1x täglich + Metronidazol 500 mg i.v. 3x täglich.\nGeplant: laparoskopische Cholezystektomie, Aufklärung und Einwilligung der Patientin, Termin beim Anästhesisten.']],
+ kern:['Rechtsseitiger Oberbauchschmerz mit Ausstrahlung in rechte Schulter/Rücken, postprandial, Fieber, Übelkeit','Bekannte Cholezystolithiasis','Fieber 38,7 °C, positives Murphy-Zeichen, kein Ikterus','Leukozytose, CRP ↑, Bilirubin und Lipase normal','Sono: Wandverdickung, pericholezystische Flüssigkeit, Konkremente, kein Gallengangsverschluss','Therapie: Metamizol, Butylscopolamin, Ceftriaxon + Metronidazol; laparoskopische Cholezystektomie mit Aufklärung und Anästhesie'],
+ qs:['Woran denken Sie, wenn Sie diese Sonographiebefunde sehen?','Hatte die Patientin früher schon Gallenkoliken?','Warum ist ein normales Bilirubin hier wichtig?','Wann soll operiert werden?']},
+{id:'dka',dx:'Entgleisung bei Diabetes mellitus (DM-Dekompensation)',name:'Frau Sandra Klein',age:54,sex:'f',s:[
+ ['Vorstellungsgrund','Seit 2 Tagen zunehmende Übelkeit, Erbrechen, Bauchschmerzen und starkes Durstgefühl, vermehrtes Wasserlassen, allgemeine Schwäche. Gestern leichte Verwirrtheit. In den letzten Tagen grippaler Infekt, weniger gegessen, Insulindosis möglicherweise nicht korrekt angepasst; geht nicht regelmäßig zum Arzt.'],
+ ['Vorgeschichte','Diabetes mellitus Typ 1 seit 15 Jahren, insulinpflichtig. Keine bekannten Allergien, Nichtraucherin, selten Alkohol.'],
+ ['Körperliche Untersuchung','RR 90/60 mmHg, HF 112/min, AF 29/min, Temperatur 37,6 °C, SpO₂ 95 %, deutlich reduzierter AZ und EZ (166 cm, 46 kg), trockene Haut. Abdomen leicht druckempfindlich, keine Abwehrspannung. Lunge: vesikuläres Atemgeräusch, vertiefte Atmung. Neurologisch: schläfrig, GCS 11, Pupillen isokor.\nUnauffällig: Herz, Extremitäten, Reflexe.'],
+ ['Labor (Hausarzt)','Blutglukose ↑, Hb ↑, Hkt ↑, Leukozyten ↑, Kreatinin ↑, Harnstoff ↑, CRP leicht ↑.\nUrin: Glukose ++, Ketonkörper +++, Leukozyten ++, Urinkultur in Bearbeitung.'],
+ ['Bildgebung','Röntgen-Thorax und Sonographie: unspezifisch.'],
+ ['Bisherige Medikation','Insulin glargin 20 IE 1x täglich\nInsulin lispro 8–10 IE zu den Mahlzeiten'],
+ ['Angesetzt','Normalisierung der Stoffwechsellage: Flüssigkeits- und Elektrolytsubstitution, Insulintherapie i.v. (10 IE als Bolus, dann 0,1 IE/kg pro Stunde bis zur Normalisierung). Ursachenabklärung der Dekompensation.']],
+ kern:['Polyurie, Polydipsie, Übelkeit, Erbrechen, Bauchschmerzen, Verwirrtheit; Auslöser Infekt + Insulinfehler','DM Typ 1 seit 15 Jahren','Hypotonie 90/60, Tachykardie 112, Tachypnoe 29 mit vertiefter (Kussmaul-)Atmung, GCS 11, Exsikkose','Hyperglykämie, Ketonurie +++, Hämokonzentration, Kreatinin ↑, Leukozyturie','Verdachtsdiagnose diabetische Ketoazidose','Therapie: Volumen, Elektrolyte (Kalium!), Insulin i.v. 10 IE Bolus + 0,1 IE/kg/h, Ursachenabklärung (Harnwegsinfekt?)'],
+ qs:['Warum bekommt die Patientin 10 IE Insulin i.v. als Bolus?','Worauf müssen Sie beim Kalium achten?','Was könnte der Auslöser sein – denken Sie an den Urinbefund?','Wo soll die Patientin überwacht werden?']},
+{id:'kpw',dx:'Kopfplatzwunde (bei Schädeltrauma)',name:'Lara Schulz',age:14,sex:'f',s:[
+ ['Vorstellungsgrund','Sturz vom Skateboard, Kopfplatzwunde, Schwindelgefühl und Kopfschmerzen. Keine Bewusstlosigkeit, kein Erbrechen. Die Eltern berichten, dass die Tochter seit dem Sturz ruhiger als gewöhnlich wirkt.'],
+ ['Vorgeschichte','Keine chronischen Krankheiten, gelegentlich Spannungskopfschmerzen bei Stress, leichte Sehschwäche (Brille). Keine bekannten Allergien.'],
+ ['Körperliche Untersuchung','Vitalzeichen im Normbereich. Kopf: Platzwunde am Hinterkopf (ca. 3 cm), mäßig blutend, keine Schwellung oder Eindellung des Schädels.\nNeuro: wach und orientiert, GCS 15, Pupillen beidseits isokor und prompt lichtreagibel, keine Lähmungen oder Sensibilitätsstörungen, Romberg stabil, Finger-Nase-Versuch und Diadochokinese unauffällig.\nUnauffällig: Bewegungsapparat, Abdomen, Lunge, Herz.'],
+ ['Labor','Blutbild normal, CRP normal, Blutgruppe A Rh+. Unauffällig: Blutzucker, Elektrolyte, Urinstix.'],
+ ['Bildgebung','Schädel-CT: keine intrakranielle Blutung, keine Fraktur. CT der Wirbelsäule: unauffällig.'],
+ ['Bisherige Medikation','Keine regelmäßige Medikation.'],
+ ['Behandlungsplan','Aufnahme zur Versorgung der Wunde und 24-stündigen neurologischen Überwachung.\nWunde: Reinigung, Desinfektion, ggf. Naht, steriler Verband, regelmäßiger Verbandswechsel.\nÜberwachung: neurologische Kontrollen alle 2–4 Stunden, auf Spätkomplikationen achten (posttraumatische Kopfschmerzen, Schwindel, Übelkeit).\nBeratung: Eltern über Warnzeichen aufklären (Bewusstseinsveränderung, Übelkeit, Erbrechen, Sehstörungen). Kontrolle beim Haus- oder Kinderarzt innerhalb einer Woche.']],
+ kern:['Sturz vom Skateboard mit Kopfplatzwunde occipital ca. 3 cm, Schwindel, Kopfschmerzen','Keine Bewusstlosigkeit, kein Erbrechen; wirkt ruhiger (Fremdanamnese der Eltern)','GCS 15, neurologisch unauffällig','CCT und CT-Wirbelsäule ohne Blutung/Fraktur','Verdachtsdiagnose Kopfplatzwunde bei leichtem Schädel-Hirn-Trauma (Commotio möglich)','Procedere: Wundversorgung, 24 h neurologische Überwachung alle 2–4 h, Aufklärung der Eltern über Warnzeichen, Nachkontrolle'],
+ qs:['Warum überwachen Sie die Patientin 24 Stunden, obwohl das CT unauffällig ist?','Welche Warnzeichen erklären Sie den Eltern?','Ist der Tetanusschutz geklärt?']},
+{id:'hyperkrise',dx:'Hypertensive Krise (mit Zielorganschädigung)',name:'Herr Markus Schneider',age:47,sex:'m',s:[
+ ['Vorstellungsgrund','Notfallmäßige Aufnahme wegen starker Kopfschmerzen, Schwindel, Übelkeit und Sehstörungen seit heute Morgen. Außerdem retrosternales Druckgefühl und Luftnot bei geringer Belastung.'],
+ ['Vorgeschichte','Arterielle Hypertonie seit 5 Jahren (unregelmäßige Medikamenteneinnahme), DM Typ 2, Hyperlipidämie, Nikotinabusus (20 pack years).'],
+ ['Körperliche Untersuchung','RR 210/120 mmHg, Puls 110/min, Temperatur 36,8 °C, SpO₂ 94 % (Raumluft), adipöser EZ (BMI 30,4), altersentsprechender AZ. Gesicht stark gerötet. Herz: Tachykardie. Lunge: basal feinblasige Rasselgeräusche beidseits. Extremitäten: Varizen an beiden Unterschenkeln.\nUnauffällig: Neurostatus (jedoch Schwindel und Sehstörungen), Abdomen, Reflexe.'],
+ ['Labor (Hausarzt)','Entzündungsparameter normal, Blutzucker 220 mg/dl, Kreatinin 1,8 mg/dl ↑, Harnstoff 48 mg/dl ↑, Troponin T 0,05 ng/ml (leicht ↑), Kalium 5,2 mmol/l (leicht ↑), Natrium 138 mmol/l.\nUrin: Mikroalbuminurie (++), keine Hämaturie.'],
+ ['Bildgebung','Röntgen-Thorax: pulmonale Stauung, Kardiomegalie.\nEKG und Echokardiographie: kein Anhalt für Myokardinfarkt, linksventrikuläre Hypertrophie, EF 45 % (leicht reduziert).\nFunduskopie: Papillenödem, arteriovenöse Kreuzungszeichen (hypertensive Retinopathie).'],
+ ['Bisherige Medikation','Ramipril 5 mg 1-0-0, Metformin 1000 mg 1-0-1, Atorvastatin 20 mg 0-1-0 – alle unregelmäßig eingenommen.'],
+ ['Behandlungsplan','Intensivstation mit kontinuierlicher Blutdrucküberwachung. Nitroprussid-Natrium i.v. zur kontrollierten Blutdrucksenkung, Furosemid i.v. bei Lungenstauung. CT-Kopf zum Ausschluss einer hypertensiven Enzephalopathie.\nLangfristig: antihypertensive Kombinationstherapie, Anpassung der antidiabetischen Therapie, Schulung zur Therapieadhärenz und Lebensstil (Nikotinkarenz, Gewichtsreduktion, salzarme Ernährung).']],
+ kern:['Kopfschmerz, Schwindel, Übelkeit, Sehstörungen, retrosternaler Druck, Belastungsdyspnoe','Hypertonie mit schlechter Adhärenz, DM 2, Hyperlipidämie, 20 py','RR 210/120 mmHg, Tachykardie 110, basale Rasselgeräusche','Zielorganschäden: Kreatinin 1,8, Mikroalbuminurie, Troponin leicht ↑, Lungenstauung, EF 45 %, Papillenödem','Verdachtsdiagnose hypertensiver Notfall mit kardialer, renaler und retinaler Organschädigung','Therapie: ITS, kontrollierte RR-Senkung mit Nitroprussid, Furosemid, CCT; langfristig Kombitherapie und Schulung'],
+ qs:['Wie schnell senken Sie den Blutdruck – und warum nicht schneller?','Was ist der Unterschied zwischen hypertensiver Dringlichkeit und Notfall?','Warum machen Sie ein CT vom Kopf?','Wie interpretieren Sie das leicht erhöhte Troponin?']},
+{id:'crohn',dx:'Morbus Crohn (akuter Schub)',name:'Frau Julia Meier',age:21,sex:'f',s:[
+ ['Vorstellungsgrund','Seit 2 Wochen zunehmende Schmerzen im rechten Unterbauch und Durchfall. Außerdem Gelenkschmerzen, Müdigkeit, Leistungsschwäche und Gewichtsverlust von 3 kg.'],
+ ['Vorgeschichte','Bekannter Morbus Crohn (terminales Ileum) seit 2 Jahren, mit Azathioprin behandelt. Appendektomie mit 14 Jahren. Raucherin, gelegentlich Alkohol. Keine Allergien.'],
+ ['Körperliche Untersuchung','RR 105/65 mmHg, Puls 101/min, Temperatur 37,6 °C, SpO₂ 98 %, reduzierter AZ, untergewichtiger EZ (171 cm, 47 kg). Haut blass und trocken, Mundschleimhaut trocken. Abdomen weich, Druckschmerz im rechten Unterbauch, Darmgeräusche vorhanden, reizlose Narben nach laparoskopischer Appendektomie. Rektal: perianale Fistel, Tastuntersuchung schmerzbedingt nicht möglich. Extremitäten: Schwellung, Rötung und Überwärmung aller Finger- und Zehengelenke sowie der Sprung- und Kniegelenke beidseits.\nUnauffällig: Herz, Lunge, Neurostatus.'],
+ ['Labor (Hausarzt)','Hb 9,8 g/dl, Hkt 30 %, Leukozyten 13.500/µl, CRP 28 mg/dl. Ferritin ↑, Eisen ↓, Transferrin ↓ (chronische Entzündung). Vitamin B12, D, K ↓, Quick ↓, INR ↑, Albumin ↓ (Malabsorption).\nUnauffällig: Blutzucker, Nierenfunktion, Elektrolyte, Urinstatus.'],
+ ['Bildgebung','Ileokoloskopie mit Stufenbiopsien: diskontinuierlicher Befall.\nAbdomensonographie: entzündete Dünn- und Dickdarmabschnitte, keine Stenosen oder Abszesse.\nMR-Enterographie: entzündliche Veränderungen im terminalen Ileum, keine Abszesse oder Fisteln.'],
+ ['Bisherige Medikation','Azathioprin 100 mg 1-0-0 (regelmäßig eingenommen)'],
+ ['Einweisung','Einweisung mit der Bitte um stationäre Aufnahme und spezialisierte Behandlung.']],
+ kern:['Rechtsseitige Unterbauchschmerzen, Diarrhö, Arthralgien, Fatigue, Gewichtsverlust 3 kg','Bekannter M. Crohn (terminales Ileum) unter Azathioprin; Raucherin','Tachykardie 101, subfebril, BMI ≈ 16, Exsikkose, perianale Fistel, Polyarthritis','Anämie Hb 9,8, CRP 28, Leukozytose, Malabsorption (Vitamine, Albumin, INR ↑)','Endoskopie/MRT: diskontinuierlicher Befall, keine Abszesse/Stenosen','Verdachtsdiagnose akuter Schub mit extraintestinaler Manifestation; Procedere vorgeschlagen (i.v. Steroide, Volumen, Ernährungstherapie, Vitamin-Substitution, Biologika erwägen, Rauchstopp)'],
+ qs:['Welche extraintestinalen Manifestationen sehen Sie bei der Patientin?','Wie behandeln Sie den akuten Schub?','Welches Schmerzmittel würden Sie vermeiden?','Warum ist das INR erhöht?']},
+{id:'klavi',dx:'Schlüsselbeinfraktur',name:'Herr Thomas Wagner',age:45,sex:'m',s:[
+ ['Vorstellungsgrund','Sturz auf den rechten Schulterbereich beim Eishockey. Danach starke Schmerzen im Bereich des rechten Schlüsselbeins, Arm kann nicht bewegt oder belastet werden.'],
+ ['Vorgeschichte','Keine bekannten Vorerkrankungen, Nichtraucher, trinkt gelegentlich Alkohol, regelmäßig sportlich aktiv (Laufen, Eishockey), keine Allergien.'],
+ ['Körperliche Untersuchung','Rechtes Schlüsselbein: deutlicher Druckschmerz, Schwellung und Fehlstellung.\nNeurovaskulär: keine Nervenschäden oder Durchblutungsstörungen am rechten Arm (Sensibilität, Motorik und periphere Pulse normal).\nUnauffällig: Vitalzeichen, Herz, Lunge, Bauch, Neurostatus, kein Anhalt für Schädeltrauma.'],
+ ['Bildgebung','Röntgen Schulter: dislozierte Fraktur der mittleren Klavikula.\nRöntgen-Thorax: unauffällig, kein Pneumothorax.'],
+ ['Labor','Unauffällig.'],
+ ['Bisherige Medikation','Keine regelmäßige Medikation, gelegentlich Ibuprofen 400 mg bei Bedarf.'],
+ ['Einweisung','Einweisung mit der Bitte um chirurgische Stabilisierung und weitere Versorgung.']],
+ kern:['Sturz auf die rechte Schulter beim Eishockey, Schmerzen, Arm nicht belastbar','Keine Vorerkrankungen, keine Allergien','Druckschmerz, Schwellung, Fehlstellung; DMS intakt (Durchblutung, Motorik, Sensibilität)','Röntgen: dislozierte Klavikulaschaftfraktur rechts (mittleres Drittel), kein Pneumothorax','Verdachtsdiagnose dislozierte Klavikulafraktur rechts','Procedere vorgeschlagen: Analgesie, Ruhigstellung, operative Versorgung (Plattenosteosynthese), Aufklärung, Physiotherapie'],
+ qs:['Warum haben Sie ein Röntgen-Thorax gemacht?','Konservativ oder operativ – wie entscheiden Sie?','Worauf achten Sie nach der Operation?']},
+{id:'ra',dx:'Polyarthritis rheumatica (rheumatoide Arthritis)',name:'Frau Karin Hoffmann',age:68,sex:'f',s:[
+ ['Vorstellungsgrund','Seit 4 Tagen zunehmende Gelenkschmerzen, v. a. in Händen, Knien und Schultern. Morgensteifigkeit länger als eine Stunde. Begleitend Schwellung, Rötung und Steifigkeit der Gelenke, Müdigkeit, leichtes Fieber, allgemeines Unwohlsein. Augen: Trockenheit und Rötung beidseits.'],
+ ['Vorgeschichte','Arterielle Hypertonie seit 10 Jahren, Hyperlipidämie. Keine bekannten Allergien. Nichtraucherin, trinkt selten Alkohol. Familiäre Disposition für rheumatische Erkrankungen (Mutter).'],
+ ['Körperliche Untersuchung','RR 140/90 mmHg, Puls 80/min, AF 16/min, Temperatur 37,5 °C. Gelenke: schmerzhafte, geschwollene Gelenke an beiden Händen und Knien, Bewegungseinschränkung in den Schultern. Augen: beidseitige Bindehautrötung, verminderte Tränenproduktion. Haut: unauffällig, kein Ausschlag.'],
+ ['Labor (Hausarzt)','CRP 25 mg/l, BSG 55 mm/h, Rheumafaktor positiv, Anti-CCP-Antikörper positiv, Leukozyten 9.000/µl (leicht ↑).'],
+ ['Bildgebung','Röntgen Hände und Knie: keine Erosionen oder Deformitäten, mäßige Weichteilschwellung.\nSonographie Hände: Synovitis der MCP- und PIP-Gelenke beidseits, geringer Erguss.\nRöntgen Schultern: keine knöchernen Destruktionen, Hinweis auf subakromiale Bursitis.'],
+ ['Bisherige Medikation','Amlodipin 5 mg 1-0-0\nAtorvastatin 20 mg 1-0-0'],
+ ['Diagnostisches und therapeutisches Vorgehen','Prednisolon 15 mg täglich (kurzfristig). Start einer DMARD-Therapie: Methotrexat 15 mg/Woche + Folsäure 5 mg/Woche. Ibuprofen 400 mg bei Bedarf.\nKontrolle von CRP, BSG und Organwerten, Absprache mit der Rheumatologie, augenärztliches Konsil, Physiotherapie.']],
+ kern:['Symmetrische Polyarthralgien (Hände, Knie, Schultern), Morgensteifigkeit > 1 h, subfebril','Sicca-Symptomatik der Augen; familiäre Belastung','Synovitis MCP/PIP beidseits, Bewegungseinschränkung Schultern','CRP 25, BSG 55, RF und Anti-CCP positiv, keine Erosionen im Röntgen','Verdachtsdiagnose rheumatoide Arthritis mit sekundärem Sicca-Syndrom','Therapie: Prednisolon 15 mg, MTX 15 mg/Woche + Folsäure, NSAR b. B., Rheumatologie, Augenkonsil, Physiotherapie'],
+ qs:['Wie spezifisch sind die Anti-CCP-Antikörper?','Warum geben Sie zusätzlich Folsäure?','Welche Kontrollen brauchen Sie unter Methotrexat?']},
+{id:'gastritis',dx:'Gastritis',name:'Herr Jens Meier',age:35,sex:'m',s:[
+ ['Vorstellungsgrund','Seit 5 Tagen zunehmende Oberbauchschmerzen, Sodbrennen und Übelkeit. Gelegentliches Erbrechen, meist morgens.'],
+ ['Vorgeschichte','Häufiger Alkoholkonsum (ca. 4–5 Bier/Woche), Stress im Beruf, lebt mit Partnerin zusammen, Raucher (15 Zigaretten täglich), Heuschnupfen. Keine Allergie gegen Medikamente.'],
+ ['Körperliche Untersuchung','RR 125/80 mmHg, Puls 88/min, Temperatur 37,4 °C, Gewicht 82 kg, normaler AZ. Abdomen: Druckschmerz im Oberbauch, besonders epigastrisch, keine tastbaren Resistenzen, Bruchpforten unauffällig.\nUnauffällig: rektale Untersuchung, Herz, Lunge, Milz, Lymphknoten, Neurostatus.'],
+ ['Labor (Hausarzt)','Hämoglobin normal, CRP 10 mg/l, Blutbild unauffällig.'],
+ ['Bildgebung','Sonographie: unauffällig.\nÖGD mit Biopsie: erosive Gastritis im Antrum, leichte Schleimhautrötung ohne tiefere Ulzerationen (Histologie in Bearbeitung).\nEKG: unauffällig.'],
+ ['Bisherige Medikation','Keine regelmäßige Medikation. Gelegentlich Ibuprofen 600 mg bei Kopfschmerzen, Cetirizin 10 mg 0-0-1 bei Bedarf.'],
+ ['Einweisung','Einweisung zur weiteren Diagnostik und medikamentösen Behandlung (Protonenpumpenhemmer, H2-Blocker).']],
+ kern:['Epigastrische Schmerzen, Sodbrennen, Übelkeit, morgendliches Erbrechen seit 5 Tagen','Risikofaktoren: Alkohol, Nikotin 15 Zig./Tag, Stress, NSAR (Ibuprofen)','Epigastrischer Druckschmerz, sonst unauffällig; Hb normal','ÖGD: erosive Antrumgastritis ohne Ulkus, Biopsie (H. pylori?) ausstehend; EKG unauffällig','Verdachtsdiagnose erosive Gastritis (DD Ulcus ventriculi/duodeni, Refluxkrankheit, Pankreatitis)','Therapie: PPI, NSAR absetzen, Alkohol- und Nikotinkarenz, ggf. Eradikation bei H. pylori'],
+ qs:['Warum haben Sie ein EKG geschrieben?','Was machen Sie, wenn die Biopsie Helicobacter pylori zeigt?','Darf der Patient weiter Ibuprofen nehmen?']},
+{id:'osh',dx:'Oberschenkelhalsfraktur',name:'Frau Maria Fischer',age:78,sex:'f',s:[
+ ['Vorstellungsgrund','Sturz auf die rechte Seite im Badezimmer, danach starke Schmerzen in der rechten Hüfte, kann nicht aufstehen und das Bein nicht belasten.'],
+ ['Vorgeschichte','Osteoporose (seit 8 Jahren bekannt), Bluthochdruck, Schilddrüsenunterfunktion. Keine Allergien, unsportlich, trinkt selten Alkohol, Nichtraucherin.'],
+ ['Körperliche Untersuchung','RR 135/85 mmHg, Puls 95/min, Temperatur 37,2 °C, Gewicht 65 kg, erhaltener AZ. Rechtes Bein verkürzt und außenrotiert, Schwellung und Druckschmerz in der rechten Leiste.\nUnauffällig: Herz, Lunge, Bauch, Neurostatus, kein Anhalt für Schädeltrauma.'],
+ ['Bildgebung','Röntgen: dislozierte Fraktur des rechten Oberschenkelhalses.'],
+ ['Labor','Hämoglobin und CRP annähernd normal, Kreatinin normal, Gerinnung normal, Blutgruppe A Rh+. Unauffällig: Elektrolyte, Blutzucker, Urinstix.'],
+ ['Bisherige Medikation','Ramipril 5 mg 1-0-0 (Hypertonie)\nL-Thyroxin 50 µg 1-0-0 (Hypothyreose)\nCalcium/Vitamin D 1-0-0 (Osteoporose)'],
+ ['Einweisung','Einweisung mit der Bitte um operative Stabilisierung und weitere Versorgung.']],
+ kern:['Häuslicher Sturz auf die rechte Seite, Hüftschmerz, Bein nicht belastbar','Osteoporose, Hypertonie, Hypothyreose','Bein verkürzt und außenrotiert, Leistendruckschmerz','Röntgen: dislozierte Schenkelhalsfraktur rechts; Labor inkl. Gerinnung unauffällig','Verdachtsdiagnose dislozierte mediale Schenkelhalsfraktur rechts; Sturzursache abklären','Procedere vorgeschlagen: Analgesie, zeitnahe OP (z. B. Hüft-TEP/Hemiprothese) innerhalb 24 h, Thromboseprophylaxe, Frühmobilisation, Osteoporosetherapie'],
+ qs:['Welche Operation schlagen Sie vor und warum?','Warum soll möglichst schnell operiert werden?','Wie klären Sie die Sturzursache ab?']},
+{id:'rippe',dx:'Rippenfraktur (mit Verdacht auf Pneumothorax)',name:'Herr Markus Schmitt',age:23,sex:'m',s:[
+ ['Vorstellungsgrund','Schmerzen im Bereich der 4. und 5. Rippe rechts sowie Atemnot nach Sturz beim Mountainbiking direkt auf die rechte Brustseite; seitdem Schwierigkeiten beim tiefen Einatmen.'],
+ ['Vorgeschichte','Gesund, keine bekannten Allergien, Nichtraucher, trinkt gelegentlich Alkohol, sportlich aktiv.'],
+ ['Körperliche Untersuchung','RR 125/80 mmHg, Puls 95/min, AF 21/min, SpO₂ 95 % (Raumluft), Temperatur 36,9 °C. Ansprechbar, schmerzgeplagt, leicht tachypnoisch, aber stabil. Thorax: Druck- und Klopfschmerz über der 4. und 5. Rippe rechts, leichte Schwellung, kein Hämatom. Abgeschwächtes Atemgeräusch rechts basal, hypersonorer Klopfschall rechts.\nUnauffällig: Abdomen, Herz, Neurostatus.'],
+ ['Labor','Blutbild und CRP normal, Blutgruppe B Rh+. Unauffällig: Elektrolyte, Blutzucker, Urinstix.'],
+ ['Bildgebung','Röntgen-Thorax: Fraktur der 4. und 5. Rippe rechts ohne Dislokation, kleiner Pneumothorax rechts, kein Hämatothorax.\nFAST-Sonographie: keine freie Flüssigkeit in Thorax oder Abdomen.'],
+ ['Bisherige Medikation','Keine regelmäßige Medikation.'],
+ ['Behandlungsplan','Stationäre Aufnahme. Überwachung von SpO₂, AF und Zeichen eines zunehmenden Pneumothorax; Röntgen/CT-Kontrolle bei Verschlechterung. Schmerztherapie mit Metamizol/Paracetamol. Thoraxdrainage bei Zunahme des Pneumothorax. Schonung für 4–6 Wochen.']],
+ kern:['Thoraxtrauma rechts beim Mountainbiken, atemabhängige Schmerzen, Dyspnoe','AF 21, SpO₂ 95 %, abgeschwächtes Atemgeräusch und hypersonorer Klopfschall rechts','Röntgen: Rippenfraktur 4./5. rechts ohne Dislokation + kleiner Pneumothorax, kein Hämatothorax','FAST ohne freie Flüssigkeit','Verdachtsdiagnose Fraktur der 4. und 5. Rippe rechts mit kleinem Pneumothorax (keine Rippenserienfraktur)','Procedere: Monitoring, Analgesie, Röntgenkontrolle, Thoraxdrainage bei Zunahme, Schonung 4–6 Wochen'],
+ qs:['Wann würden Sie eine Thoraxdrainage legen?','Warum ist eine gute Schmerztherapie hier so wichtig?','Woran erkennen Sie einen Spannungspneumothorax?']},
+{id:'pyelo',dx:'Pyelonephritis',name:'Frau Lisa Müller',age:32,sex:'f',s:[
+ ['Vorstellungsgrund','Seit 3 Tagen Fieber, Schüttelfrost, Flankenschmerzen rechts mit Ausstrahlung in den Unterbauch, Schmerzen beim Wasserlassen, blutiger und trüber Urin. Zusätzlich Schwächegefühl und Übelkeit.'],
+ ['Vorgeschichte','Wiederholte Harnwegsinfektionen, regelmäßig menstruierend, keine bekannten Allergien, Nichtraucherin, trinkt selten Alkohol, sportlich aktiv.'],
+ ['Körperliche Untersuchung','RR 120/80 mmHg, Puls 105/min, Temperatur 38,9 °C, Gewicht 68 kg. AZ reduziert, erschöpft, fiebrig. Klopfschmerz über dem rechten Nierenlager mit Ausstrahlung in den Unterbauch. Abdomen weich, keine Abwehrspannung, kein Druckschmerz.\nUnauffällig: Herz, Lunge, Neurostatus.'],
+ ['Labor (Hausarzt)','Leukozyten ↑, CRP ↑, Kreatinin normal, Hämoglobin normal.\nUrin: Leukozyten +++, Nitrit ++, Blut +++; Urinkultur: Escherichia coli > 10⁶ KBE/ml.'],
+ ['Bildgebung','Sonographie: vergrößerte rechte Niere mit angedeuteter Erweiterung des Nierenbeckens, kein Abszess, keine Steine.'],
+ ['Bisherige Medikation','Keine regelmäßige Medikation.'],
+ ['Einweisung','Einweisung mit der Bitte um stationäre Aufnahme, Antibiotikatherapie und Flüssigkeitssubstitution.']],
+ kern:['Fieber, Schüttelfrost, Flankenschmerz rechts, Dysurie, Makrohämaturie seit 3 Tagen','Rezidivierende Harnwegsinfekte','Fieber 38,9 °C, Tachykardie 105, Nierenlagerklopfschmerz rechts','Leukozyturie, Nitrit +, Hämaturie, E. coli > 10⁶ KBE/ml, Kreatinin normal','Sono: vergrößerte rechte Niere, leichte NBKS-Erweiterung, kein Abszess/Stein','Verdachtsdiagnose akute Pyelonephritis rechts; Procedere: i.v. Antibiose (z. B. Ceftriaxon) nach Antibiogramm, Volumen, Analgesie/Antipyrese, Schwangerschaftstest, Kontrolle'],
+ qs:['Haben Sie eine Schwangerschaft ausgeschlossen?','Welches Antibiotikum geben Sie und wie lange?','Warum ist die Erweiterung des Nierenbeckens wichtig?']},
+{id:'mhk',dx:'Mittelhandfraktur (geschlossene Fraktur des dritten Mittelhandknochens)',name:'Herr Tobias Wagner',age:27,sex:'m',s:[
+ ['Vorstellungsgrund','Schmerzen und Schwellung der rechten Hand nach Sturz beim Fußball direkt auf die ausgestreckte Hand. Seitdem Schmerzen und Bewegungseinschränkung, besonders beim Greifen.'],
+ ['Vorgeschichte','Gesund, keine bekannten Allergien, Nichtraucher, gelegentlich Alkohol, sportlich aktiv (Fußball, Krafttraining).'],
+ ['Körperliche Untersuchung','RR 120/75 mmHg, Puls 88/min, AF 16/min, SpO₂ 98 %, Temperatur 36,8 °C. Wach, ansprechbar, schmerzgeplagt, kreislaufstabil. Hand: Schwellung und Druckschmerz über dem dritten Mittelhandknochen, leichte Fehlstellung, eingeschränkte aktive Beweglichkeit v. a. von Mittel- und Zeigefinger. Keine neurologischen Ausfälle oder Durchblutungsstörungen.'],
+ ['Labor (Hausarzt)','Blutbild und CRP normal, Blutgruppe 0 Rh+. Elektrolyte, Blutzucker, Urinstix unauffällig.'],
+ ['Bildgebung','Röntgen Hand rechts: Fraktur des dritten Mittelhandknochens, keine offensichtliche Dislokation, keine Gelenkbeteiligung.\nSonographie Hand: keine Hämatome oder Weichteilverletzungen (Sehnen unauffällig).'],
+ ['Behandlungsstrategie','Konservativ (stabile, nicht dislozierte Fraktur): Unterarmgipsschiene für 4–6 Wochen, Hochlagerung. Ibuprofen 400 mg alle 6–8 Stunden bei Bedarf, alternativ Paracetamol oder Metamizol. Frühe Mobilisation der nicht betroffenen Finger, Physiotherapie nach Schienenabnahme.\nOperativ bei Dislokation > 2 mm, Rotationsfehlstellung, Gelenkbeteiligung oder Instabilität: K-Draht- oder Plattenosteosynthese, danach ca. 4 Wochen Ruhigstellung und Physiotherapie.']],
+ kern:['Sturz auf die ausgestreckte rechte Hand beim Fußball, Schmerzen, Schwellung, Greifschwäche','Gesund, keine Allergien','Druckschmerz MHK III, leichte Fehlstellung, eingeschränkte Fingerbeweglichkeit, DMS intakt','Röntgen: nicht dislozierte Fraktur MHK III ohne Gelenkbeteiligung; Sono ohne Sehnenverletzung','Verdachtsdiagnose geschlossene, nicht dislozierte Fraktur des Os metacarpale III rechts','Konservative Therapie (Unterarmgipsschiene 4–6 Wochen, Hochlagerung, Analgesie, Physiotherapie) und OP-Kriterien genannt'],
+ qs:['Wann würden Sie doch operieren?','Wie prüfen Sie eine Rotationsfehlstellung?','Wie lange ist der Patient arbeits- bzw. sportunfähig?']},
+{id:'hernie',dx:'Leistenhernie (Hernia inguinalis) links',name:'Herr Thomas Müller',age:42,sex:'m',s:[
+ ['Vorstellungsgrund','Seit 3 Monaten schmerzlose Schwellung der linken Leiste, aufgetreten nach einer heftigen Hustenattacke. Seit gestern Abend zunehmende Leistenschmerzen und Übelkeit. Die Vorwölbung lässt sich nicht mehr zurückdrücken.'],
+ ['Vorgeschichte','Starker Raucher (30 Zigaretten/Tag seit 25 Jahren), chronischer Raucherhusten. Arthroskopische Meniskusoperation am linken Knie vor 2 Jahren.'],
+ ['Körperliche Untersuchung','RR 130/85 mmHg, Puls 76/min, Temperatur 37,1 °C, SpO₂ 96 %. Sichtbare, nicht reponierbare Schwellung in der linken Leiste mit Druckschmerz. Rechte Leiste unauffällig. Hoden beidseits regelrecht tastbar, keine Schwellung oder Druckschmerz.\nUnauffällig: Herz, Reflexe, Neurostatus.'],
+ ['Labor (Hausarzt)','Entzündungsparameter und Blutbild normal, Kreatinin 1,0 mg/dl, Harnstoff 35 mg/dl. Unauffällig: Blutzucker, Urinstatus.'],
+ ['Bildgebung','Abdomensonographie: Hernie links inguinal mit Darmschlingen im Bruchsack, kein Hinweis auf Darmischämie.\nRöntgen Abdomen: keine freie Luft, kein Ileus.'],
+ ['Bisherige Medikation','Keine regelmäßige Medikation, gelegentlich Ibuprofen 400 mg bei Gelenkschmerzen.'],
+ ['Behandlungsplan','Patient derzeit stabil. Metamizol i.v. 3x täglich.\nNotfallmäßige OP: laparoskopische Hernienreparation (TAPP). Aufklärung und Einwilligung liegen vor, Anästhesie hat zugestimmt.\nPostoperativ: Analgesie (Ibuprofen oder Paracetamol), Thromboseprophylaxe mit niedermolekularem Heparin, Mobilisation ab dem 1. postoperativen Tag, Beratung zur Raucherentwöhnung.']],
+ kern:['Seit 3 Monaten Leistenschwellung links, jetzt Schmerzen, Übelkeit, nicht mehr reponierbar','Starker Raucher (37,5 py) mit chronischem Husten als Risikofaktor','Nicht reponierbare, druckschmerzhafte Vorwölbung links, Hoden unauffällig, Labor unauffällig','Sono: Darmschlingen im Bruchsack, keine Ischämie; Röntgen: kein Ileus, keine freie Luft','Verdachtsdiagnose inkarzerierte Leistenhernie links','Notfall-OP (TAPP) mit Aufklärung und Anästhesie; postoperativ Analgesie, Thromboseprophylaxe, Frühmobilisation, Rauchstopp'],
+ qs:['Warum muss der Patient heute noch operiert werden?','Was ist der Unterschied zwischen TAPP und Lichtenstein?','Warum ist das Rauchen für die Operation relevant?']},
+{id:'asthma',dx:'Asthma bronchiale',name:'Frau Lisa Meier',age:34,sex:'f',s:[
+ ['Hergang','Vorstellung in der Notaufnahme nach nächtlicher Atemnot.'],
+ ['Hauptsymptomatik','Nächtliche Atemnot, pfeifende Atmung, Engegefühl in der Brust. Häufige Hustenattacken, besonders morgens und bei körperlicher Belastung. Keine Infektzeichen.'],
+ ['Vorgeschichte','Allergische Rhinitis (seit 2015), Neurodermitis in der Kindheit. Allergien: Pollen (Gräser, Birke). Nichtraucherin, lebt mit Katze.\nSozial: Lehrerin, verheiratet, 2 Kinder. Familie: Mutter Asthma, Vater Heuschnupfen.'],
+ ['Vitalparameter bei Aufnahme','RR 115/75 mmHg, HF 88/min, AF 20/min, SpO₂ 92 % (Raumluft), Temperatur 36,8 °C.'],
+ ['Körperliche Untersuchung','Verlängertes Exspirium mit Giemen über beiden Lungen. Unauffällig: Abdomen, Neurologie.'],
+ ['Labor','Eosinophile 6 % (↑). Normwertig: Blutbild, CRP, Leber- und Nierenwerte.'],
+ ['Apparative Diagnostik','Lungenfunktion: FEV1 68 % des Sollwerts, Tiffeneau-Index 65 %. Peak-Flow: 250 l/min (↓).'],
+ ['Medikation','Bisher: Cetirizin 10 mg 1x täglich.\nNeu: Budesonid/Formoterol inhalativ 2-0-2, Salbutamol 200 µg inhalativ bei Bedarf.'],
+ ['Stationärer Verlauf','SpO₂ unter 2 l/min O₂ stabilisiert, aktuell 96 %. Bisher keine erneuten Anfälle.'],
+ ['Procedere','Weiterführung von Budesonid/Formoterol. Schulung zu Peak-Flow-Meter und Inhalator. Termin für allergologische Diagnostik und Asthmaschulung. Entlassung bei stabiler Symptomatik innerhalb von 48 Stunden.']],
+ kern:['Nächtliche Dyspnoe, Giemen, thorakales Engegefühl, Husten morgens/bei Belastung','Atopie: allergische Rhinitis, Neurodermitis, Pollenallergie, Katze; familiäre Belastung','SpO₂ 92 %, verlängertes Exspirium mit Giemen beidseits','Eosinophilie 6 %, FEV1 68 %, Tiffeneau 65 %, Peak-Flow 250 l/min (obstruktiv)','Verdachtsdiagnose allergisches Asthma bronchiale (DD COPD, Infekt, kardial)','Therapie ICS/LABA 2-0-2, Salbutamol b. B., O₂ 2 l, Schulung, Allergologie, Entlassung in 48 h'],
+ qs:['Wie beweisen Sie die Reversibilität der Obstruktion?','Was raten Sie der Patientin zur Katze?','Welche Asthmaschwere bzw. -kontrolle liegt vor?']},
+{id:'diverti1',dx:'Akute unkomplizierte Sigmadivertikulitis',name:'Herr Thomas Becker',age:58,sex:'m',role:'Stationsarzt/-ärztin in der Viszeralchirurgie',sit:'Vorstellung eines über die Notaufnahme aufgenommenen Patienten bei der Chefarzt-Visite.',s:[
+ ['Vorstellung','Kam mit seiner Ehefrau in die Notaufnahme. Seit 2 Tagen zunehmende Schmerzen im linken Unterbauch, Fieber bis 38,7 °C, reduzierter Appetit, kein Erbrechen, kein Stuhlverhalt. Der Hausarzt empfahl bei Tastschmerz die Vorstellung in der Klinik.'],
+ ['Vorerkrankungen','Arterielle Hypertonie, chronische Obstipation, Z. n. Appendektomie (1989). Allergien: keine bekannt.'],
+ ['Medikation bei Aufnahme','Ramipril 5 mg 1x täglich, Macrogol bei Bedarf, keine NSAR.'],
+ ['Sozial- und Familienanamnese','Verheiratet, kaufmännischer Angestellter, Nichtraucher. Vater mit Divertikulitis, Mutter mit Kolonkarzinom.'],
+ ['Vitalparameter','RR 128/78 mmHg, HF 88/min, AF 16/min, SpO₂ 97 % (Raumluft), Temperatur 38,3 °C.'],
+ ['Körperliche Untersuchung','Druckschmerz im linken Unterbauch, leichte Abwehrspannung, keine Peritonitiszeichen, verminderte Darmgeräusche, keine tastbare Resistenz.'],
+ ['Labor','Leukozyten 13.200/µl, CRP 78 mg/l, Hb 13,4 g/dl. Nieren-, Leberwerte und Amylase unauffällig.'],
+ ['Bildgebung','CT-Abdomen mit Kontrastmittel: Wandverdickung des Sigmas, perikolische Entzündung, kein Abszess, keine freie Luft.'],
+ ['Behandlung','Nahrungskarenz für 24–48 h, Flüssigkeit i.v. und Elektrolytausgleich, Ciprofloxacin 500 mg 2x täglich + Metronidazol 500 mg 3x täglich oral, Paracetamol bei Schmerzen.'],
+ ['Verlauf','Fieber nach 48 h rückläufig, CRP sinkend, Kostaufbau ab Tag 3, beschwerdearm. Geplante Entlassung an Tag 5 mit ambulanter Kontrolle und ballaststoffreicher Ernährung.']],
+ kern:['Linksseitige Unterbauchschmerzen seit 2 Tagen, Fieber 38,7 °C','Chronische Obstipation; Familie: Divertikulitis (Vater), Kolonkarzinom (Mutter)','Fieber 38,3 °C, Druckschmerz LUQ mit leichter Abwehrspannung, keine Peritonitis','Leukozytose 13.200, CRP 78; CT: Sigmawandverdickung, perikolische Entzündung, kein Abszess, keine freie Luft','Verdachtsdiagnose akute unkomplizierte Sigmadivertikulitis, DD (kompliziert, Kolonkarzinom, CED)','Therapie und Verlauf: Nahrungskarenz, i.v. Flüssigkeit, Cipro + Metronidazol, Kostaufbau, Entlassung Tag 5, Koloskopie im Intervall'],
+ qs:['Wann sollte eine Koloskopie gemacht werden – gerade wegen der Mutter?','Was wäre eine komplizierte Divertikulitis?','Wann würden Sie operieren?']},
+{id:'appabsz',dx:'Perforierte Appendizitis mit perityphlitischem Abszess',name:'Herr Lukas Brenner',age:24,sex:'m',role:'Stationsarzt/-ärztin in der Allgemeinchirurgie',sit:'Vorstellung eines Patienten mit akuten Unterbauchschmerzen bei der Chefarzt-Visite.',s:[
+ ['Vorstellung','Kam selbstständig mit seiner Mutter in die Notaufnahme. Seit 2 Tagen diffuse Bauchschmerzen, die sich in den rechten Unterbauch verlagert haben. Zusätzlich Übelkeit, Fieber bis 38,9 °C, Appetitlosigkeit, kein Stuhlgang seit 24 Stunden.'],
+ ['Vorerkrankungen','Keine bekannten Grunderkrankungen. Appendizitis in der Familie (Vater, Bruder). Allergien: keine bekannt.'],
+ ['Medikation bei Aufnahme','Keine Dauermedikation, Ibuprofen 400 mg bei Bedarf (selbst).'],
+ ['Sozialanamnese','Student, lebt in einer WG, Nichtraucher, gelegentlich Alkohol.'],
+ ['Vitalparameter','RR 122/76 mmHg, HF 102/min, AF 20/min, SpO₂ 98 %, Temperatur 38,8 °C.'],
+ ['Körperliche Untersuchung','Druckschmerz im rechten Unterbauch (McBurney-Punkt), Abwehrspannung, positiver Loslassschmerz, keine tastbare Resistenz, Darmgeräusche leicht reduziert.'],
+ ['Labor','Leukozyten 15.800/µl, CRP 142 mg/l, Hb 13,9 g/dl, Kreatinin 0,9 mg/dl.'],
+ ['Bildgebung','Sonographie: freie Flüssigkeit im rechten Unterbauch, Appendix nicht sicher darstellbar.\nCT-Abdomen: verdickte Appendix mit Wandunterbrechung, Abszess (4 cm), freie Flüssigkeit.'],
+ ['Behandlung','Notfallmäßige laparoskopische Appendektomie mit Abszessdrainage. Piperacillin/Tazobactam 4,5 g i.v. alle 8 h. Metamizol 1 g i.v. alle 6 h.'],
+ ['Verlauf','Stabiler postoperativer Verlauf, Fieberrückgang ab Tag 2, CRP rückläufig, Kostaufbau ab Tag 3, Drainageentfernung Tag 4. Entlassung nach 7 Tagen mit ambulanter Wundkontrolle beim Hausarzt.']],
+ kern:['Schmerzwanderung von diffus in den rechten Unterbauch, Fieber 38,9 °C, Übelkeit, Inappetenz','Tachykardie 102, Fieber 38,8 °C, McBurney-Druckschmerz, Abwehrspannung, Loslassschmerz','Leukozytose 15.800, CRP 142','CT: perforierte Appendix mit 4-cm-Abszess und freier Flüssigkeit','Verdachtsdiagnose perforierte Appendizitis mit perityphlitischem Abszess (DD z. B. M. Crohn, Gastroenteritis)','Notfall-OP laparoskopisch mit Abszessdrainage, Pip/Taz, Metamizol; Verlauf und Entlassungsplanung'],
+ qs:['Warum haben Sie zusätzlich ein CT gemacht?','Wie lange geben Sie das Antibiotikum?','Welche Komplikationen erwarten Sie postoperativ?']},
+{id:'vkb1',dx:'Kreuzbandriss und Meniskusschaden',name:'Herr Heinrich Schmidt',age:25,sex:'m',s:[
+ ['Vorstellungsgrund','Vorstellung in der Notaufnahme mit seiner Partnerin. Beim Fußball rechtes Knie nach innen geknickt, sofort Schmerzen und Schwellung. In den letzten Tagen zunehmende Beschwerden mit eingeschränkter Beweglichkeit. Begleitend: deutlich geschwollenes rechtes Knie, starke Schmerzen bei Bewegung und Berührung.'],
+ ['Vorerkrankungen','Diabetes mellitus Typ 1 mit regelmäßiger Insulintherapie. Sonst keine.'],
+ ['Körperliche Untersuchung','RR 126/82 mmHg, Puls 76/min, Temperatur 36,9 °C. Guter AZ, aber deutlich schmerzgeplagt. Lokal: auffällige Schwellung des rechten Knies, eingeschränkte Flexion und Extension, positiver Pivot-Shift-Test und vorderer Schubladentest (Kreuzbandinstabilität). Haut ohne Wunden.'],
+ ['Diagnostik','Röntgen Knie: keine Fraktur.\nMRT Knie: Kreuzbandriss und Meniskusschaden.\nSonographie Knie: Flüssigkeitsansammlung und Schwellung.\nLabor: HbA1c 8 % (schwankend, Patient misst selbst), CRP 6 mg/l (leicht ↑).'],
+ ['Behandlungsplan','Stationäre Aufnahme. Anpassung der Insulindosis wegen Stress und geplanter OP, regelmäßige Blutzuckerkontrollen. Ibuprofen 600 mg alle 6 Stunden.\nArthroskopische Kreuzbandplastik mit Gracilis-Sehne als Autograft (diagnostisch und therapeutisch, inkl. Meniskusversorgung).\nPostoperativ: Kühlung, Schonung, frühe Physiotherapie; Kontrolle von Blutzucker und Entzündungswerten.']],
+ kern:['Valgus-Distorsionstrauma rechtes Knie beim Fußball, Schwellung, Schmerzen, Bewegungseinschränkung','DM Typ 1 mit HbA1c 8 % (schlecht eingestellt)','Erguss, positiver vorderer Schubladentest und Pivot-Shift-Test','Röntgen ohne Fraktur; MRT: (vorderer) Kreuzbandriss und Meniskusschaden','Verdachtsdiagnose VKB-Ruptur mit Meniskusläsion rechts','Therapie: Analgesie Ibuprofen 600 mg, Insulinanpassung, arthroskopische VKB-Plastik mit Gracilis-Autograft, Kühlung, Physiotherapie'],
+ qs:['Wurde der Patient über die Arthroskopie und die Nachbehandlung aufgeklärt?','Worauf müssen Sie wegen des Diabetes perioperativ achten?','Warum nehmen Sie die Gracilis-Sehne?']},
+{id:'pneu1',dx:'Pneumonie',name:'Frau Hannah Wagner',age:94,sex:'f',s:[
+ ['Vorstellungsgrund','Vorstellung in der Rettungsstelle mit Fieber, produktivem Husten, Atemnot und starker Abgeschlagenheit.'],
+ ['Vorgeschichte','Keine pulmonalen Vorerkrankungen, Diabetes mellitus Typ 2, arterielle Hypertonie.'],
+ ['Körperliche Untersuchung','RR 137/85 mmHg, Puls 76/min, Temperatur 38,9 °C, SpO₂ 92 %, verminderter AZ, rechtsseitig feuchte Rasselgeräusche.'],
+ ['Labor','CRP 86 mg/l ↑, Leukozyten 16.000/µl ↑.'],
+ ['Bildgebung','Röntgen-Thorax: Infiltrat im rechten Oberlappen.'],
+ ['Bisheriges Vorgehen','Stationäre Aufnahme. Amoxicillin/Clavulansäure i.v., Flüssigkeitssubstitution, 1 l O₂ über Nasenbrille, Antipyretika.'],
+ ['Weiteres Vorgehen','Atemtherapie angemeldet, pulmonologisches Konsil. Bei Besserung der Beschwerden und Entfieberung: Fortsetzung der Antibiotikatherapie bis 2 Tage nach Besserung.']],
+ kern:['Fieber, produktiver Husten, Dyspnoe, Abgeschlagenheit','DM Typ 2, Hypertonie, keine pulmonalen Vorerkrankungen; hohes Alter','Fieber 38,9 °C, SpO₂ 92 %, feuchte RGs rechts','CRP 86, Leukozytose 16.000, Infiltrat rechter Oberlappen','Verdachtsdiagnose ambulant erworbene Pneumonie rechter Oberlappen, DD Lungenödem, Lungenabszess','Therapie: Amoxicillin/Clavulansäure i.v., Volumen, O₂ 1 l, Antipyretika, Atemtherapie, Antibiose bis 2 Tage nach Besserung'],
+ qs:['Wie schätzen Sie den Schweregrad ein – kennen Sie den CRB-65?','Warum Amoxicillin/Clavulansäure?','Wann stellen Sie auf orale Antibiotika um?']},
+{id:'pneu2',dx:'Pneumonie (mit Arzneimittelreaktion)',name:'Frau Monika Schulz',age:58,sex:'f',s:[
+ ['Vorstellungsgrund','Vorstellung in Begleitung ihres Ehemannes in der Notaufnahme: Luftnot, Husten mit grünem Auswurf, Abgeschlagenheit, Leistungsabfall, Fieber bis 39 °C.'],
+ ['Vorgeschichte','Keine relevanten Vorerkrankungen. Allergien bisher nicht bekannt.'],
+ ['Körperliche Untersuchung','Abgeschwächtes vesikuläres Atemgeräusch rechts, feuchte Rasselgeräusche und Bronchialatmen links apikal. Neurologisch leichte Verwirrtheit, sonst unauffällig.\nVitalzeichen bei Aufnahme: RR 100/70 mmHg, HF 105/min, AF 30/min, Temperatur 39,1 °C, SpO₂ 91 %.'],
+ ['Labor','CRP ↑, Leukozyten 16.000/µl. Venöse BGA: pO₂ 34 mmHg (↓), pCO₂ 45 mmHg, pH 7,37. COVID- und Influenza-Test negativ.'],
+ ['Bildgebung','Röntgen-Thorax: Verschattung im linken Oberlappen, positives Aerobronchogramm.'],
+ ['Behandlung','Ampicillin/Sulbactam i.v. 1-0-1, 2 l O₂ (wenn SpO₂ < 95 %), Infusionstherapie.\nAuf Station feinfleckiger Hautausschlag; nach Absetzen von Ampicillin deutliche Besserung → Umstellung auf Levofloxacin i.v. 1-0-0.'],
+ ['Aktueller Zustand','Allgemeine Besserung: RR 115/80 mmHg, HF 80/min, AF 20/min, SpO₂ 95 %, Temperatur 38,1 °C. Laborkontrolle morgen. Nach 5 Tagen i.v.-Antibiose Umstellung auf orale Therapie und ggf. Entlassung nach Hause oder in eine Rehaklinik.']],
+ kern:['Dyspnoe, Husten mit grünem Auswurf, Fieber 39 °C, Leistungsabfall','Bei Aufnahme Hypotonie 100/70, Tachykardie 105, Tachypnoe 30, SpO₂ 91 %, Verwirrtheit','Bronchialatmen und RGs links apikal; Röntgen: Oberlappenverschattung links mit Aerobronchogramm','Leukozytose, venöse BGA, COVID/Influenza negativ','Arzneimittelexanthem unter Ampicillin/Sulbactam → Umstellung auf Levofloxacin; V. a. Penicillinallergie dokumentieren','Aktuell gebessert, Laborkontrolle, orale Umstellung nach 5 Tagen, Entlassung/Reha'],
+ qs:['Wie hat sich die allergische Reaktion geäußert – hatte die Patientin einen anaphylaktischen Schock?','Haben Sie eine Blutgasanalyse durchgeführt?','Wann möchten Sie die Patientin entlassen?','Wie schwer war die Pneumonie bei Aufnahme (CRB-65)?']},
+{id:'panzyto',dx:'Panzytopenie / Trizytopenie',name:'Herr Heinrich Schmidt',age:63,sex:'m',s:[
+ ['Vorstellungsgrund','Überweisung durch den Hausarzt: Müdigkeit, Leistungsabfall, seit längerem Nasenbluten; Bewusstseinsverlust in der Garage.'],
+ ['Vorgeschichte','Z. n. Schlaganfall 2013 bei Vorhofflimmern, Bluthochdruck. Check-up vor zwei Monaten altersgemäß unauffällig. Nichtraucher, trinkt wenig Alkohol, sportlich.'],
+ ['Körperliche Untersuchung','RR 134/84 mmHg, Puls 84/min, Temperatur 37,8 °C, verminderter AZ, Blässe von Haut und Schleimhäuten, Blutkruste unterhalb des rechten Nasenlochs, Einblutungen am Oberkörper.\nUnauffällig: Herz, Lunge, Bauch (weich), Milz, Lymphknoten, Neurostatus.'],
+ ['Labor (Hausarzt)','Hämoglobin ↓, MCV ↓, Erythrozyten ↓, Leukozyten ↓, Thrombozyten ↓, Entzündungsparameter ↑.\nUnauffällig: Urinstix, Sonographie.'],
+ ['Bisherige Medikation','Eliquis (Apixaban) 5 mg 1-1-0 seit 2013 zur Blutverdünnung\nAmlodipin 5 mg 1-0-0'],
+ ['Einweisung','Einweisung mit der Bitte um weitere Abklärung der Panzytopenie.']],
+ kern:['Fatigue, Leistungsabfall, rezidivierende Epistaxis, Synkope','Z. n. Apoplex 2013 bei VHF unter Apixaban, Hypertonie','Subfebril 37,8 °C, Blässe, Petechien/Hämatome am Oberkörper, keine Splenomegalie/Lymphadenopathie','Verminderung aller drei Zellreihen (mikrozytäre Anämie, Leukopenie, Thrombozytopenie), Entzündungswerte ↑','Verdachtsdiagnose Panzytopenie unklarer Genese, DD hämatologische Neoplasie (Leukämie, Lymphom, MDS), Infektion','Procedere vorgeschlagen: großes Blutbild/Ausstrich, Umkehrisolation, Antikoagulation überprüfen, hämatologisches Konsil, Knochenmarkpunktion, Röntgen-Thorax'],
+ qs:['Was ist eine Panzytopenie?','Was machen Sie mit dem Eliquis bei der Thrombozytopenie?','Warum soll der Patient isoliert werden?','Welche Untersuchung bringt die Diagnose?']},
+{id:'nstemi1',dx:'Nicht-ST-Hebungs-Myokardinfarkt (NSTEMI)',name:'Herr Wolfgang Seidel',age:61,sex:'m',role:'Stationsarzt/-ärztin in der Kardiologie',sit:'Vorstellung eines über die Notaufnahme aufgenommenen Patienten bei der Chefarzt-Visite.',s:[
+ ['Vorstellung','Kam mit seiner Ehefrau in die Notaufnahme wegen retrosternaler Schmerzen seit ca. 2 Stunden: dumpf-drückend, Ausstrahlung in den linken Arm, Übelkeit und Schweißausbruch. Bei Ankunft kreislaufstabil, aber weiterhin symptomatisch.'],
+ ['Vorerkrankungen','Arterielle Hypertonie, Diabetes mellitus Typ 2 (seit 2015), Hyperlipidämie, Raucher (30 py). Allergien: keine bekannt.'],
+ ['Medikation bei Aufnahme','Metformin 1000 mg 1-0-1, Ramipril 5 mg 1-0-0, Atorvastatin 20 mg abends, ASS 100 mg 1x täglich.'],
+ ['Sozial- und Familienanamnese','Verheiratet, Busfahrer, lebt mit Ehefrau. Vater Herzinfarkt mit 58 Jahren.'],
+ ['Vitalparameter','RR 105/65 mmHg, HF 88/min, AF 18/min, SpO₂ 95 % (Raumluft), Temperatur 36,7 °C.'],
+ ['Körperliche Untersuchung','Herz rhythmisch, keine pathologischen Geräusche. Lunge vesikulär, keine Rasselgeräusche. Abdomen weich. Keine Ödeme.'],
+ ['EKG','Sinusrhythmus, ST-Senkungen in V5–V6, keine ST-Hebungen.'],
+ ['Labor','Troponin T initial 102 ng/l (Norm < 14), nach 3 h 162 ng/l. CK-MB erhöht. CRP 4,2 mg/l, HbA1c 7,1 %, Kreatinin 1,0 mg/dl.'],
+ ['Behandlung','Heparin 5000 IE i.v. als Bolus, ASS 250 mg i.v. + Ticagrelor 180 mg oral (duale Plättchenhemmung), O₂ 2 l/min, Morphin 5 mg i.v. bei Bedarf.'],
+ ['Verlauf','Stationäre Aufnahme, Monitoring auf der Überwachungsstation. Frühinvasive Koronarangiographie innerhalb von 24 Stunden, ggf. PCI. Später Reha und Sekundärprävention.']],
+ kern:['Retrosternaler Druckschmerz seit 2 h mit Ausstrahlung linker Arm, Übelkeit, Diaphorese','Kardiovaskuläre Risikofaktoren: Hypertonie, DM 2, Hyperlipidämie, 30 py, positive Familienanamnese','EKG: ST-Senkungen V5–V6, keine Hebungen','Troponin-T-Dynamik 102 → 162 ng/l, CK-MB ↑','Verdachtsdiagnose NSTEMI, DD instabile AP, Lungenembolie, Aortendissektion','Therapie: Heparin, ASS + Ticagrelor, O₂, Morphin b. B., Monitoring, Koronarangiographie < 24 h'],
+ qs:['Warum Koronarangiographie innerhalb von 24 Stunden und nicht sofort?','Woran unterscheiden Sie NSTEMI und instabile Angina pectoris?','Was machen Sie mit dem Metformin vor der Kontrastmittelgabe?']},
+{id:'nstemi2',dx:'NSTEMI',name:'Frau Helga Wagner',age:60,sex:'f',s:[
+ ['Vorstellungsgrund','Vorstellung in der Rettungsstelle mit seit gestern bestehenden thorakalen Schmerzen und Druckgefühl in der Brust, Ausstrahlung in linken Arm, Schulter und Kiefer. Atemnot, Schwindel, Übelkeit, Kaltschweißigkeit. Wach, ansprechbar, zu Ort, Zeit und Person orientiert.'],
+ ['Vorgeschichte','Bluthochdruck, Diabetes mellitus Typ 2. Mutter hatte einen Herzinfarkt.'],
+ ['Körperliche Untersuchung','RR 90/60 mmHg, Puls 140/min, Temperatur 37,8 °C, SpO₂ 95 %, 4. Herzton. Bauch weich. Milz, Lymphknoten und Neurostatus unauffällig.'],
+ ['EKG','Sinustachykardie 140/min, keine ST-Hebungen, keine neuen ST-Senkungen in zwei benachbarten Ableitungen.'],
+ ['Labor','Leukozyten ↑ (16.000/µl), Troponin I und T ↑, CK-MB ↑.'],
+ ['Bisheriges Vorgehen','Stationäre Aufnahme, Therapie nach (modifiziertem) MONA-Schema: Morphin, Sauerstoff, Nitrat, ASS sowie Heparin und Betablocker. Der Blutdruck hat sich gebessert.'],
+ ['Weiteres Vorgehen','Kardiologisches Konsil, Koronarangiographie in den nächsten 72 Stunden empfohlen, Patientin wurde aufgeklärt.']],
+ kern:['Thoraxschmerz seit gestern mit Ausstrahlung linker Arm/Schulter/Kiefer, Dyspnoe, Übelkeit, Kaltschweiß','Hypertonie, DM 2, positive Familienanamnese','Hypotonie 90/60, Tachykardie 140, S4','EKG ohne ST-Hebung; Troponin I/T und CK-MB erhöht','Verdachtsdiagnose NSTEMI, DD instabile AP, Myokarditis, Perikarditis','MONA + Heparin + Betablocker, kardiologisches Konsil, Koronarangiographie < 72 h, Aufklärung erfolgt'],
+ qs:['Würden Sie bei einem Blutdruck von 90/60 Nitrat geben?','Warum geben Sie einen Betablocker bei Hypotonie – ist das sinnvoll?','Ist die Patientin über die Koronarangiographie aufgeklärt?']},
+{id:'vhf1',dx:'Neu diagnostiziertes Vorhofflimmern mit tachykarder Überleitung',name:'Herr Karl Brenner',age:75,sex:'m',role:'Stationsarzt/-ärztin in der Kardiologie',sit:'Vorstellung eines Patienten mit Palpitationen und Dyspnoe bei der Chefarzt-Visite.',s:[
+ ['Vorstellung','Vom Hausarzt mit Verdacht auf Herzrhythmusstörung eingewiesen, begleitet von seiner Tochter. Seit 3 Tagen Herzklopfen, Luftnot bei Belastung (Treppensteigen), leichte Thoraxbeschwerden. Keine Synkope, kein Schwindel.'],
+ ['Vorerkrankungen','Arterielle Hypertonie (seit 2002), Hypercholesterinämie, Z. n. TIA (2018), Gicht. Allergien: keine bekannt.'],
+ ['Medikation bei Aufnahme','Amlodipin 5 mg morgens, Simvastatin 20 mg abends, Allopurinol 100 mg 1x täglich. Keine Antikoagulation.'],
+ ['Sozial- und Familienanamnese','Verwitwet, lebt allein, mobil, Nichtraucher. Vater Myokardinfarkt, Mutter Vorhofflimmern.'],
+ ['Vitalparameter','RR 135/90 mmHg, HF 132/min (unregelmäßig), AF 20/min, SpO₂ 94 % (Raumluft), Temperatur 36,8 °C.'],
+ ['Körperliche Untersuchung','Unregelmäßiger Herzschlag, keine Herzgeräusche, periphere Pulse tastbar, keine Ödeme. Lunge vesikulär, keine Rasselgeräusche. Neurologisch unauffällig.'],
+ ['EKG','Vorhofflimmern mit absoluter Arrhythmie, Frequenz 130–140/min, keine ST-Veränderungen.'],
+ ['Echokardiographie','Gute LV-Funktion (EF 58 %), linker Vorhof dilatiert (4,7 cm), keine Klappenpathologie.'],
+ ['Labor','TSH normal, NT-proBNP 630 pg/ml, Kalium 4,3 mmol/l, Kreatinin 1,1 mg/dl, Troponin negativ.'],
+ ['Behandlung','Frequenzkontrolle mit Metoprolol i.v. (5 mg, 3x im Abstand von 5 min), dann Metoprolol retard 47,5 mg 1-0-1. Antikoagulation mit Apixaban 5 mg 2x täglich (CHA₂DS₂-VASc-Score 4). Aufklärung zur Dauertherapie.'],
+ ['Verlauf','HF nach 24 h unter 90/min, asymptomatisch, hämodynamisch stabil. Ambulante Vorstellung zur Rhythmuskontrolle (Kardioversion diskutiert). Entlassung an Tag 4 mit Arztbrief und Medikationsplan.']],
+ kern:['Palpitationen, Belastungsdyspnoe, leichte Thoraxbeschwerden seit 3 Tagen, keine Synkope','Hypertonie, Z. n. TIA, keine Antikoagulation','HF 132/min arrhythmisch, SpO₂ 94 %','EKG: VHF mit absoluter Arrhythmie; Echo: EF 58 %, LA dilatiert; TSH normal, Troponin negativ, NT-proBNP ↑','Verdachtsdiagnose neu diagnostiziertes tachykardes VHF, CHA₂DS₂-VASc 4','Frequenzkontrolle Metoprolol, Antikoagulation Apixaban, Rhythmuskontrolle ambulant, Entlassung Tag 4'],
+ qs:['Wie kommen Sie auf einen CHA₂DS₂-VASc-Score von 4?','Warum haben Sie das TSH bestimmt?','Würden Sie jetzt sofort kardiovertieren – was bräuchten Sie vorher?']},
+{id:'ugib',dx:'Untere gastrointestinale Blutung (V. a. Divertikelblutung)',name:'Herr Klaus Berger',age:68,sex:'m',s:[
+ ['Vorstellungsgrund','Heute früh durch den Rettungsdienst gebracht. Seit gestern Abend mehrfach blutiger Stuhl mit hellrotem, beigemischtem Blut. Begleitend leichter Schwindel und Schwäche.'],
+ ['Vorgeschichte','Arterielle Hypertonie, bekannte Divertikulose des Kolons, keine bekannte Gerinnungsstörung.'],
+ ['Medikation','Ramipril 5 mg 1x täglich\nASS 100 mg 1x täglich'],
+ ['Klinischer Befund','Blass, hämodynamisch stabil, RR 125/75 mmHg, Puls 92/min, afebril. Abdomen weich, leicht druckempfindlich im linken Unterbauch. Rektal: blutige Spur.'],
+ ['Labor','Hb 10,1 g/dl (vor 3 Monaten 13,6 g/dl), Hkt 32 %, INR 1,1, CRP 3 mg/l.'],
+ ['Verdachtsdiagnose','Divertikelblutung des Kolons (wahrscheinlich Sigmadivertikel).'],
+ ['Geplante Maßnahmen','Stationäre Aufnahme, Volumentherapie, Kontrolle von Vitalparametern und Hb, Koloskopie zur Lokalisation der Blutungsquelle und ggf. interventionellen Blutstillung.']],
+ kern:['Hämatochezie (hellrotes Blut) seit gestern Abend, Schwindel, Schwäche','Divertikulose, Hypertonie, ASS-Einnahme','Blässe, stabil (RR 125/75, HF 92), Druckschmerz LUQ, Blut rektal','Hb-Abfall 13,6 → 10,1 g/dl, INR normal, CRP normal','Verdachtsdiagnose Divertikelblutung, DD Angiodysplasie, Kolonkarzinom, Hämorrhoiden, obere GI-Blutung','Procedere: stationär, Volumen, Hb-Kontrollen, Blutgruppe/Kreuzblut, ASS pausieren, Koloskopie mit ggf. Blutstillung'],
+ qs:['Wie schließen Sie eine obere GI-Blutung aus?','Was machen Sie mit dem ASS?','Ab welchem Hb würden Sie transfundieren?']},
+{id:'anaphy',dx:'Anaphylaktischer Schock',name:'Herr Stefan Müller',age:45,sex:'m',s:[
+ ['Vorstellungsgrund','Vorstellung nach einem Bienenstich. Laut Angehörigen kurz nach dem Stich Schwellung von Gesicht und Zunge, starke Atemnot, generalisierter Juckreiz und Hautrötung. Synkope vor Ort, ausgeprägtes Schwächegefühl. Notdienst sofort verständigt.'],
+ ['Vorgeschichte','Seit einem Jahr psychologische Therapie wegen Depression, keine aktuelle Medikation. Bekannte Allergie gegen Bienenstiche, bisher keine schweren Reaktionen. Verheiratet, Ingenieur, kinderlos. Mutter: Heuschnupfen.'],
+ ['Körperliche Untersuchung','RR 110/70 mmHg, Puls 110/min, AF 26/min, Temperatur 36,2 °C, SpO₂ 93 % vor O₂-Gabe. Zeichen eines schweren anaphylaktischen Schocks: wach, neurologisch verlangsamt, aber allseits orientiert.\nHNO: ausgeprägtes Zungenödem, Stridor. Haut: generalisierte Urtikaria, konjunktivale Injektion.\nLunge: Dyspnoe mit verlängertem Exspirium, gelegentlich Giemen.\nKreislauf: Tachykardie, periphere Kältezeichen, abgeschwächte Pulse.'],
+ ['Labor','CRP leicht ↑, Tryptase ↑ (Bestätigung der Anaphylaxie), Leukozytose. BGA: Hypoxämie ohne Hyperkapnie. Elektrolyte und Nierenwerte unauffällig, Troponin negativ.'],
+ ['Bildgebung','Röntgen-Thorax: unauffällig, kein Lungenödem, kein Pneumothorax.\nEKG: Sinustachykardie, keine ST-Veränderungen.\nSonographie Abdomen: unauffällig.'],
+ ['Notfallmaßnahmen','Adrenalin 0,5 mg i.m., Clemastin 2 mg i.v., Prednisolon 250 mg i.v., O₂ 6 l/min über Maske, Ringer-Lösung 1000 ml i.v.'],
+ ['Weiteres Vorgehen','Aufnahme auf die Intensivstation: kontinuierliches Monitoring von Atmung und Kreislauf, Echokardiographie (Ausschluss kardiogener Schock), weitere Volumengabe, Urin-/Nierenkontrolle.\nNach Stabilisierung Verlegung auf die internistische Normalstation. Vor Entlassung Schulung zum Adrenalin-Autoinjektor (Notfallset).']],
+ kern:['Bienenstich mit Angioödem (Gesicht, Zunge), Dyspnoe, Pruritus, Urtikaria, Synkope','Bekannte Bienengiftallergie; Depression ohne Medikation','Tachykardie 110, Tachypnoe 26, SpO₂ 93 %, Stridor, Giemen, periphere Kältezeichen','Tryptase ↑, Hypoxämie; Röntgen und EKG ohne Pathologie','Verdachtsdiagnose anaphylaktischer Schock (Grad III) nach Insektenstich','Adrenalin 0,5 mg i.m., Antihistaminikum, Prednisolon, O₂, Volumen, ITS-Monitoring, Notfallset und Schulung, ggf. Hyposensibilisierung'],
+ qs:['Warum geben Sie Adrenalin intramuskulär und nicht intravenös?','Wie lange überwachen Sie den Patienten – Stichwort biphasische Reaktion?','Was bekommt der Patient bei Entlassung mit?','Kommt eine Hyposensibilisierung in Frage?']},
+{id:'ogib',dx:'Obere gastrointestinale Blutung',name:'Herr Dieter König',age:74,sex:'m',s:[
+ ['Vorstellungsgrund','Vorstellung in der Notaufnahme mit seit zwei Tagen wiederholtem schwarzem, übelriechendem Stuhl. Zunehmende Müdigkeit, Abgeschlagenheit und Schwindel, besonders beim Aufstehen. Übelkeit, kein Erbrechen.'],
+ ['Vorgeschichte','Arterielle Hypertonie, koronare Herzkrankheit (dauerhaft ASS 100 mg täglich), Z. n. Gastroduodenitis vor 5 Jahren. Keine bekannten Allergien. Nichtraucher, gelegentlich Alkohol.'],
+ ['Körperliche Untersuchung','Blasse Haut und Schleimhäute. RR 110/65 mmHg, HF 99/min, SpO₂ 96 % (Raumluft), Temperatur 36,7 °C. Abdomen weich, kein Druckschmerz, keine Flankenschmerzen. Digital-rektale Untersuchung: Teerstuhl, Hämoccult positiv.'],
+ ['Labor','Hb 7,9 g/dl, Hkt 25 %, MCV normozytär, CRP 10 mg/l (leicht ↑), Leukozyten 11.000/µl. Elektrolyte und Gerinnung unauffällig.'],
+ ['Behandlung','Stationäre Aufnahme. Pantoprazol 80 mg i.v. als Bolus, danach kontinuierlich über Perfusor. Flüssigkeitssubstitution, Nahrungskarenz. Erythrozytenkonzentrate vorbereitet (bei Hb < 8 g/dl).'],
+ ['Weiteres Vorgehen','Ösophagogastroduodenoskopie heute Nachmittag. Aktuell stabil, weiterhin Kreislaufmonitoring.']],
+ kern:['Meläna seit 2 Tagen, Fatigue, orthostatischer Schwindel, Übelkeit','KHK mit Dauer-ASS, Z. n. Gastroduodenitis','Blässe, RR 110/65, HF 99, Teerstuhl bei DRU, Hämoccult positiv','Anämie Hb 7,9 g/dl, Hkt 25 %, Gerinnung normal','Verdachtsdiagnose obere GI-Blutung, a. e. Ulkusblutung unter ASS, DD Varizen, Mallory-Weiss, Tumor','Pantoprazol 80 mg Bolus + Perfusor, Volumen, Nahrungskarenz, EK bei Hb < 8, ÖGD heute, Monitoring'],
+ qs:['Würden Sie bei einem Hb von 7,9 transfundieren?','Was machen Sie mit dem ASS bei bekannter KHK?','Wann muss die ÖGD spätestens erfolgen?','Kennen Sie einen Score zur Risikoeinschätzung?']},
+{id:'humerus',dx:'Humerusschaftfraktur',name:'Herr Thomas Müller',age:30,sex:'m',s:[
+ ['Vorstellungsgrund','Vorstellung in der Notaufnahme nach Fahrradsturz direkt auf den rechten Arm. Sofort starke, stechende Schmerzen im rechten Oberarm, bei Bewegung deutlich verstärkt; Arm kann nicht bewegt werden. Sichtbare Schwellung und Hämatom. Taubheitsgefühl, Kribbeln in der Hand, Schwindel und Atemnot verneint.'],
+ ['Vorgeschichte','Allergisches Asthma bronchiale, allergische Rhinitis. Allergie: Penicillin.'],
+ ['Medikation','Keine regelmäßige Medikation, Asthmaspray bei Bedarf.'],
+ ['Körperliche Untersuchung','Stabiler AZ, schmerzgeplagt. RR 125/80 mmHg, HF 84/min, AF 16/min, Temperatur 36,9 °C, SpO₂ 98 % (Raumluft). Rechter Oberarm: sichtbare Fehlstellung und Schwellung, Druckschmerz, Bewegungseinschränkung, keine offene Wunde. Peripherer Puls und Sensibilität der Hand unauffällig.'],
+ ['Bildgebung','Röntgen: dislozierte Fraktur im mittleren Drittel des Humerus ohne Gelenkbeteiligung.'],
+ ['Behandlungsplan','Sofortige Ruhigstellung mit Oberarmschiene, Schmerztherapie mit Metamizol. Stationäre Aufnahme. Operative Versorgung durch Plattenosteosynthese. Postoperativ Thromboseprophylaxe und Physiotherapie.']],
+ kern:['Fahrradsturz auf den rechten Arm, Schmerzen, Schwellung, Hämatom, Funktionsverlust','Allergisches Asthma, Penicillinallergie (wichtig für perioperative Antibiose)','Fehlstellung, DMS intakt (Puls, Sensibilität; Radialisfunktion prüfen)','Röntgen: dislozierte Humerusschaftfraktur (mittleres Drittel) ohne Gelenkbeteiligung','Verdachtsdiagnose geschlossene dislozierte Humerusschaftfraktur rechts','Ruhigstellung, Metamizol, stationär, Plattenosteosynthese, Thromboseprophylaxe, Physiotherapie'],
+ qs:['Welcher Nerv ist bei einer Humerusschaftfraktur besonders gefährdet – wie prüfen Sie ihn?','Welches Antibiotikum geben Sie perioperativ bei Penicillinallergie?','Wäre auch eine konservative Therapie möglich?']},
+{id:'osg',dx:'Sprunggelenkfraktur',name:'Frau Anna Müller',age:35,sex:'f',s:[
+ ['Vorstellungsgrund','Überweisung durch den Hausarzt nach Sportunfall: beim Joggen mit dem linken Fuß umgeknickt, danach starke Schmerzen und Schwellung, im Verlauf schlechter. Vorstellung in Begleitung ihres Ehemannes. Knirschen im Gelenk, eingeschränkte Beweglichkeit.'],
+ ['Vorgeschichte','Allergisches Asthma. Familie: Vater Myokardinfarkt, Mutter rheumatoide Arthritis und Asthma bronchiale.'],
+ ['Bisherige Medikation','Hexoral-Spray bei Bedarf, Ibuprofen 600 mg bei Bedarf.'],
+ ['Körperliche Untersuchung','RR 120/80 mmHg, Puls 78/min, Temperatur 36,5 °C, AZ unauffällig. Linkes Sprunggelenk: Ödem, Schmerzen bei Berührung und Bewegung, Krepitation. Keine Wunden, keine Durchblutungsstörung.'],
+ ['Bildgebung','Röntgen: Sprunggelenkfraktur links ohne Dislokation.'],
+ ['Labor','Entzündungsparameter, Hb, Leukozyten, Thrombozyten und Elektrolyte im Normbereich.'],
+ ['Behandlungsplan','Stationäre Aufnahme. Ibuprofen alle 6 Stunden. Operation am Folgetag: ORIF (offene Reposition und interne Fixation).\nPostoperativ: Ruhigstellung, regelmäßige Laborkontrollen, Überwachung der Entzündungsparameter, schrittweise Mobilisation mit Physiotherapie. Allergisches Asthma und familiäre kardiovaskuläre Belastung werden berücksichtigt.']],
+ kern:['Supinationstrauma links beim Joggen, Schmerzen, Ödem, Krepitation, Bewegungseinschränkung','Allergisches Asthma (Vorsicht mit NSAR!); Familienanamnese','Vitalparameter unauffällig, DMS intakt, keine offene Wunde','Röntgen: nicht dislozierte Sprunggelenkfraktur links; Labor unauffällig','Verdachtsdiagnose Sprunggelenkfraktur links (z. B. Außenknöchelfraktur)','ORIF am Folgetag, Analgesie, Hochlagerung/Kühlung, Thromboseprophylaxe, Physiotherapie'],
+ qs:['Warum operieren Sie eine nicht dislozierte Fraktur?','Ist Ibuprofen bei allergischem Asthma unproblematisch?','Welche Thromboseprophylaxe planen Sie?']},
+{id:'appkompl',dx:'Komplizierte Appendizitis',name:'Frau Berna Sabin',age:21,sex:'f',s:[
+ ['Vorstellungsgrund','Vorstellung in der Rettungsstelle mit seit gestern Abend diffusen Bauchschmerzen, die heute in den rechten Unterbauch gewandert sind. Seit heute Morgen Fieber, Abgeschlagenheit, Übelkeit, Appetitlosigkeit, Schüttelfrost. Heute nur einen Schluck Wasser getrunken.'],
+ ['Vorgeschichte','Heuschnupfen (allergische Rhinitis). Schwangerschaft ausgeschlossen.'],
+ ['Körperliche Untersuchung','RR 150/100 mmHg, Puls 86/min, Temperatur 38,7 °C, SpO₂ 99 %. Druckschmerz über dem Lanz-Punkt, Blumberg-, Rovsing- und Psoas-Zeichen positiv. Urinkontrolle unauffällig.'],
+ ['Sonographie','Kokardenphänomen, verdickte Wand, Appendix über 9 mm, wenig intraabdominelle freie Flüssigkeit.'],
+ ['Labor','CRP 12 mg/dl ↑, Leukozyten 16.000/µl ↑.'],
+ ['Bisherige Medikation','Medroxyprogesteron (Spritze alle 3 Monate).'],
+ ['Behandlung','Metamizol i.v. 3x täglich, Ampicillin/Sulbactam i.v. 3x täglich.'],
+ ['Weiteres Vorgehen','Stationäre Aufnahme, Patientin stabil, Vitalparameter aktuell im Normbereich. Aufklärung über laparoskopische Appendektomie (unterschrieben), Termin beim Anästhesisten vereinbart, Eltern vor 2 Stunden informiert.']],
+ kern:['Schmerzwanderung periumbilikal/diffus → rechter Unterbauch, Fieber, Übelkeit, Inappetenz, Schüttelfrost','Nüchternheit: nur ein Schluck Wasser heute; Schwangerschaft ausgeschlossen','Fieber 38,7 °C, Hypertonie 150/100, Lanz-Punkt, Blumberg, Rovsing, Psoas positiv','Sono: Kokarde, Appendix > 9 mm, Wandverdickung, freie Flüssigkeit; CRP und Leukozyten erhöht','Verdachtsdiagnose komplizierte Appendizitis, DD Divertikulitis/Adnexitis, Extrauteringravidität ausgeschlossen','Metamizol + Ampicillin/Sulbactam, laparoskopische Appendektomie aufgeklärt, Anästhesie, Angehörige informiert'],
+ qs:['Ist die Patientin momentan nüchtern?','Woran denken Sie, wenn Sie diese Sonographiebefunde sehen?','Wie werden Sie weiter operativ vorgehen?']},
+{id:'vhf2',dx:'Vorhofflimmern',name:'Frau Sara Schmidt',age:53,sex:'f',s:[
+ ['Vorstellungsgrund','Vorstellung in der Rettungsstelle mit Attacken von Schwindel, Herzklopfen und Bewusstseinsverlust; erneute Attacke nach einer Stunde mit gleichem Verlauf. Sturz nach Gleichgewichtsunsicherheit. Begleitend Zittern, Schweißausbrüche, Übelkeit und Erbrechen. Aktuell beschwerdefrei.'],
+ ['Vorgeschichte','Diabetes mellitus Typ 2, Bluthochdruck, Morbus Parkinson, COPD GOLD II. Nichtraucherin, trinkt wenig Alkohol.'],
+ ['Medikation','Metformin 1000 mg 1-0-0\nClexane\nSalbutamol-Inhalation bei Bedarf'],
+ ['Körperliche Untersuchung','RR 90/60 mmHg, Puls 140/min, AF 26/min, Temperatur 36,9 °C, SpO₂ 92 %.\nUnauffällig: Herz, Lunge, Bauch (weich), Milz, Lymphknoten, Neurostatus.'],
+ ['Labor','HbA1c 6,9 %, sonst unauffällig.'],
+ ['EKG','Unregelmäßiger Rhythmus, Frequenz 140/min, keine ST-Streckenveränderungen.'],
+ ['Bisheriges Vorgehen','Stationäre Aufnahme, Antikoagulation mit Heparin. Kardiologisches Konsil für morgen. Transösophageale Echokardiographie (TEE) und elektrische Kardioversion angeordnet, Patientin darüber aufgeklärt.']],
+ kern:['Rezidivierende Attacken mit Schwindel, Palpitationen, Synkope und Sturz; vegetative Begleitsymptome','DM 2, Hypertonie, M. Parkinson, COPD GOLD II; Medikation inkl. Clexane','Hypotonie 90/60, Tachykardie 140, Tachypnoe 26, SpO₂ 92 %','EKG: absolute Arrhythmie 140/min ohne ST-Veränderungen; Labor bis auf HbA1c unauffällig','Verdachtsdiagnose tachykardes Vorhofflimmern, DD Vorhofflattern, Myokarditis','Heparin, kardiologisches Konsil, TEE vor elektrischer Kardioversion, Aufklärung erfolgt; Sturzfolgen abklären'],
+ qs:['Warum machen Sie vor der Kardioversion eine TEE?','Was sind Ihre Differentialdiagnosen?','Gibt es einen Hinweis auf einen Myokardinfarkt?','Hat sich die Patientin beim Sturz verletzt?']},
+{id:'vhf3',dx:'Vorhofflimmern',name:'Frau Dilara Sahin',age:69,sex:'f',s:[
+ ['Vorstellungsgrund','Vorstellung in Begleitung ihrer Tochter. Morgens sei noch alles in Ordnung gewesen; am Nachmittag klagte die Mutter über Schwindel und Herzrasen, dann Bewusstseinsverlust mit Sturz. Bei Aufnahme Gangunsicherheit und Desorientierung zu Ort und Zeit.'],
+ ['Vorgeschichte','Diabetes mellitus Typ 2, Bluthochdruck, Morbus Parkinson, COPD GOLD II.'],
+ ['Körperliche Untersuchung','RR 155/90 mmHg, Puls ca. 170/min, Temperatur 36,8 °C, stark reduzierter AZ, schlanker EZ. Herz arrhythmisch, keine Geräusche. Neurologisch: benommen, Sprechstörung, Pupillen isokor, kein Meningismus, Reflexe rechts > links.\nUnauffällig: Lunge, Bauch, Extremitäten, Milz, Lymphknoten.'],
+ ['Labor','Blut entnommen, Befunde stehen noch aus.'],
+ ['Bisherige Medikation','Metformin 1000 mg 1-0-0\nRamipril 5 mg 1-0-0\nSalbutamol-Inhalation bei Bedarf'],
+ ['Behandlung und Plan','Stationäre Aufnahme, EKG-Monitoring, Behandlung der Herzrhythmusstörung, Stabilisierung der Vitalparameter, Laborergebnisse abwarten, Besprechung mit der Kardiologie.']],
+ kern:['Fremdanamnese der Tochter: akuter Schwindel, Herzrasen, Synkope mit Sturz, Desorientierung','DM 2, Hypertonie, M. Parkinson, COPD; keine Antikoagulation','Tachyarrhythmie ca. 170/min, RR 155/90','Neurologische Herdzeichen: Sprechstörung, Benommenheit, Reflexdifferenz rechts > links','Verdachtsdiagnose tachykardes VHF mit V. a. kardioembolischen Schlaganfall – Notfall!','Procedere: sofortige cCT/CT-Angiographie (Stroke-Unit, Lysezeitfenster), Monitoring, Frequenzkontrolle, Labor, Kardiologie und Neurologie'],
+ qs:['Woran denken Sie bei der Sprechstörung und der Reflexdifferenz?','Welche Untersuchung muss jetzt sofort erfolgen?','Wann ist die Symptomatik genau aufgetreten – warum ist das wichtig?']},
+{id:'diverti2',dx:'Divertikulitis',name:'Frau Natalia Volpe',age:69,sex:'f',role:'Assistenzarzt/-ärztin der Inneren Medizin in der ZNA',s:[
+ ['Vorstellungsgrund','Überweisung durch den Hausarzt, in Begleitung der Tochter: seit einigen Tagen krampfartige Bauchschmerzen im linken Unterbauch, körperliche Schwäche und Müdigkeit. Bei den letzten Toilettengängen dunkelroter Stuhl mit Blutspuren (beunruhigt die Patientin sehr). Seit zwei Monaten abwechselnd Durchfall und Verstopfung.'],
+ ['Vorgeschichte','Diabetes mellitus seit 7 Jahren. Nichtraucherin, trinkt täglich ein Glas Rotwein, nicht sportlich aktiv, übergewichtig.'],
+ ['Körperliche Untersuchung','Beim Hausarzt 38,5 °C. Im Krankenhaus: RR 130/86 mmHg, Puls 83/min, Temperatur 38,6 °C, verminderter AZ, übergewichtiger EZ. Abdomen deutlich druckschmerzhaft, leicht tastbare walzenförmige Resistenz, spärliche Darmgeräusche. Haut blass.\nUnauffällig: Herz, Lunge, Milz, Lymphknoten, Neurostatus.'],
+ ['Labor','Hämoglobin ↓, Erythrozyten ↓, Leukozyten ↑, Thrombozyten ↓, Entzündungsparameter ↑.'],
+ ['Bisherige Medikation','Metformin 750 mg 1-1-1'],
+ ['Behandlung und Plan','Stationäre Aufnahme. Intravenöse Antibiotikatherapie, Analgesie, Flüssigkeitszufuhr. Vorbereitung auf eine mögliche Operation bei Verschlechterung. Bluttransfusion bei starkem Blutverlust.']],
+ kern:['Krampfartige Schmerzen im linken Unterbauch, Hämatochezie, Schwäche','Seit 2 Monaten Wechsel von Diarrhö und Obstipation (Alarmsymptom!)','Fieber 38,6 °C, walzenförmige Resistenz im linken Unterbauch, spärliche Darmgeräusche, Blässe','Anämie, Leukozytose, Thrombopenie, Entzündungswerte ↑','Verdachtsdiagnose Divertikulitis mit Blutung, DD Kolonkarzinom, ischämische Kolitis, CED','Plan: i.v. Antibiose, Analgesie, Volumen, ggf. Transfusion, OP-Bereitschaft; CT-Abdomen und spätere Koloskopie vorschlagen'],
+ qs:['Woran denken Sie bei dem Wechsel von Durchfall und Verstopfung?','Welche Bildgebung fehlt Ihnen noch?','Wann würden Sie eine Koloskopie machen?']},
+{id:'diverti3',dx:'Komplizierte Divertikulitis',name:'Frau Gisela Sander',age:64,sex:'f',s:[
+ ['Vorstellungsgrund','Überweisung durch den Hausarzt mit Verdacht auf Divertikulitis: seit einer Woche linksseitige Bauchschmerzen mit Ausstrahlung in den Rücken, Erbrechen und Verstopfung. Zusätzlich Fieber, Übelkeit, Blähungen, Durchfall, Blut im Stuhl und Appetitlosigkeit.'],
+ ['Vorgeschichte','Diabetes mellitus Typ 2, arterielle Hypertonie. Heuschnupfen, sonst keine Allergien.'],
+ ['Bisherige Medikation','Metformin 1000 mg 1x täglich\nRamipril 5 mg 1x täglich'],
+ ['Körperliche Untersuchung','RR 150/100 mmHg, Temperatur 38,7 °C, Puls und SpO₂ normal. Abdomen: Druckschmerz mit walzenförmiger Resistenz im linken Unterbauch.'],
+ ['Labor','CRP 12 mg/dl ↑, Leukozyten 16.000/µl ↑. Urin unauffällig.'],
+ ['Bildgebung','CT-Abdomen mit Kontrastmittel: entzündliche Schwellung, Wandverdickung, Fettgewebsimbibierung sowie freie Luft (Perforation).'],
+ ['Behandlung und Plan','Stationäre Aufnahme. Metamizol i.v. 3x täglich, Ampicillin/Sulbactam i.v. 3x täglich, Antipyretikum. Laborkontrolle. Koloskopie angeordnet, Patientin aufgeklärt.']],
+ kern:['Linksseitige Unterbauchschmerzen seit 1 Woche mit Rückenausstrahlung, Erbrechen, Obstipation, Fieber, Hämatochezie','DM 2, Hypertonie','Fieber 38,7 °C, Hypertonie, walzenförmige Resistenz LUQ','Leukozytose, CRP ↑, Urin unauffällig','CT: Divertikulitis mit freier Luft = Perforation (komplizierte Divertikulitis)','Antibiose, Analgesie; bei freier Luft chirurgisches Konsil/OP-Indikation statt akuter Koloskopie erkennen; DD Nephritis/Adnexitis'],
+ qs:['Was bedeutet die freie Luft im CT für Ihr Vorgehen?','Würden Sie jetzt eine Koloskopie machen?','Welche Klassifikation der Divertikulitis kennen Sie?']},
+{id:'vkb2',dx:'Kreuzbandriss (Kreuzbandruptur)',name:'Frau Petra Schmidt',age:34,sex:'f',role:'Notarzt/Notärztin in der ZNA',sit:'Vorstellung einer Patientin beim Oberarzt der ZNA.',adr:'Oberarzt',s:[
+ ['Vorstellungsgrund','Starke Schmerzen im rechten Knie: gestern beim Tennis plötzlich umgeknickt, dabei ein „reißendes“ Geräusch gehört. Knie seitdem geschwollen und instabil, Bein nicht voll belastbar, Schwierigkeiten beim Gehen.'],
+ ['Vorgeschichte','Keine bekannten Vorerkrankungen. Regelmäßig sportlich aktiv (Tennis, Joggen). Keine früheren Verletzungen am rechten Knie.'],
+ ['Körperliche Untersuchung','RR 120/80 mmHg, HF 78/min, AF 16/min, Temperatur 36,8 °C. Rechtes Knie: Schwellung, Erguss, Druckschmerz, positiver Lachman-Test und Schubladentest, eingeschränkte Beweglichkeit. Restliche Extremitäten unauffällig.'],
+ ['Labor','Leukozyten 7.500/µl, CRP 0,5 mg/dl. Keine weiteren Laboruntersuchungen notwendig.'],
+ ['Bisherige Medikation','Keine regelmäßige Medikation. Ibuprofen 400 mg bei Bedarf seit der Verletzung.']],
+ kern:['Distorsionstrauma rechtes Knie beim Tennis mit „Plopp“/reißendem Geräusch, Schwellung, Instabilität','Keine Vorerkrankungen, sportlich aktiv','Erguss, positiver Lachman- und Schubladentest, Bewegungseinschränkung','Labor unauffällig','Verdachtsdiagnose vordere Kreuzbandruptur rechts (DD Meniskus-, Seitenbandläsion, Fraktur)','Procedere vorgeschlagen: Röntgen (Frakturausschluss), MRT, PECH-Schema, Analgesie, Orthese, Physiotherapie, ggf. VKB-Plastik bei sportlich aktiver Patientin'],
+ qs:['Welche Bildgebung möchten Sie machen?','Würden Sie bei dieser Patientin operieren?','Was empfehlen Sie bis zur MRT?']},
+{id:'appkind',dx:'Appendizitis (Blinddarmentzündung)',name:'Louisa Schmidt',age:13,sex:'f',role:'Diensthabender Arzt / diensthabende Ärztin in der ZNA',sit:'Vorstellung einer neuen Patientin bei der Kollegin / dem Kollegen auf Station.',adr:'Kollegen auf Station',s:[
+ ['Vorstellungsgrund','Kam mit ihrer Mutter. Heute Morgen mit starken Bauchschmerzen (6/10) aufgewacht. Auch in den letzten Tagen Bauchschmerzen – man dachte an einen Magen-Darm-Infekt aus der Schule. Heute konnte sie vor Schmerzen kaum zur Toilette gehen (nur gebückt) und musste erbrechen. Noch kein regelmäßiger Zyklus, erste Regelblutung vor 6 Wochen.'],
+ ['Vorgeschichte','Seit der Einschulung immer wieder Bauchschmerzen, aber nie so stark. Keine Allergien, keine chronischen Erkrankungen, übliche Kinderkrankheiten (Masern, Mumps, Röteln). Regelmäßige Vorsorge beim Kinderarzt, zuletzt vor 6 Monaten unauffällig. Gelegentlich Ibuprofen bei Kopfschmerzen.'],
+ ['Körperliche Untersuchung','RR 100/60 mmHg, Puls 90/min, Temperatur 37,9 °C. Deutliche abdominelle Abwehrspannung, Druckschmerz maximal im rechten Unterbauch, Loslassschmerz überall.\nUnauffällig: Herz, Lunge, Milz, Lymphknoten, Neurostatus.'],
+ ['Labor','Entzündungsparameter ↑, Leukozyten ↑.'],
+ ['Sonographie','Wurmfortsatz verdickt (ca. 6,5 mm), freie Flüssigkeit um den Wurmfortsatz.'],
+ ['Bisherige Medikation','Keine.'],
+ ['Procedere','Nüchtern lassen, OP-Aufklärung (mit den Eltern) und OP-Planung.']],
+ kern:['13-jährige Patientin, Bauchschmerzen 6/10, Erbrechen, Gangbild gebückt','Menarche vor 6 Wochen (Schwangerschaftstest!), rezidivierende Bauchschmerzen seit Einschulung','Subfebril 37,9 °C, Abwehrspannung, Druckschmerz rechter Unterbauch, generalisierter Loslassschmerz (Peritonismus)','Leukozytose, Entzündungswerte ↑; Sono: Appendix 6,5 mm mit freier Flüssigkeit','Verdachtsdiagnose akute (ggf. perforierte) Appendizitis, DD Gastroenteritis, Ovarialtorsion/-zyste, Lymphadenitis mesenterialis','Procedere: nüchtern, Analgesie, i.v. Flüssigkeit/Antibiose, Aufklärung der Eltern (Einwilligung), zeitnahe laparoskopische Appendektomie'],
+ qs:['Haben Sie einen Schwangerschaftstest gemacht?','Wer muss in die Operation einwilligen?','Warum ist der Loslassschmerz überall wichtig?']},
+{id:'bpls',dx:'Benigner paroxysmaler Lagerungsschwindel (BPLS)',name:'Herr Michael Becker',age:45,sex:'m',s:[
+ ['Vorstellungsgrund','Seit ein paar Tagen Schwindel, Übelkeit und Augenzittern, zunehmend. Plötzlich aufgetreten, ausgelöst durch Kopfbewegungen; beeinträchtigt die täglichen Aktivitäten.'],
+ ['Vorgeschichte','Keine relevanten Vorerkrankungen, keine Medikamente. Berufstätig als Ingenieur, verheiratet, keine Kinder.'],
+ ['Körperliche Untersuchung','RR 120/80 mmHg, HF 78/min, AF 16/min, SpO₂ 98 %, Temperatur 36,8 °C. Außer Schwindel, Übelkeit und Nystagmus unauffällig. Neurologische Untersuchung unauffällig. Otoskopie unauffällig.'],
+ ['Labor','HbA1c 6,9 % (leicht erhöht), sonst unauffällig.'],
+ ['Diagnostik','Lagerungsprüfung nach Dix-Hallpike: typischer Nystagmus → BPLS. Audiometrie: Normalbefund.\nEpley-Manöver durchgeführt: ohne sofortige Besserung oder Verschlechterung.'],
+ ['Behandlung und Plan','Stationäre Aufnahme zur weiteren Diagnostik und Therapie. Medikamentöse Therapie derzeit nicht erforderlich; bei Persistenz oder Verschlechterung erwägen. Physiotherapie: Überprüfung des Epley-Manövers und Übungen zur Schwindelreduktion. Patientenschulung über BPLS und Lagerungsmanöver; Wiederholung ambulant möglich. Nachkontrolle in 2 Wochen.']],
+ kern:['Kurze, lageabhängige Drehschwindelattacken bei Kopfbewegung mit Übelkeit und Nystagmus','Keine Vorerkrankungen; HbA1c 6,9 % (Prädiabetes abklären)','Neurologisch und otoskopisch unauffällig, Vitalparameter normal','Dix-Hallpike positiv, Audiometrie normal','Verdachtsdiagnose BPLS (a. e. hinterer Bogengang), DD vestibuläre Neuritis, M. Menière, zentraler Schwindel','Epley-Manöver (ohne sofortigen Effekt), Physiotherapie, Schulung, ggf. Antiemetika, Kontrolle in 2 Wochen'],
+ qs:['Wie unterscheiden Sie einen peripheren von einem zentralen Schwindel?','Warum hat das Epley-Manöver vielleicht nicht geholfen?','Was machen Sie mit dem HbA1c von 6,9 %?']}
+];
+PV.forEach(p=>{p.role=p.role||PV_RS;p.sit=p.sit||PV_SIT;p.adr=p.adr||'Chefarzt'});
+const PV_GENERAL=['Begrüßung und Einleitung (Patient kurz ankündigen, um Erlaubnis bitten)','Patientendaten: Name, Alter, Aufnahmeweg und Aufnahmegrund in einem Satz','Aktuelle Beschwerden / Leitsymptome mit Verlauf und Begleitsymptomen','Relevante Vorgeschichte: Vorerkrankungen, Operationen, Allergien, Noxen, ggf. Sozial- und Familienanamnese','Bisherige Medikation mit Dosierung','Vitalparameter und körperlicher Untersuchungsbefund','Labor- und apparative Befunde (Bildgebung, EKG …) mit Bewertung','Verdachtsdiagnose mit Begründung','Differentialdiagnosen','Diagnostisches und therapeutisches Vorgehen / Procedere','Strukturierte, flüssige Vorstellung in Fachsprache; Patientenangaben in indirekter Rede (Konjunktiv I)','Rückfragen des Chefarztes präzise und sachlich richtig beantwortet','Abschluss (kurze Zusammenfassung, Frage nach Rückfragen)'];
+function pvChecklist(p){return [...PV_GENERAL.map(g=>'Struktur: '+g),...p.kern.map(k=>'Inhalt: '+k)]}
+function pvSheetText(p){return `Rolle: ${p.role}. Situation: ${p.sit}\n(Verdachts-)Diagnose: ${p.dx}\nPatient: ${p.name} (${p.age} Jahre)\n`+p.s.map(x=>x[0]+': '+x[1].replace(/\n/g,' ')).join('\n')}
+
 
 </script>
 <script>
@@ -745,9 +1148,18 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const ls={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const CALL_SECONDS=660, READ_SECONDS=30;
 const AUF_TOTAL=660, AUF_READ=150, BREAK_SECONDS=60; // Teil B: 11 Min. gesamt, davon 2:30 Lesezeit; 1 Min. Pause zwischen A und B
-let ST=null; // current station (Test N: A = Anamnese, B = Aufklärung)
-const PART_NAME={anam:'Anamnesegespräch',auf:'Aufklärungsgespräch'};
-const PART_EN={anam:'History taking',auf:'Informed consent talk'};
+const PV_TOTAL=660, PV_READ=180, PV_QROUND=150; // Teil C/D: 11 Min. gesamt, davon 3:00 Vorbereitung; Fragerunde des Chefarztes in den letzten 2:30
+let ST=null; // current station (Test A = Anamnese, B = Aufklärung, C/D = Patientenvorstellung I/II)
+const PART_NAME={anam:'Anamnesegespräch',auf:'Aufklärungsgespräch',pv1:'Patientenvorstellung I',pv2:'Patientenvorstellung II'};
+const PART_EN={anam:'History taking',auf:'Informed consent talk',pv1:'Case presentation I',pv2:'Case presentation II'};
+const LETTER={anam:'A',auf:'B',pv1:'C',pv2:'D'};
+const isPv=k=>k==='pv1'||k==='pv2';
+function chiefOf(p){
+  if(p.adr==='Oberarzt')return {name:'Dr. Thomas Brandt',anrede:'Dr. Brandt',title:'Oberarzt',sex:'m',age:48,doc:true,look:{skin:'#e3b796',hair:'#3b2a20',style:'short',shirt:'#f4f6f7',glasses:false,beard:true}};
+  if(p.adr!=='Chefarzt')return {name:'Dr. Selin Yilmaz',anrede:'Dr. Yilmaz',title:'Stationsärztin',sex:'f',age:38,doc:true,look:{skin:'#dcae8c',hair:'#2a211b',style:'ponytail',shirt:'#f4f6f7',glasses:false,beard:false}};
+  return hashStr(p.id)%2?{name:'Prof. Dr. Martin Hofmann',anrede:'Prof. Hofmann',title:'Chefarzt',sex:'m',age:61,doc:true,look:{skin:'#e9c3a6',hair:'#a7a7a3',style:'short',shirt:'#f4f6f7',glasses:true,beard:false}}
+   :{name:'Prof. Dr. Katharina Lehmann',anrede:'Prof. Lehmann',title:'Chefärztin',sex:'f',age:57,doc:true,look:{skin:'#efcfb6',hair:'#6b4b34',style:'bun',shirt:'#f4f6f7',glasses:true,beard:false}};
+}
 function bagPick(key,n){let bag=ls.get(key,[]).filter(i=>i<n);if(!bag.length){bag=[...Array(n).keys()];for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}}const x=bag.pop();ls.set(key,bag);return x}
 function hashStr(s){let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)}
 function aufPatient(a){
@@ -871,28 +1283,34 @@ function bestOf(id){const h=ls.get('famed-hist',[]).filter(x=>x.id===id&&x.level
 function seeded(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuffledIdx(n,rnd){const a=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const ROOMS=(()=>{const rnd=seeded(2026),bo=shuffledIdx(AUF.length,rnd);let ao=[];while(ao.length<bo.length)ao=ao.concat(shuffledIdx(CASES.length,rnd));return bo.map((bi,k)=>({n:k+1,a:CASES[ao[k]],b:AUF[bi]}))})();
+const PVORD=shuffledIdx(PV.length,seeded(3034)),PVH=Math.ceil(PV.length/2);
+const PV3=PVORD.slice(0,PVH).map(i=>PV[i]),PV4=PVORD.slice(PVH).map(i=>PV[i]);
+ROOMS.forEach((r,k)=>{r.c=PV3[k%PV3.length];r.d=PV4[(k*7+3)%PV4.length]});
 function bestPct(key){const h=ls.get('famed-hist',[]).filter(x=>x.key===key&&x.pct!=null);return h.length?Math.max(...h.map(x=>x.pct)):null}
-const navOpen=()=>ls.get('famed-nav',{rooms:window.innerWidth>760,a:false,b:false});
+const navOpen=()=>Object.assign({rooms:window.innerWidth>760,a:false,b:false,c:false,d:false},ls.get('famed-nav',{}));
 function nav(){
   CASES.forEach((c,i)=>c.num=i+1);
   const o=navOpen(),key=ST&&ST.key;
   const badge=k=>{const v=bestPct(k);return v==null?'':`<span class="best">${v} %</span>`};
   const btn=(k,num,label,sub,data)=>`<button class="tbtn${key===k?' on':''}" ${data}><span class="tnum">${num}</span><span class="tt">${label}<small>${sub}</small></span>${badge(k)}</button>`;
   $('#nav').innerHTML=
-   `<details class="grp" data-g="rooms"${o.rooms?' open':''}><summary>${L('Prüfungsräume','Exam rooms')} <span>${ROOMS.length}</span></summary><div class="glist">`+ROOMS.map(r=>btn('R'+r.n,r.n,L('Raum','Room')+' '+r.n,L('Test A + Pause + Test B','Test A + break + Test B'),`data-room="${r.n}"`)).join('')+'</div></details>'
+   `<details class="grp" data-g="rooms"${o.rooms?' open':''}><summary>${L('Prüfungsräume','Exam rooms')} <span>${ROOMS.length}</span></summary><div class="glist">`+ROOMS.map(r=>btn('R'+r.n,r.n,L('Raum','Room')+' '+r.n,L('Test A–D mit Pausen','Tests A–D with breaks'),`data-room="${r.n}"`)).join('')+'</div></details>'
   +`<details class="grp" data-g="a"${o.a?' open':''}><summary>${L('Teil 1 · Anamnese','Part 1 · History taking')} <span>${CASES.length}</span></summary><div class="glist">`+CASES.map((c,i)=>btn('A:'+c.id,i+1,'Test '+(i+1),L('Anamnesegespräch','History taking'),`data-id="${c.id}"`)).join('')+'</div></details>'
-  +`<details class="grp" data-g="b"${o.b?' open':''}><summary>${L('Teil 2 · Aufklärung','Part 2 · Consent talk')} <span>${AUF.length}</span></summary><div class="glist">`+AUF.map((a,i)=>btn('B:'+a.id,i+1,'Test '+(i+1),L('Aufklärungsgespräch','Consent talk'),`data-auf="${a.id}"`)).join('')+'</div></details>';
+  +`<details class="grp" data-g="b"${o.b?' open':''}><summary>${L('Teil 2 · Aufklärung','Part 2 · Consent talk')} <span>${AUF.length}</span></summary><div class="glist">`+AUF.map((a,i)=>btn('B:'+a.id,i+1,'Test '+(i+1),L('Aufklärungsgespräch','Consent talk'),`data-auf="${a.id}"`)).join('')+'</div></details>'
+  +`<details class="grp" data-g="c"${o.c?' open':''}><summary>${L('Teil 3 · Patientenvorstellung I','Part 3 · Case presentation I')} <span>${PV3.length}</span></summary><div class="glist">`+PV3.map((p,i)=>btn('C:'+p.id,i+1,'Test '+(i+1),L('Vorstellung beim Chefarzt','Present to the chief'),`data-pv="${p.id}" data-t="3"`)).join('')+'</div></details>'
+  +`<details class="grp" data-g="d"${o.d?' open':''}><summary>${L('Teil 4 · Patientenvorstellung II','Part 4 · Case presentation II')} <span>${PV4.length}</span></summary><div class="glist">`+PV4.map((p,i)=>btn('D:'+p.id,i+1,'Test '+(i+1),L('Vorstellung beim Chefarzt','Present to the chief'),`data-pv="${p.id}" data-t="4"`)).join('')+'</div></details>';
   document.querySelectorAll('#nav details.grp').forEach(d=>d.addEventListener('toggle',()=>{const v=navOpen();v[d.dataset.g]=d.open;ls.set('famed-nav',v)}));
   document.querySelectorAll('.role:not(.lang) button').forEach(b=>{b.classList.toggle('on',b.dataset.r===role);b.textContent=b.dataset.r==='m'?L('Arzt','Male doctor'):L('Ärztin','Female doctor')});
   document.querySelectorAll('.lang button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
   $('#rand').textContent='▶ '+L('Zufälligen Raum betreten','Enter a random room');
   $('#gear').textContent='⚙ '+L('Einstellungen','Settings');
-  $('.brand small').textContent=L('Station A · Anamnese + Aufklärung','Station A · History + consent talk');
+  $('.brand small').textContent=L('Anamnese · Aufklärung · Patientenvorstellung','History · Consent · Case presentation');
   document.documentElement.lang=lang;
 }
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('.tbtn');if(!b)return;
   if(b.dataset.room)startRoom(ROOMS[+b.dataset.room-1]);
   else if(b.dataset.auf)startAufOnly(AUF.find(a=>a.id===b.dataset.auf));
+  else if(b.dataset.pv)startPvOnly(PV.find(p=>p.id===b.dataset.pv),+b.dataset.t);
   else startAnamOnly(CASES.find(c=>c.id===b.dataset.id))});
 $('#rand').addEventListener('click',()=>startExam());
 $('#gear').addEventListener('click',()=>openSettings());
@@ -932,18 +1350,19 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings()});
 function home(){
   stopAll();S={view:'home'};ST=null;nav();
   const hist=ls.get('famed-hist',[]).filter(h=>h.level).slice(-8).reverse();
-  main.innerHTML=`<h1 style="font-size:clamp(32px,4.4vw,48px);max-width:18ch">${L('Station A üben wie in der echten Prüfung','Practise Station A just like the real exam')}</h1>
-  <p class="lead" style="margin-top:14px">${L('Ein Prüfungsraum = Test A (Anamnesegespräch) + 1 Minute Pause + Test B (Aufklärungsgespräch). Danach werten ein Chefarzt und eine Sprachprüferin beide Gespräche gemeinsam aus.','One exam room = Test A (history taking) + 1-minute break + Test B (informed-consent talk). Afterwards a chief physician and a language examiner evaluate both conversations together.')}</p>
-  <div class="steps s4">
+  main.innerHTML=`<h1 style="font-size:clamp(32px,4.4vw,48px);max-width:18ch">${L('FaMed üben wie in der echten Prüfung','Practise FaMed just like the real exam')}</h1>
+  <p class="lead" style="margin-top:14px">${L('Ein Prüfungsraum = Test A (Anamnese) → Pause → Test B (Aufklärung) → Pause → Test C (Patientenvorstellung I) → Pause → Test D (Patientenvorstellung II). Danach werten ein Chefarzt und eine Sprachprüferin alle vier Tests gemeinsam aus.','One exam room = Test A (history) → break → Test B (consent talk) → break → Test C (case presentation I) → break → Test D (case presentation II). Afterwards a chief physician and a language examiner evaluate all four tests together.')}</p>
+  <div class="steps s4" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
    <div class="step"><b>A · 11:00</b>${L('Anamnese: 30 s Aufgabe lesen, dann 11 Minuten Videosprechstunde mit einem zufälligen Patienten.','History: 30 s to read the task, then an 11-minute video consultation with a random patient.')}</div>
    <div class="step"><b>1:00</b>${L('Pause.','Break.')}</div>
    <div class="step"><b>B · 11:00</b>${L('Aufklärung: 2:30 Aufgabenblatt lesen, dann 8:30 dem Patienten den Eingriff erklären. Das Blatt bleibt sichtbar.','Consent talk: 2:30 to read the task sheet, then 8:30 explaining the procedure. The sheet stays visible.')}</div>
+   <div class="step"><b>C + D · 11:00</b>${L('Patientenvorstellung: 3:00 Fallakte lesen, dann 8:00 den Fall dem Chefarzt vorstellen. Er hört zu, unterbricht nur, wenn etwas Wichtiges fehlt, und stellt am Ende Fragen zum Fall.','Case presentation: 3:00 to read the case file, then 8:00 presenting it to the chief physician. He listens, interrupts only if something important is missing, and asks questions about the case at the end.')}</div>
    <div class="step"><b>%</b>${L('Auswertung: Checkliste in Prozent (Chefarzt), Patientenverständnis, 8 Sprachkriterien (Sprachprüferin), Niveau – als PDF.','Evaluation: checklist in percent (chief physician), patient understanding, 8 language criteria (language examiner), level – as PDF.')}</div>
   </div>
   ${hasKey()?'':`<div class="card" style="max-width:680px;margin-bottom:22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 260px">${L('Noch nicht eingerichtet: einmalig einen kostenlosen Gemini-Schlüssel eintragen.','Not set up yet: add a free Gemini key once.')}</span><button class="btn ghost" id="setup">⚙ ${L('Einrichten','Set up')}</button></div>`}
   <button class="btn" id="go1" style="font-size:18px;min-height:54px;padding:12px 28px">▶ ${L('Zufälligen Raum betreten','Enter a random room')}</button>
-  <p class="hint">${L('Links: Prüfungsräume (Raum 1–'+ROOMS.length+', je Test A + Pause + Test B) oder einzelne Tests aus Teil 1 (Anamnese) und Teil 2 (Aufklärung) gezielt üben.','On the left: exam rooms (Room 1–'+ROOMS.length+', each Test A + break + Test B) or single tests from Part 1 (history) and Part 2 (consent talk).')}</p>
-  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id),a=AUF.find(x=>x.id===h.auf);const nm=[c?(lang==='en'?TITLE_EN[c.id]:c.title):'',a?a.t:''].filter(Boolean).join(' + ')||h.id;return `<tr><td>${h.label?esc(h.label)+' · ':''}${esc(nm)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r">${h.pct!=null?h.pct+' % · ':''}<b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
+  <p class="hint">${L('Links: Prüfungsräume (Raum 1–'+ROOMS.length+', je Test A–D mit Pausen) oder einzelne Tests aus Teil 1 (Anamnese), Teil 2 (Aufklärung), Teil 3 und Teil 4 (Patientenvorstellung) gezielt üben.','On the left: exam rooms (Room 1–'+ROOMS.length+', each Tests A–D with breaks) or single tests from Part 1 (history), Part 2 (consent talk), Parts 3 and 4 (case presentation).')}</p>
+  ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id),a=AUF.find(x=>x.id===h.auf);const pc=PV.find(x=>x.id===h.pc),pd=PV.find(x=>x.id===h.pd);const nm=[c?(lang==='en'?TITLE_EN[c.id]:c.title):'',a?a.t:'',pc?pc.dx:'',pd?pd.dx:''].filter(Boolean).join(' + ')||h.id;return `<tr><td>${h.label?esc(h.label)+' · ':''}${esc(nm)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r">${h.pct!=null?h.pct+' % · ':''}<b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
   $('#go1').onclick=()=>startExam();
   if($('#setup'))$('#setup').onclick=()=>openSettings();
 }
@@ -952,7 +1371,7 @@ function home(){
 function startExam(){startRoom(ROOMS[bagPick('famed-bagR',ROOMS.length)])}
 function startRoom(r){
   if(!hasKey()){openSettings(()=>startRoom(r));return}
-  newStation(r.a,r.b,['anam','auf'],{key:'R'+r.n,label:L('Raum','Room')+' '+r.n,room:r.n});
+  newStation(r.a,r.b,['anam','auf','pv1','pv2'],{key:'R'+r.n,label:L('Raum','Room')+' '+r.n,room:r.n,pc:r.c,pd:r.d});
 }
 function startAnamOnly(c){
   if(!hasKey()){openSettings(()=>startAnamOnly(c));return}
@@ -962,17 +1381,23 @@ function startAufOnly(a){
   if(!hasKey()){openSettings(()=>startAufOnly(a));return}
   newStation(null,a,['auf'],{key:'B:'+a.id,label:L('Teil 2 · Test','Part 2 · Test')+' '+(AUF.indexOf(a)+1)});
 }
+function startPvOnly(p,t){
+  if(!hasKey()){openSettings(()=>startPvOnly(p,t));return}
+  const list=t===3?PV3:PV4,slot=t===3?'pv1':'pv2';
+  newStation(null,null,[slot],{key:(t===3?'C:':'D:')+p.id,label:L('Teil '+t+' · Test','Part '+t+' · Test')+' '+(list.indexOf(p)+1),[t===3?'pc':'pd']:p});
+}
+const pvOf=k=>k==='pv1'?ST.pc:ST.pd;
 function newStation(c,a,order,meta){
   stopAll();closeSettings();
-  ST=Object.assign({a:c,b:a,bp:a?aufPatient(a):null,order,i:0,parts:[],date:new Date()},meta);
+  ST=Object.assign({a:c,b:a,bp:a?aufPatient(a):null,pc:null,pd:null,order,i:0,parts:[],date:new Date()},meta);
   startPart();
 }
-const partCode=k=>ST.label+(ST.order.length>1?' · Test '+(k==='anam'?'A':'B'):'');
+const partCode=k=>ST.label+(ST.order.length>1?' · Test '+LETTER[k]:'');
 function startPart(){
   stopAll();closeSettings();
-  const kind=ST.order[ST.i],c=kind==='anam'?ST.a:ST.bp;
-  S={view:'read',kind,c,msgs:[],buf:'',partial:'',busy:false,total:kind==='anam'?CALL_SECONDS:AUF_TOTAL-AUF_READ,notes:'',hf:!!SR,phase:'idle'};S.left=S.total;nav();
-  S.r=kind==='anam'?READ_SECONDS:AUF_READ;readView();
+  const slot=ST.order[ST.i],kind=isPv(slot)?'pv':slot,p=isPv(slot)?pvOf(slot):null,c=kind==='anam'?ST.a:kind==='auf'?ST.bp:chiefOf(p);
+  S={view:'read',kind,slot,p,c,msgs:[],buf:'',partial:'',busy:false,total:kind==='anam'?CALL_SECONDS:kind==='auf'?AUF_TOTAL-AUF_READ:PV_TOTAL-PV_READ,notes:'',hf:!!SR,phase:'idle'};S.left=S.total;nav();
+  S.r=kind==='anam'?READ_SECONDS:kind==='auf'?AUF_READ:PV_READ;readView();
   clock=setInterval(()=>{S.r--;const el=$('#rc');if(el)el.textContent=fmtDur(Math.max(S.r,0));if(S.r<=0)beginCall()},1000);
 }
 function aufSheet(a){
@@ -988,8 +1413,30 @@ function aufSheet(a){
    <ol><li>den Ablauf des Eingriffs (siehe oben)</li><li>die allgemeinen Risiken: ${esc(a.gen.join(', '))}</li><li>die speziellen Risiken:${li(a.spec)}</li><li>das Vorgehen vor dem Eingriff:${li(a.vor)}</li><li>das Vorgehen nach dem Eingriff:${li(a.nach)}</li></ol>
    <p style="margin-top:8px"><b>Gehen Sie auf eventuelle Rückfragen ein.</b></p></div>`;
 }
+function pvAdrText(p){return p.adr==='Chefarzt'?'Ihrem Chefarzt vor der Tür des Patientenzimmers':p.adr==='Oberarzt'?'Ihrem Oberarzt':'Ihrer Kollegin / Ihrem Kollegen auf Station'}
+function pvSheet(p){
+  const br=t=>esc(t).replace(/\n/g,'<br>');
+  return `<div class="sheet">
+   <table class="shi"><tr><td>Ihre Rolle</td><td>${esc(p.role)}</td></tr><tr><td>Situation</td><td>${esc(p.sit)}</td></tr><tr><td>(Verdachts-)Diagnose</td><td><b>${esc(p.dx)}</b></td></tr><tr><td>Name (Alter)</td><td>${esc(p.name)} (${p.age} Jahre)</td></tr></table>
+   ${p.s.map(x=>`<div class="sh-k">${esc(x[0])}</div><p>${br(x[1])}</p>`).join('')}
+   <div class="sh-k">Aufgabenstellung</div><p>Entnehmen Sie der Fallbeschreibung alle für die strukturierte Patientenvorstellung notwendigen Informationen. Berichten Sie ${pvAdrText(p)} die relevanten Informationen über den Fall, insbesondere über</p>
+   <ul class="clean"><li>den Aufnahmegrund,</li><li>relevante Vorbefunde,</li><li>Verdachtsdiagnosen und</li><li>das diagnostische und therapeutische Vorgehen.</li></ul>
+   <p>Verwenden Sie, wenn möglich, ausschließlich fachsprachliche Begriffe.</p></div>`;
+}
+function readViewPv(){
+  const p=S.p,ch=S.c;
+  main.innerHTML=`<div class="task" style="max-width:860px;margin-top:3vh">
+   <div style="color:var(--mute);font-size:14px">${partCode(S.slot)} · ${L(PART_NAME[S.slot],PART_EN[S.slot])} · ${L('Fallakte','Case file')}</div>
+   <h2 style="font-size:clamp(24px,3vw,32px);margin:8px 0 14px">Prüfung: Patientenvorstellung</h2>
+   ${pvSheet(p)}
+   ${lang==='en'?`<p class="en">English: read the case file, then present the patient to ${esc(ch.title==='Chefarzt'||ch.title==='Chefärztin'?'the chief physician':'your colleague')} (${esc(ch.name)}) in a structured way, in medical German: reason for admission, history, findings, suspected diagnosis, differential diagnoses and the plan. The file stays visible. At the end you will be asked questions about the case.</p>`:''}
+   <div style="display:flex;gap:18px;align-items:end;flex-wrap:wrap;margin-top:6px"><div><div class="count" id="rc" style="margin-bottom:0">${fmtDur(Math.max(S.r,0))}</div><div class="lead">${L('Vorbereitungszeit – danach beginnt die Vorstellung bei '+esc(ch.name)+' (8:00). Die Fallakte bleibt sichtbar.','Preparation time – then the presentation to '+esc(ch.name)+' starts (8:00). The case file stays visible.')}</div></div></div>
+   <div class="acts"><button class="btn" id="now">${L('Jetzt beginnen','Start now')}</button><button class="btn ghost" id="back">${L('Test abbrechen','Cancel test')}</button></div></div>`;
+  $('#now').onclick=()=>beginCall();$('#back').onclick=home;
+}
 function readView(){
   if(S.kind==='auf')return readViewAuf();
+  if(S.kind==='pv')return readViewPv();
   const c=S.c,r=S.r;
   const de=`Sie sind ${role==='f'?'Allgemeinärztin':'Allgemeinarzt'}. <b>${esc(c.anrede)}</b> stellt sich heute per Videoanruf bei Ihnen vor. Führen Sie das Anamnesegespräch: Stellen Sie sich vor, erheben Sie eine vollständige Anamnese, fassen Sie die Beschwerden zusammen, erklären Sie die nächsten Schritte und gehen Sie auf die Fragen des Patienten ein.`;
   main.innerHTML=`<div class="task"><div style="color:var(--mute);font-size:14px">${partCode('anam')} · ${L('Anamnesegespräch','History taking')} · ${L('Aufgabenstellung','Task')}</div>
@@ -1019,15 +1466,15 @@ function breakView(){
 }
 function nextPart(){clearInterval(clock);ST.i++;startPart()}
 function renderBreak(){
-  const p=ST.parts[ST.i];
+  const p=ST.parts[ST.i],cur=ST.order[ST.i],nx=ST.order[ST.i+1];
   main.innerHTML=`<div class="task" style="text-align:center">
-   <div style="color:var(--mute);font-size:14px">${partCode('anam')} ${L('beendet','finished')} · ${L('Dauer','Duration')} ${fmtDur(p.dur)}</div>
+   <div style="color:var(--mute);font-size:14px">${partCode(cur)} ${L('beendet','finished')} · ${L('Dauer','Duration')} ${fmtDur(p.dur)}</div>
    <h1 style="font-size:clamp(30px,4vw,44px);margin-top:10px">${L('Pause','Break')}</h1>
    <div class="count" id="bc">${fmtDur(Math.max(ST.br,0))}</div>
-   <p class="lead" style="margin:6px auto 0">${L('Gleich folgt','Next:')} <b>${partCode('auf')} · ${L('Aufklärungsgespräch','Informed consent talk')}</b>. ${L('Die Auswertung kommt nach beiden Gesprächen.','The evaluation comes after both conversations.')}</p>
-   <div class="acts" style="justify-content:center"><button class="btn" id="now">${L('Weiter zu Teil B','Continue to part B')}</button><button class="btn ghost" id="skip">${L('Nur Teil A auswerten','Evaluate part A only')}</button></div></div>`;
+   <p class="lead" style="margin:6px auto 0">${L('Gleich folgt','Next:')} <b>${partCode(nx)} · ${L(PART_NAME[nx],PART_EN[nx])}</b>. ${L('Die Auswertung kommt am Ende für alle Tests gemeinsam.','The evaluation comes at the end, for all tests together.')}</p>
+   <div class="acts" style="justify-content:center"><button class="btn" id="now">${L('Weiter zu Test '+LETTER[nx],'Continue to test '+LETTER[nx])}</button><button class="btn ghost" id="skip">${ST.i===0?L('Nur Test A auswerten','Evaluate test A only'):L('Test A–'+LETTER[cur]+' auswerten','Evaluate tests A–'+LETTER[cur])}</button></div></div>`;
   $('#now').onclick=nextPart;
-  $('#skip').onclick=()=>{clearInterval(clock);ST.order=ST.order.slice(0,1);S={view:'done',c:ST.a};doneView()};
+  $('#skip').onclick=()=>{clearInterval(clock);ST.order=ST.order.slice(0,ST.i+1);S={view:'done',c:ST.a};doneView()};
 }
 
 /* ---------- call: hands-free conversation ---------- */
@@ -1036,7 +1483,8 @@ const MICOFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 function beginCall(){
   clearInterval(clock);const c=S.c;S.view='call';S.start=Date.now();
   if(S.kind==='auf'){S.total=AUF_TOTAL-(AUF_READ-Math.max(S.r||0,0));S.left=S.total}
-  const isB=S.kind==='auf';
+  if(S.kind==='pv'){S.total=PV_TOTAL-(PV_READ-Math.max(S.r||0,0));S.left=S.total;S.intCount=0;S.qCount=0;S.lastMon=Date.now();S.lastInt=0;S.asked=[]}
+  const isB=S.kind!=='anam';
   main.innerHTML=`<div class="call${isB?' b':''}"><div>
    <div class="stage">${avatar(c)}
     <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span class="timer" id="tm">${fmtDur(S.total)}</span></div>
@@ -1051,7 +1499,7 @@ function beginCall(){
    <div class="hint" id="hint"></div>
   </div>
   <div class="side"><div class="tabs">${isB?'<button class="on" data-p="pa" id="tab-a"></button>':''}<button class="${isB?'':'on'}" data-p="pn" id="tab-n"></button><button data-p="pt" id="tab-t"></button></div>
-   ${isB?`<div class="pane on" id="pa">${aufSheet(ST.b)}</div>`:''}
+   ${isB?`<div class="pane on" id="pa">${S.kind==='pv'?pvSheet(S.p):aufSheet(ST.b)}</div>`:''}
    <div class="pane${isB?'':' on'}" id="pn"><textarea id="notes" aria-label="Notizblock"></textarea></div>
    <div class="pane" id="pt"><div id="log"><p class="lead" style="font-size:14px" id="lognote"></p></div><div id="trbox"></div></div>
   </div></div>`;
@@ -1066,17 +1514,18 @@ function beginCall(){
   $('#notes').addEventListener('input',e=>S.notes=e.target.value);
   document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p))});
   clock=setInterval(tick,1000);tick();
-  const first=isB?(ST.b.proxy?'Guten Tag. Ich bin die Mutter von Sandra.':'Guten Tag.'):'Hallo? Ja, ich kann Sie hören. Guten Tag.';
+  const kol=role==='f'?'Frau Kollegin':'Herr Kollege';
+  const first=S.kind==='pv'?(c.title==='Stationsärztin'?`Hallo, ${kol}. Sie bringen mir eine neue Patientin aus der Notaufnahme? Erzählen Sie mal.`:`Guten Tag, ${kol}. Sie möchten mir einen neuen Patienten vorstellen? Bitte, ich höre.`):S.kind==='auf'?(ST.b.proxy?'Guten Tag. Ich bin die Mutter von Sandra.':'Guten Tag.'):'Hallo? Ja, ich kann Sie hören. Guten Tag.';
   setTimeout(()=>{if(S&&S.view==='call'&&!S.msgs.length)patientLine(first,()=>listen())},1000);
 }
 function callLabels(){
   if(!$('#end'))return;
-  $('#lbl-call').textContent=S.kind==='auf'?partCode('auf')+' · '+L('Aufklärungsgespräch','Consent talk'):(ST.order.length>1?partCode('anam')+' · ':'')+L('Videosprechstunde','Video consultation');
-  const ta=$('#tab-a');if(ta)ta.textContent=L('Aufgabe','Task');
+  $('#lbl-call').textContent=S.kind==='pv'?partCode(S.slot)+' · '+L(PART_NAME[S.slot],PART_EN[S.slot]):S.kind==='auf'?partCode('auf')+' · '+L('Aufklärungsgespräch','Consent talk'):(ST.order.length>1?partCode('anam')+' · ':'')+L('Videosprechstunde','Video consultation');
+  const ta=$('#tab-a');if(ta)ta.textContent=S.kind==='pv'?L('Fallakte','Case file'):L('Aufgabe','Task');
   $('#self').textContent=L('Sie','You');
   $('#txt').placeholder=SR?L('Optional: hier tippen statt sprechen (Enter = senden)','Optional: type here instead of speaking (Enter = send)'):L('Frage hier eintippen (Enter = senden)','Type your question here (Enter = send)');
   $('#send').textContent=L('Senden','Send');$('#end').textContent=L('Beenden','End');
-  $('#hint').textContent=(SR&&S.kind==='auf')?L('Erklären Sie alles am Stück wie am Aufgabenblatt. Der Patient hört zu und sagt nur „Mhm“. Er unterbricht nur, wenn Sie ihn direkt fragen oder ein Fachbegriff unklar ist. In den letzten 2 Minuten (Fragerunde) stellt er seine Fragen – auch zu Punkten, die Sie vergessen haben. Mikrofon-Knopf = stumm.','Explain everything in one go, following the task sheet. The patient listens and only says “Mhm”. He interrupts only if you ask him directly or a medical term is unclear. In the last 2 minutes (question time) he asks his questions – including about points you missed. Microphone button = mute.'):(SR?L('Einfach sprechen wie in einem echten Gespräch. Nach einer kurzen Pause antwortet der Patient, danach hört das Mikrofon automatisch wieder zu. Mikrofon-Knopf = stumm schalten. 🔊 = letzte Antwort nochmal.','Just talk, like a real conversation. After a short pause the patient answers, then the microphone listens again automatically. Microphone button = mute. 🔊 = replay the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'));
+  $('#hint').textContent=(SR&&S.kind==='pv')?L('Stellen Sie den Fall strukturiert und am Stück vor (Fachsprache). '+S.c.anrede+' hört zu und sagt nur „Mhm“. Fehlt etwas Wichtiges oder stimmt ein Wert nicht, unterbricht er kurz – antworten Sie und fahren Sie fort. In den letzten 2:30 oder wenn Sie fertig sind („Haben Sie noch Fragen?“) stellt er Fragen zum Fall. Mikrofon-Knopf = stumm.','Present the case in one go, in a structured way (medical German). '+S.c.anrede+' listens and only says “Mhm”. If something important is missing or a value is wrong, he interrupts briefly – answer and carry on. In the last 2:30, or when you finish (“Haben Sie noch Fragen?”), he asks questions about the case. Microphone button = mute.'):(SR&&S.kind==='auf')?L('Erklären Sie alles am Stück wie am Aufgabenblatt. Der Patient hört zu und sagt nur „Mhm“. Er unterbricht nur, wenn Sie ihn direkt fragen oder ein Fachbegriff unklar ist. In den letzten 2 Minuten (Fragerunde) stellt er seine Fragen – auch zu Punkten, die Sie vergessen haben. Mikrofon-Knopf = stumm.','Explain everything in one go, following the task sheet. The patient listens and only says “Mhm”. He interrupts only if you ask him directly or a medical term is unclear. In the last 2 minutes (question time) he asks his questions – including about points you missed. Microphone button = mute.'):(SR?L('Einfach sprechen wie in einem echten Gespräch. Nach einer kurzen Pause antwortet der Patient, danach hört das Mikrofon automatisch wieder zu. Mikrofon-Knopf = stumm schalten. 🔊 = letzte Antwort nochmal.','Just talk, like a real conversation. After a short pause the patient answers, then the microphone listens again automatically. Microphone button = mute. 🔊 = replay the last answer.'):L('Kein Mikrofon in diesem Browser – bitte tippen (Chrome/Edge für Sprache).','No microphone in this browser – please type (use Chrome/Edge for voice).'));
   $('#tab-n').textContent=L('Notizblock','Notepad');$('#tab-t').textContent=L('Mitschrift','Transcript');
   $('#notes').placeholder=L('Notizen wie im Prüfungsraum…','Notes, like in the exam room…');
   const ln=$('#lognote');if(ln)ln.textContent=L('Die Mitschrift erscheint hier. In der echten Prüfung gibt es sie nicht – nutze sie nur zur Kontrolle.','The transcript appears here. There is none in the real exam – use it only to check.');
@@ -1089,6 +1538,7 @@ function tick(){
   const t=$('#tm');if(!t)return;const l=Math.max(S.left,0);
   t.textContent=Math.floor(l/60)+':'+String(l%60).padStart(2,'0');t.classList.toggle('low',l<=60);
   if(S.kind==='auf'&&!S.qStarted&&S.left<=QROUND_SECONDS&&S.msgs.some(m=>m.who==='doc')){S.qStarted=true;showQBadge();triggerQuestions()}
+  if(S.kind==='pv'&&!S.qStarted&&!S.pvClosed&&S.left<=PV_QROUND&&S.msgs.some(m=>m.who==='doc')){S.qStarted=true;showQBadge();triggerQuestions()}
   if(S.left<=0)endCall(true);
 }
 function setStatus(s){const e=$('#st');if(e)e.textContent=s}
@@ -1102,6 +1552,7 @@ function micUI(){
   else if(S.phase==='speaking')setStatus(S.c.anrede+L(' spricht…',' is speaking…'));
   else if(!S.hf)setStatus(SR?L('Mikrofon aus','Microphone muted'):L('Verbunden','Connected'));
   else if(S.kind==='auf'&&!S.qStarted)setStatus(S.c.anrede+L(' hört zu – erklären Sie',' is listening – explain'));
+  else if(S.kind==='pv'&&!S.qStarted)setStatus(S.c.anrede+(S.awaitAns?L(' wartet auf Ihre Antwort',' is waiting for your answer'):L(' hört zu – stellen Sie den Fall vor',' is listening – present the case')));
   else setStatus(L('Ich höre zu – sprechen Sie','Listening – speak now'));
 }
 function voiceBusy(){return window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending)}
@@ -1119,7 +1570,7 @@ function listen(){
   rec=new SR();rec.lang='de-DE';rec.continuous=true;rec.interimResults=true;
   rec.onresult=e=>{let fin='',part='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else part+=t}
     if(fin)S.buf=(S.buf+' '+fin).trim();S.partial=part;showDraft();
-    clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},S.kind==='auf'?2000:1300)};
+    clearTimeout(S.sil);S.sil=setTimeout(()=>{if(S.recOn&&(S.buf||S.partial)){S.sending=true;try{rec.stop()}catch(err){S.recOn=false;sendBuf()}}},S.kind!=='anam'?2000:1300)};
   rec.onerror=e=>{
     const er=e.error;if(er==='no-speech'||er==='aborted')return;
     let msg='';
@@ -1138,7 +1589,7 @@ function listen(){
 }
 function sendBuf(){
   const t=(S.buf+' '+(S.partial||'')).trim();S.buf='';S.partial='';const tx=$('#txt');if(tx)tx.value='';
-  if(t&&!isEcho(t)&&!(S.kind==='auf'&&isFiller(t)))doctorSays(t);else listen();
+  if(t&&!isEcho(t)&&!(S.kind!=='anam'&&isFiller(t)))doctorSays(t);else listen();
 }
 function stopListening(){clearTimeout(S&&S.sil);clearTimeout(S&&S.lw);if(rec&&S&&S.recOn){S.sending=false;try{rec.abort()}catch(e){}}if(S)S.recOn=false}
 function micClick(){
@@ -1151,7 +1602,7 @@ function micClick(){
 }
 function logMsg(who,text){
   const log=$('#log');if(!log)return;if(S.msgs.length===1&&log.querySelector('.lead'))log.innerHTML='';
-  log.insertAdjacentHTML('beforeend',`<p class="msg ${who}"><b>${who==='doc'?L('Sie','You'):esc(S.c.anrede)}</b>${esc(text)}</p>`);
+  log.insertAdjacentHTML('beforeend',`<p class="msg ${who==='doc'?'doc':'pat'}"><b>${who==='doc'?L('Sie','You'):esc(S.c.anrede)}</b>${esc(text)}</p>`);
   log.parentElement.scrollTop=1e6;
 }
 function caption(t){}
@@ -1172,6 +1623,13 @@ async function doctorSays(text,typed){
     if(r.mode==='mhm'){backchannel();listen();return}
     S.aufMode=r.mode;S.aufTerm=r.term||'';
   }
+  if(S.kind==='pv'){
+    const r=pvRoute(text);
+    if(r.mode==='mhm'){if(r.bc)backchannel();listen();pvMonitor();return}
+    if(r.mode==='local'){patientLine(r.say,()=>listen());return}
+    if(r.mode==='closed'){listen();return}
+    S.pvMode=r.mode;
+  }
   patientRespond();
 }
 async function patientRespond(){
@@ -1184,8 +1642,11 @@ async function patientRespond(){
       const res=await aiChat(patientInput(),{signal:ctrl.signal,fast:true});
       if(S!==me||me.view!=='call')return;
       if(S.msgs.length!==n&&S.msgs[S.msgs.length-1].who==='doc')continue;
-      const reply=clean(res.text)||'Entschuldigung, wie bitte?';
+      const ende=/\[\s*ENDE\s*\]/i.test(res.text);
+      const reply=clean(res.text)||(S.kind==='pv'?'Wie bitte?':'Entschuldigung, wie bitte?');
       me.busy=false;
+      if(S.kind==='pv'&&S.qStarted)S.qCount=(S.qCount||0)+1;
+      if(ende&&S.kind==='pv'){S.pvClosed=true;patientLine(reply,()=>{setTimeout(()=>{if(S===me&&me.view==='call')endCall(false)},1800)});return}
       patientLine(reply,()=>listen());return;
     }
   }catch(e){
@@ -1232,9 +1693,85 @@ function triggerQuestions(){
   if(S.busy||S.phase==='speaking'){S.qPending=true;return}
   const t=(S.buf+' '+(S.partial||'')).trim();stopListening();S.buf='';S.partial='';const tx=$('#txt');if(tx)tx.value='';
   if(t&&!isFiller(t)){S.msgs.push({who:'doc',text:t});logMsg('doc',t)}
-  S.aufMode='questions';S.interrupt=true;patientRespond();
+  S.aufMode='questions';S.pvMode='qstart';S.interrupt=true;patientRespond();
 }
 function clean(t){return String(t||'').replace(/\*[^*]*\*/g,'').replace(/\[[^\]]*\]/g,'').replace(/^(Patient(in)?|[A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+)\s*:\s*/,'').replace(/^["„]|["“]$/g,'').trim()}
+/* ---------- Teil C/D: der Chefarzt hört zu, unterbricht nur bei Lücken/Fehlern, stellt am Ende Fragen ---------- */
+const PV_ASKQ=/(darf ich|haben sie (kurz |gerade )?(zeit|einen moment|eine minute)|soll ich|sollen wir|möchten sie|wollen sie|ist das in ordnung|sind sie einverstanden|was meinen sie|was denken sie|wie sehen sie das|stimmen sie|würden sie)/;
+const PV_END=/(noch fragen|irgendwelche fragen|haben sie fragen|rückfragen|anmerkungen|das wäre alles|das war alles|das wars|das war's|soweit (zu|von)|von meiner seite|danke für ihre aufmerksamkeit|vielen dank für ihre aufmerksamkeit|das ist alles)/;
+const PV_OK=['Gut, danke. Fahren Sie bitte fort.','Okay, danke. Weiter bitte.','Verstehe. Bitte fahren Sie fort.','Gut. Weiter.'];
+function pvRoute(text){
+  const t=String(text).toLowerCase().replace(/[.,!;:]/g,' ').replace(/\s+/g,' ').trim();
+  const tail=t.split(' ').slice(-12).join(' '),isQ=/\?\s*$/.test(text)||PV_ASKQ.test(tail);
+  if(S.pvClosed)return {mode:'closed'};
+  if(S.qStarted)return {mode:'qround'};
+  if(PV_END.test(tail)&&Date.now()-S.start>90000){S.qStarted=true;showQBadge();return {mode:'qstart'}}
+  if(S.awaitAns){S.awaitAns=false;S.lastMon=Date.now();return {mode:'local',say:PV_OK[Math.floor(Math.random()*PV_OK.length)]}}
+  const docN=S.msgs.filter(m=>m.who==='doc').length;
+  if(isQ&&docN<=2&&/(darf ich|zeit|moment|vorstellen)/.test(tail))return {mode:'local',say:'Ja, bitte. Legen Sie los.'};
+  if(isQ)return {mode:'answer'};
+  return {mode:'mhm',bc:t.split(' ').length>=5&&Math.random()<0.6};
+}
+const pvConv=()=>S.msgs.map(m=>(m.who==='doc'?'KANDIDAT: ':'CHEFARZT: ')+m.text).join('\n');
+async function pvMonitor(){
+  const me=S;
+  if(!me||me.view!=='call'||me.kind!=='pv'||me.qStarted||me.pvClosed||me.awaitAns||me.monBusy||(me.intCount||0)>=3)return;
+  if(Date.now()-(me.lastMon||0)<12000||Date.now()-(me.lastInt||0)<40000)return;
+  const said=me.msgs.filter(m=>m.who==='doc').map(m=>m.text).join(' ');
+  if(said.split(/\s+/).length<40)return;
+  me.monBusy=true;me.lastMon=Date.now();
+  const p=me.p,kol=role==='f'?'Frau Kollegin':'Herr Kollege';
+  const prompt=`Du bist ${me.c.name} (${me.c.title}) und hörst in der FaMed-Fachsprachprüfung (Arzt-Arzt-Gespräch) einer Patientenvorstellung zu. Der Kandidat (${role==='f'?'Ärztin':'Arzt'}, Deutsch nicht Muttersprache) stellt dir den Fall aus der FALLAKTE vor. Die Sätze kommen über Spracherkennung (kleine Erkennungsfehler ignorieren).
+FALLAKTE (du kennst sie genau):
+${pvSheetText(p)}
+ÜBLICHE REIHENFOLGE einer Vorstellung: 1 Patient/Aufnahmegrund → 2 aktuelle Beschwerden → 3 Vorgeschichte, Medikation, Allergien, Noxen → 4 Vitalparameter und Untersuchung → 5 Labor → 6 Bildgebung/EKG → 7 Verdachtsdiagnose und Differentialdiagnosen → 8 Therapie/Procedere.
+BISHER GESAGT:
+${pvConv()}
+${me.asked.length?'SCHON NACHGEFRAGT (nicht wiederholen): '+me.asked.join(' | '):''}
+ENTSCHEIDE: Unterbrich NUR, wenn (a) der Kandidat einen klar FALSCHEN Fakt genannt hat (falscher Wert, falsche Seite, falsches Medikament, falsche Diagnose im Vergleich zur Fallakte), oder (b) er eindeutig schon zu einem SPÄTEREN Abschnitt übergegangen ist und dabei einen für diesen Fall WICHTIGEN Punkt eines früheren Abschnitts ausgelassen hat (z. B. Vitalparameter, entscheidender Labor- oder Bildbefund, Allergie, wichtige Medikation, wichtige Vorerkrankung). NICHT unterbrechen für Punkte des Abschnitts, in dem er gerade ist (er kann sie noch nennen), für Kleinigkeiten, für Sprachfehler oder für Diagnose/Therapie, solange er noch nicht dort angekommen ist. Im Zweifel NICHT unterbrechen.
+Wenn du unterbrichst: EINE kurze, natürliche, kollegiale Frage in Fachsprache, z. B. "Moment, ${kol} – wie waren denn die Vitalparameter?" oder "Entschuldigung, sagten Sie links? Ich habe rechts gelesen." Nenne die Antwort nicht selbst.
+Antworte NUR mit JSON: {"interrupt":false} oder {"interrupt":true,"say":"..."}`;
+  try{
+    const r=await aiChat([{role:'user',content:prompt}],{json:true,fast:true});
+    const m=r.text.match(/\{[\s\S]*\}/);const j=JSON.parse(m?m[0]:r.text);
+    if(S!==me||me.view!=='call'||me.qStarted||me.pvClosed||me.awaitAns||me.busy||me.phase==='speaking'||me.phase==='thinking')return;
+    if(j&&j.interrupt&&j.say&&String(j.say).trim().length>4){
+      const say=clean(j.say);
+      const t=(me.buf+' '+(me.partial||'')).trim();stopListening();me.buf='';me.partial='';const tx=$('#txt');if(tx)tx.value='';
+      if(t&&!isFiller(t)){me.msgs.push({who:'doc',text:t});logMsg('doc',t)}
+      me.intCount=(me.intCount||0)+1;me.lastInt=Date.now();me.awaitAns=true;me.asked.push(say);
+      patientLine(say,()=>listen());
+    }
+  }catch(e){console.warn('monitor',e)}
+  finally{me.monBusy=false}
+}
+function chiefInput(){
+  const p=S.p,ch=S.c,kol=role==='f'?'Frau Kollegin':'Herr Kollege';
+  const left=Math.max(0,Math.round(S.left||0));
+  const sys=`Du spielst ${ch.name} (${ch.title}) in einer Übungssimulation der FaMed-Fachsprachprüfung, Teil Arzt-Arzt-Gespräch (Patientenvorstellung). Der Nutzer ist ${role==='f'?'die Kandidatin':'der Kandidat'} (${p.role}, Deutsch ist nicht die Muttersprache) und stellt dir einen Patienten vor. Sprich ${role==='f'?'sie':'ihn'} mit "${kol}" an (Sie-Form). Die Sätze kommen über Spracherkennung: ignoriere fehlende Satzzeichen und kleine Erkennungsfehler.
+DU KENNST DIE FALLAKTE GENAU:
+${pvSheetText(p)}
+Mögliche Fragen zum Fall: ${p.qs.join(' | ')}
+Wichtige Inhalte: ${p.kern.join(' | ')}
+REGELN:
+- Bleib immer in der Rolle: erfahrene/r, freundliche/r, aber anspruchsvolle/r ${ch.title}. Gesprochenes Deutsch, Fachsprache, sehr kurz (1–2 Sätze).
+- Du stellst nur Fragen zu DIESEM Fall. Pro Beitrag genau EINE Frage.
+- Erzähle den Fall nie selbst und nenne keine Befunde, nach denen du fragst. Sagt der Kandidat etwas Falsches, korrigiere kurz und sachlich.
+- FRAGERUNDE: zuerst nach WICHTIGEN Punkten der Fallakte fragen, die der Kandidat ausgelassen oder falsch gesagt hat (vergleiche das Gespräch mit der Fallakte), danach Fragen aus der Liste "Mögliche Fragen" (Begründung der Diagnose, Differentialdiagnosen, nächste Schritte). Reagiere kurz auf jede Antwort (z. B. "Gut." / "Nicht ganz – …"), dann die nächste Frage.
+- Höchstens 4 Fragen in der Fragerunde. Danach – oder wenn weniger als 30 Sekunden übrig sind – beende das Gespräch: kurzes kollegiales Feedback in 1–2 Sätzen (was gut war, was gefehlt hat) und "Dann schauen wir uns den Patienten gleich gemeinsam an." und schreibe am Ende genau: [ENDE]
+- Antworte ausschließlich mit dem gesprochenen Text: keine Regieanweisungen, Sternchen, Klammern oder Sprecher-Präfixe (einzige Ausnahme: [ENDE]).`;
+  const arr=[{role:'system',content:sys}];
+  for(const m of S.msgs){const r=m.who==='doc'?'user':'assistant';const last=arr[arr.length-1];
+    if(last.role===r&&r!=='system')last.content+='\n'+m.text;else arr.push({role:r,content:m.text})}
+  if(arr[arr.length-1].role!=='user')arr.push({role:'user',content:'…'});
+  const mode=S.pvMode||'qround',q=S.qCount||0;
+  const task={answer:'Der Kandidat hat dich während der Vorstellung direkt etwas gefragt. Antworte in einem kurzen Satz und sag dann, dass er fortfahren soll. Keine eigene Frage.',
+   qstart:(S.interrupt?`Die Zeit wird knapp: unterbrich höflich (z. B. "Danke, ${kol}, aus Zeitgründen habe ich noch ein paar Fragen.") und stelle `:'Der Kandidat ist mit der Vorstellung fertig. Bedanke dich kurz für die Vorstellung und stelle ')+'die erste Frage nach den Regeln der FRAGERUNDE.',
+   qround:q>=4||left<35?'Beende jetzt das Gespräch mit kurzem Feedback und [ENDE].':`FRAGERUNDE: Reagiere kurz auf die Antwort und stelle die nächste Frage (bisher ${q} von höchstens 4 Fragen). Wenn alles Wichtige geklärt ist, beende mit Feedback und [ENDE].`}[mode]||'';
+  S.interrupt=false;
+  arr[arr.length-1].content+=`\n\n(Regieinfo, nicht vorlesen: noch ca. ${left} Sekunden. AUFGABE JETZT: ${task})`;
+  return arr;
+}
 function patientInputAuf(){
   const a=ST.b,dr=role==='f'?'Frau Doktor':'Herr Doktor';
   const elapsed=Math.round((Date.now()-S.start)/60000);
@@ -1272,6 +1809,7 @@ ${a.persona?'PERSÖNLICHKEIT: '+a.persona:''}`;
 }
 function patientInput(){
   if(S.kind==='auf')return patientInputAuf();
+  if(S.kind==='pv')return chiefInput();
   const c=S.c,dr=role==='f'?'Frau Doktor':'Herr Doktor';
   const elapsed=Math.round((Date.now()-S.start)/60000);
   const sys=`Du spielst in einer Übungssimulation der FaMed-Fachsprachprüfung den Patienten / die Patientin in einer Videosprechstunde bei einer Hausarztpraxis. Der Nutzer ist ${role==='f'?'die Ärztin':'der Arzt'} (Prüfling, Deutsch ist nicht die Muttersprache). Sprich ${role==='f'?'sie':'ihn'} mit "${dr}" an. Die Fragen kommen über Spracherkennung: ignoriere fehlende Satzzeichen und kleine Erkennungsfehler.
@@ -1306,16 +1844,16 @@ function endCall(timeUp){
   if(!S||S.view!=='call')return;
   stopAll();
   const dur=Math.min(S.total,Math.round((Date.now()-S.start)/1000));
-  ST.parts[ST.i]={kind:S.kind,msgs:S.msgs,dur,timeUp};
+  ST.parts[ST.i]={kind:S.slot||S.kind,msgs:S.msgs,dur,timeUp};
   if(ST.i<ST.order.length-1){breakView();return}
   S={view:'done',c:ST.a||ST.bp};doneView();
 }
 const fmtDur=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 const doneParts=()=>ST.parts.filter(Boolean);
-const whoOf=k=>k==='anam'?ST.a.anrede:ST.b.anrede;
-const partTitle=k=>k==='anam'?ctitle(ST.a):(lang==='en'?ST.b.en+' · ':'')+ST.b.t;
+const whoOf=k=>k==='anam'?ST.a.anrede:k==='auf'?ST.b.anrede:chiefOf(pvOf(k)).anrede;
+const partTitle=k=>k==='anam'?ctitle(ST.a):k==='auf'?(lang==='en'?ST.b.en+' · ':'')+ST.b.t:pvOf(k).dx;
 const transcriptOf=p=>p.msgs.map(m=>(m.who==='doc'?L('Arzt','Doctor')+': ':whoOf(p.kind)+': ')+m.text).join('\n');
-function restartSame(){const {a,b,key,label,room}=ST;newStation(a,b,ST.order.slice(),{key,label,room})}
+function restartSame(){const {a,b,key,label,room,pc,pd}=ST;newStation(a,b,ST.order.slice(),{key,label,room,pc,pd})}
 function doneView(err){
   const parts=doneParts(),ok=parts.some(p=>p.msgs.filter(m=>m.who==='doc').length>=2);
   main.innerHTML=`<div class="task" style="max-width:780px">
@@ -1323,7 +1861,7 @@ function doneView(err){
    <h1 style="font-size:clamp(28px,3.6vw,40px);margin-top:8px">${L('Test abgeschlossen','Test finished')}</h1>
    <div style="margin-top:14px">${parts.map(p=>`<div class="row"><span class="tag">${partCode(p.kind)}</span><span style="flex:1">${L(PART_NAME[p.kind],PART_EN[p.kind])} · ${esc(partTitle(p.kind))}</span><span style="white-space:nowrap">${fmtDur(p.dur)} · ${p.msgs.filter(m=>m.who==='doc').length} ${L('Beiträge','turns')}${p.timeUp?' · ⏱':''}</span></div>`).join('')}</div>
    ${err?`<p style="color:var(--coral);margin-top:10px">${esc(err)}</p>`:''}
-   ${ok?`<p style="margin-top:14px">${parts.length>1?L('Jetzt werten der Chefarzt und die Sprachprüferin beide Gespräche gemeinsam aus.','Now the chief physician and the language examiner evaluate both conversations together.'):L('Jetzt werten der Chefarzt und die Sprachprüferin das Gespräch aus.','Now the chief physician and the language examiner evaluate the conversation.')}</p>`:`<p style="margin-top:14px">${L('Die Gespräche sind zu kurz für eine Auswertung.','The conversations are too short to evaluate.')}</p>`}
+   ${ok?`<p style="margin-top:14px">${parts.length>1?L('Jetzt werten der Chefarzt und die Sprachprüferin alle Gespräche gemeinsam aus.','Now the chief physician and the language examiner evaluate all conversations together.'):L('Jetzt werten der Chefarzt und die Sprachprüferin das Gespräch aus.','Now the chief physician and the language examiner evaluate the conversation.')}</p>`:`<p style="margin-top:14px">${L('Die Gespräche sind zu kurz für eine Auswertung.','The conversations are too short to evaluate.')}</p>`}
    <div class="acts">${ok?`<button class="btn" id="eval">${L('Auswerten','Evaluate')}</button>`:''}<button class="btn ghost" id="again">${L('Gleiche Fälle nochmal','Same cases again')}</button><button class="btn ghost" id="nxt">${L('Neuer Test','New test')}</button></div>
    ${parts.filter(p=>p.msgs.length).map(p=>`<details><summary>${L('Mitschrift','Transcript')} ${partCode(p.kind)}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf(p))}</p></details>`).join('')}
   </div>`;
@@ -1342,14 +1880,15 @@ async function runEval(){
     const ev=await evaluate();if(ST)ev.label=ST.label;
     if(!ev||!ev.level)throw new Error('empty');
     scoreEval(ev);S.ev=ev;
-    const h=ls.get('famed-hist',[]);h.push({id:ev.has.a?ST.a.id:null,auf:ev.has.b?ST.b.id:null,key:ST.key,label:ST.label,level:ev.level,verdict:ev.verdict,pct:ev.sc.total,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
+    const h=ls.get('famed-hist',[]);h.push({id:ev.has.a?ST.a.id:null,auf:ev.has.b?ST.b.id:null,pc:ev.has.c?ST.pc.id:null,pd:ev.has.d?ST.pd.id:null,key:ST.key,label:ST.label,level:ev.level,verdict:ev.verdict,pct:ev.sc.total,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
     renderEval(ev);
   }catch(e){console.error(e);S.view='done';doneView(L('Auswertung fehlgeschlagen: ','Evaluation failed: ')+(e&&e.status?errText(e):L('bitte nochmal versuchen.','please try again.')))}
 }
 async function evaluate(){
-  const pa=ST.parts.find(p=>p&&p.kind==='anam'),pb=ST.parts.find(p=>p&&p.kind==='auf');
-  const has={a:!!(pa&&pa.msgs.some(m=>m.who==='doc')),b:!!(pb&&pb.msgs.some(m=>m.who==='doc'))};
-  const lists={a:has.a?anamList(ST.a):[],b:has.b?aufChecklist(ST.b):[]};
+  const pa=ST.parts.find(p=>p&&p.kind==='anam'),pb=ST.parts.find(p=>p&&p.kind==='auf'),pc=ST.parts.find(p=>p&&p.kind==='pv1'),pd=ST.parts.find(p=>p&&p.kind==='pv2');
+  const said=x=>!!(x&&x.msgs.some(m=>m.who==='doc'));
+  const has={a:said(pa),b:said(pb),c:said(pc),d:said(pd)};
+  const lists={a:has.a?anamList(ST.a):[],b:has.b?aufChecklist(ST.b):[],c:has.c?pvChecklist(ST.pc):[],d:has.d?pvChecklist(ST.pd):[]};
   const conv=(p,pat)=>p.msgs.map(m=>(m.who==='doc'?(m.typed?'ARZT (getippt): ':'ARZT: '):pat+': ')+m.text).join('\n');
   const num=l=>l.map((t,i)=>(i+1)+': '+t).join('\n');
   let body='';
@@ -1379,32 +1918,46 @@ ${num(lists.b)}
 GESPRÄCH B (Dauer ${fmtDur(pb.dur)}, ${pb.timeUp?'Zeit abgelaufen':'vom Prüfling beendet'}):
 ${conv(pb,'PATIENT')}
 `}
-  const p=`Bewerte diese simulierte Station A (Arzt-Patienten-Gespräch) der FaMed-Fachsprachprüfung. Der Prüfling ist Arzt/Ärztin, Deutsch ist nicht die Muttersprache; erwartet wird C1. Die Äußerungen des Arztes stammen meist aus einer Spracherkennung: bewerte KEINE fehlenden Satzzeichen, Groß-/Kleinschreibung oder offensichtliche Erkennungsfehler (Ausnahme: Beiträge mit "(getippt)" – dort zählt auch die Rechtschreibung).
+  const pvBlock=(L1,part,pp,lst)=>{const ch=chiefOf(pp);return `
+=== TEIL ${L1} – PATIENTENVORSTELLUNG ${L1==='C'?'I':'II'} (Arzt-Arzt-Gespräch, 11 Minuten inkl. 3:00 Vorbereitung, Fallakte war sichtbar; Gesprächspartner: ${ch.name}, ${ch.title}) ===
+Erwartet: strukturierte, flüssige Vorstellung in FACHSPRACHE (nicht Laiensprache), Patientenangaben in indirekter Rede, Verdachtsdiagnose begründet, Differentialdiagnosen, Procedere; Rückfragen des ${ch.title}s präzise beantwortet.
+FALLAKTE: ${pvSheetText(pp)}
+Erwartete Rückfragen: ${pp.qs.join(' | ')}
+CHECKLISTE ${L1}:
+${num(lst)}
+GESPRÄCH ${L1} (Dauer ${fmtDur(part.dur)}, ${part.timeUp?'Zeit abgelaufen':'beendet'}):
+${conv(part,'CHEFARZT')}
+`};
+  if(has.c)body+=pvBlock('C',pc,ST.pc,lists.c);
+  if(has.d)body+=pvBlock('D',pd,ST.pd,lists.d);
+  const tags=['A','B','C','D'].filter((x,i)=>has['abcd'[i]]).join('|');
+  const p=`Bewerte diese simulierte FaMed-Fachsprachprüfung (${[has.a||has.b?'Station Arzt-Patient':'',has.c||has.d?'Station Arzt-Arzt (Patientenvorstellung)':''].filter(Boolean).join(' und ')}). Der Prüfling ist Arzt/Ärztin, Deutsch ist nicht die Muttersprache; erwartet wird C1. Die Äußerungen des Arztes stammen meist aus einer Spracherkennung: bewerte KEINE fehlenden Satzzeichen, Groß-/Kleinschreibung oder offensichtliche Erkennungsfehler (Ausnahme: Beiträge mit "(getippt)" – dort zählt auch die Rechtschreibung).
 
 Zwei Prüfer bewerten unabhängig:
-1) CHEFARZT: prüft JEDEN Punkt der Checklisten mit "ok" (klar und sachlich richtig angesprochen), "teilweise" (nur angedeutet, unvollständig, ungenau oder Fachbegriff ohne Erklärung) oder "fehlt". ${has.b?'Im Aufklärungsgespräch beurteilt er außerdem, ob der Patient wirklich alles verstanden hat: laienverständliche Sprache, Fachbegriffe erklärt, Struktur, Verständnis geprüft, Patientenfragen korrekt beantwortet, Reaktionen und Rückfragen des Patienten.':''} Außerdem Gesprächsführung, Empathie, Reaktion auf den Patienten.
+1) CHEFARZT: prüft JEDEN Punkt der Checklisten mit "ok" (klar und sachlich richtig angesprochen), "teilweise" (nur angedeutet, unvollständig, ungenau, mit falschem Wert oder – im Patientengespräch – Fachbegriff ohne Erklärung) oder "fehlt". ${has.c||has.d?'In den Patientenvorstellungen (C/D) zählt auch, ob Werte korrekt aus der Fallakte übernommen wurden und ob die Rückfragen richtig beantwortet wurden. ':''}${has.b?'Im Aufklärungsgespräch beurteilt er außerdem, ob der Patient wirklich alles verstanden hat: laienverständliche Sprache, Fachbegriffe erklärt, Struktur, Verständnis geprüft, Patientenfragen korrekt beantwortet, Reaktionen und Rückfragen des Patienten.':''} Außerdem Gesprächsführung, Empathie, Reaktion auf den Patienten.
 2) SPRACHPRÜFERIN: bewertet die Kommunikation des Prüflings anhand von 8 Kriterien, je Score 1–5 (5 = C1 sicher erreicht, 4 = knapp C1, 3 = B2, 2 = B1, 1 = darunter):
 ${CRIT.map(c=>'- '+c[0]+' ('+c[1]+'): '+c[2]).join('\n')}
 "aussprache" ist aus der Mitschrift nur indirekt beurteilbar (Erkennungsfehler, Selbstkorrekturen): gib einen vorsichtigen Wert und erwähne das im Kommentar. "rechtschreibung" nur bewerten, wenn getippte Beiträge vorhanden sind, sonst score null.
 Gemeinsam bestimmen sie das Sprachniveau nach GER (A2–C2) und ein Urteil.
 ${body}
 Antworte NUR mit gültigem JSON in genau diesem Format:
-{"level":"A2|B1|B2|C1|C2","verdict":"Bestanden|Knapp|Nicht bestanden","levelReason":"1–2 Sätze",${has.a?'"a":[{"i":1,"s":"ok|teilweise|fehlt","n":"max. 10 Wörter, nur bei teilweise/fehlt"}],':''}${has.b?'"b":[{"i":1,"s":"ok|teilweise|fehlt","n":"..."}],"understanding":{"pct":0,"note":"2 Sätze: Hat der Patient alles verstanden? Woran erkennt man das?"},':''}"chief":{"opinion":"2–4 Sätze","mistakes":[{"part":"A|B","mistake":"was falsch war oder fehlte","solution":"wie man es richtig macht, mit deutschem Mustersatz"}]},"linguist":{"opinion":"2–4 Sätze","criteria":[{"k":"fluessig","score":4,"comment":"1 Satz"}],"mistakes":[{"part":"A|B","mistake":"Originalsatz des Prüflings","solution":"korrigierte Version + kurze Erklärung"}]}}
-${has.a?'"a" muss alle '+lists.a.length+' Punkte von CHECKLISTE A enthalten. ':''}${has.b?'"b" muss alle '+lists.b.length+' Punkte von CHECKLISTE B enthalten. ':''}"criteria" muss alle 8 Kriterien enthalten. Je Prüfer 4–8 wichtigste Fehler, nach Wichtigkeit sortiert. Alles auf Deutsch. Sei ehrlich und streng, aber ermutigend.`;
+{"level":"A2|B1|B2|C1|C2","verdict":"Bestanden|Knapp|Nicht bestanden","levelReason":"1–2 Sätze",${has.a?'"a":[{"i":1,"s":"ok|teilweise|fehlt","n":"max. 10 Wörter, nur bei teilweise/fehlt"}],':''}${has.b?'"b":[{"i":1,"s":"ok|teilweise|fehlt","n":"..."}],"understanding":{"pct":0,"note":"2 Sätze: Hat der Patient alles verstanden? Woran erkennt man das?"},':''}${has.c?'"c":[{"i":1,"s":"ok|teilweise|fehlt","n":"..."}],':''}${has.d?'"d":[{"i":1,"s":"ok|teilweise|fehlt","n":"..."}],':''}${has.c||has.d?'"pvNote":"2–3 Sätze: Gesamteindruck der Patientenvorstellung(en) aus Sicht des Chefarztes (Struktur, Fachsprache, Rückfragen)",':''}"chief":{"opinion":"2–4 Sätze","mistakes":[{"part":"${tags}","mistake":"was falsch war oder fehlte","solution":"wie man es richtig macht, mit deutschem Mustersatz"}]},"linguist":{"opinion":"2–4 Sätze","criteria":[{"k":"fluessig","score":4,"comment":"1 Satz"}],"mistakes":[{"part":"${tags}","mistake":"Originalsatz des Prüflings","solution":"korrigierte Version + kurze Erklärung"}]}}
+${has.a?'"a" muss alle '+lists.a.length+' Punkte von CHECKLISTE A enthalten. ':''}${has.b?'"b" muss alle '+lists.b.length+' Punkte von CHECKLISTE B enthalten. ':''}${has.c?'"c" muss alle '+lists.c.length+' Punkte von CHECKLISTE C enthalten. ':''}${has.d?'"d" muss alle '+lists.d.length+' Punkte von CHECKLISTE D enthalten. ':''}"criteria" muss alle 8 Kriterien enthalten. Je Prüfer ${Object.values(has).filter(Boolean).length>2?'6–10':'4–8'} wichtigste Fehler, nach Wichtigkeit sortiert, möglichst aus allen Teilen. Alles auf Deutsch. Sei ehrlich und streng, aber ermutigend.`;
   const r=await aiChat([{role:'system',content:'Du bist ein Prüfungsgremium aus einem Chefarzt und einer Sprachprüferin der FaMed-Fachsprachprüfung. Antworte nur mit JSON.'},{role:'user',content:p}],{json:true,think:'low'});
   const m=r.text.match(/\{[\s\S]*\}/);const ev=JSON.parse(m?m[0]:r.text);
-  ev.has=has;ev.lists=lists;ev.durs={a:pa&&pa.dur,b:pb&&pb.dur};
+  ev.has=has;ev.lists=lists;ev.durs={a:pa&&pa.dur,b:pb&&pb.dur,c:pc&&pc.dur,d:pd&&pd.dur};
   return ev;
 }
 function normList(list,n){const m={};(Array.isArray(list)?list:[]).forEach(x=>{if(x&&x.i)m[+x.i]=x});return Array.from({length:n},(_,i)=>{const x=m[i+1]||{};const s=['ok','teilweise','fehlt'].includes(x.s)?x.s:'fehlt';return {s,n:x.n||''}})}
 function scoreEval(ev){
   const pct=l=>l.length?Math.round(100*l.reduce((t,x)=>t+(x.s==='ok'?1:x.s==='teilweise'?.5:0),0)/l.length):null;
-  ev.ra=normList(ev.a,ev.lists.a.length);ev.rb=normList(ev.b,ev.lists.b.length);
+  ev.ra=normList(ev.a,ev.lists.a.length);ev.rb=normList(ev.b,ev.lists.b.length);ev.rc=normList(ev.c,(ev.lists.c||[]).length);ev.rd=normList(ev.d,(ev.lists.d||[]).length);
   const crit=CRIT.map(c=>{const x=((ev.linguist&&ev.linguist.criteria)||[]).find(y=>y&&y.k===c[0])||{};const sc=typeof x.score==='number'?Math.max(1,Math.min(5,x.score)):null;return {k:c[0],name:c[1],desc:c[2],score:sc,comment:x.comment||''}});
   ev.crit=crit;
   const scored=crit.filter(c=>c.score!=null);
   const sc={a:ev.has.a?pct(ev.ra):null,b:ev.has.b?pct(ev.rb):null,u:ev.has.b&&ev.understanding&&typeof ev.understanding.pct==='number'?Math.max(0,Math.min(100,Math.round(ev.understanding.pct))):null,lang:scored.length?Math.round(100*scored.reduce((t,c)=>t+c.score,0)/(5*scored.length)):null};
-  const chiefParts=[sc.a,sc.b,sc.u].filter(v=>v!=null);sc.chief=chiefParts.length?Math.round(chiefParts.reduce((t,v)=>t+v,0)/chiefParts.length):null;
+  sc.c=ev.has.c?pct(ev.rc):null;sc.d=ev.has.d?pct(ev.rd):null;
+  const chiefParts=[sc.a,sc.b,sc.u,sc.c,sc.d].filter(v=>v!=null);sc.chief=chiefParts.length?Math.round(chiefParts.reduce((t,v)=>t+v,0)/chiefParts.length):null;
   const tot=[sc.chief,sc.lang].filter(v=>v!=null);sc.total=tot.length?Math.round(tot.reduce((t,v)=>t+v,0)/tot.length):null;
   ev.sc=sc;
 }
@@ -1421,7 +1974,9 @@ function evMeta(ev){
   const d=ST.date||new Date(),bits=[];
   if(ev.has.a)bits.push(`A: ${ctitle(ST.a)} (${ST.a.name}, ${ST.a.age} J., ${fmtDur(ev.durs.a||0)})`);
   if(ev.has.b)bits.push(`B: ${ST.b.t} (${ST.b.name}, ${fmtDur(ev.durs.b||0)})`);
-  return `FaMed Station A · ${ST.label} · ${d.toLocaleDateString('de-DE')} · ${bits.join(' · ')}`;
+  if(ev.has.c)bits.push(`C: ${ST.pc.dx} (${ST.pc.name}, ${fmtDur(ev.durs.c||0)})`);
+  if(ev.has.d)bits.push(`D: ${ST.pd.dx} (${ST.pd.name}, ${fmtDur(ev.durs.d||0)})`);
+  return `FaMed · ${ST.label} · ${d.toLocaleDateString('de-DE')} · ${bits.join(' · ')}`;
 }
 function renderEvalDE(ev){
   const sc=ev.sc;
@@ -1441,12 +1996,15 @@ function renderEvalDE(ev){
     ${ev.has.a?kpi('Checkliste A · Anamnese',sc.a,cnt(ev.ra)):''}
     ${ev.has.b?kpi('Checkliste B · Aufklärung',sc.b,cnt(ev.rb)):''}
     ${ev.has.b?kpi('Patient hat verstanden',sc.u,'Sicht des Chefarztes'):''}
+    ${ev.has.c?kpi('Checkliste C · Vorstellung I',sc.c,cnt(ev.rc)):''}
+    ${ev.has.d?kpi('Checkliste D · Vorstellung II',sc.d,cnt(ev.rd)):''}
     ${kpi('Sprache · 8 Kriterien',sc.lang,'Sicht der Sprachprüferin')}
    </div>
    <div class="grid2">
     <div class="card judge"><h3>👨‍⚕️ Chefarzt${sc.chief!=null?` · ${sc.chief} %`:''}</h3><p class="op">${esc(ev.chief&&ev.chief.opinion)}</p>
-     ${ev.has.a?bar('A · Checkliste',sc.a):''}${ev.has.b?bar('B · Checkliste',sc.b)+bar('B · Verständnis',sc.u):''}
+     ${ev.has.a?bar('A · Checkliste',sc.a):''}${ev.has.b?bar('B · Checkliste',sc.b)+bar('B · Verständnis',sc.u):''}${ev.has.c?bar('C · Vorstellung I',sc.c):''}${ev.has.d?bar('D · Vorstellung II',sc.d):''}
      ${ev.has.b&&ev.understanding&&ev.understanding.note?`<p class="op" style="margin-top:8px"><b>Patientenverständnis:</b> ${esc(ev.understanding.note)}</p>`:''}
+     ${(ev.has.c||ev.has.d)&&ev.pvNote?`<p class="op" style="margin-top:8px"><b>Patientenvorstellung:</b> ${esc(ev.pvNote)}</p>`:''}
      ${itemsHTML(ev.chief&&ev.chief.mistakes)}</div>
     <div class="card judge"><h3>🗣️ Sprachprüferin${sc.lang!=null?` · ${sc.lang} %`:''}</h3><p class="op">${esc(ev.linguist&&ev.linguist.opinion)}</p>
      ${ev.crit.map(c=>`<div class="crit"><span title="${esc(c.desc)}">${esc(c.name)}</span><div class="pbar"><i style="width:${c.score?c.score*20:0}%;background:${pCol(c.score?c.score*20:null)}"></i></div><b>${c.score?c.score+'/5':'n. b.'}</b>${c.comment?`<em>${esc(c.comment)}</em>`:''}</div>`).join('')}
@@ -1454,6 +2012,8 @@ function renderEvalDE(ev){
    </div>
    ${ev.has.a?`<details open><summary>Checkliste A · Anamnese – ${sc.a} % (${cnt(ev.ra)})</summary>${list(ev.lists.a,ev.ra)}</details>`:''}
    ${ev.has.b?`<details open><summary>Checkliste B · Aufklärung ${esc(ST.b.t)} – ${sc.b} % (${cnt(ev.rb)})</summary>${list(ev.lists.b,ev.rb)}</details>`:''}
+   ${ev.has.c?`<details open><summary>Checkliste C · Patientenvorstellung ${esc(ST.pc.dx)} – ${sc.c} % (${cnt(ev.rc)})</summary>${list(ev.lists.c,ev.rc)}</details>`:''}
+   ${ev.has.d?`<details open><summary>Checkliste D · Patientenvorstellung ${esc(ST.pd.dx)} – ${sc.d} % (${cnt(ev.rd)})</summary>${list(ev.lists.d,ev.rd)}</details>`:''}
    ${doneParts().filter(p=>p.msgs.length).map(p=>`<details><summary>Mitschrift ${partCode(p.kind)} · ${PART_NAME[p.kind]}</summary><p style="white-space:pre-line;font-size:15px">${esc(transcriptOf(p))}</p></details>`).join('')}
   </div>
   <div class="acts"><button class="btn" id="pdf">⬇ ${L('Als PDF speichern','Save as PDF')}</button><button class="btn ghost" id="again">${L('Gleiche Fälle nochmal','Same cases again')}</button><button class="btn ghost" id="nxt">${L('Neuer Test','New test')}</button></div>`;
@@ -1469,20 +2029,22 @@ function pdfHTMLDE(ev){
   const sc=ev.sc;
   const items=list=>(list||[]).map(x=>`<div style="padding:6px 0;border-bottom:1px solid #e3e8e8;page-break-inside:avoid"><div style="color:#b3361f"><b>✗</b> ${x.part?`<b>[${esc(x.part)}]</b> `:''}${esc(x.mistake)}</div><div style="color:#1f6b45;margin-top:2px"><b>✓</b> ${esc(x.solution)}</div></div>`).join('');
   const bar=(lbl,v)=>`<div style="display:flex;align-items:center;gap:8px;margin:3px 0;page-break-inside:avoid"><span style="width:150px">${lbl}</span><span style="flex:1;height:7px;background:#e3e8e8;border-radius:4px;overflow:hidden;display:block"><span style="display:block;height:7px;width:${v||0}%;background:${pHex(v)}"></span></span><b style="width:52px;text-align:right">${v==null?'–':v+' %'}</b></div>`;
-  const kpi=(lbl,v)=>`<td style="border:1px solid #cfdcdc;border-radius:6px;padding:6px 8px;text-align:center;width:25%"><div style="font-size:10px;color:#5b6b6e">${lbl}</div><div style="font-size:20px;font-weight:700;color:${pHex(v)}">${v==null?'–':v+' %'}</div></td>`;
+  const kpi=(lbl,v)=>`<td style="border:1px solid #cfdcdc;border-radius:6px;padding:6px 8px;text-align:center"><div style="font-size:10px;color:#5b6b6e">${lbl}</div><div style="font-size:20px;font-weight:700;color:${pHex(v)}">${v==null?'–':v+' %'}</div></td>`;
   const col={ok:'#1f7a4d',teilweise:'#a86a00',fehlt:'#e5533d'};
   const list=(t,items,rs)=>`<div style="margin-top:14px"><div style="font-size:14px;font-weight:700;color:#0b5d63">${t}</div>${items.map((x,i)=>`<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid #eef2f2;page-break-inside:avoid"><span style="flex:none;width:72px;color:#fff;background:${col[rs[i].s]};border-radius:8px;text-align:center;font-size:10px;font-weight:700;padding:1px 0;height:fit-content">${ST_LBL[rs[i].s]}</span><span style="flex:1">${esc(x)}${rs[i].n?` <span style="color:#5b6b6e">– ${esc(rs[i].n)}</span>`:''}</span></div>`).join('')}</div>`;
   const box=(t,inner)=>`<div style="margin-top:14px;border:1px solid #cfdcdc;border-radius:8px;padding:10px 12px">${'<div style="font-size:15px;font-weight:700;color:#0b5d63">'+t+'</div>'}${inner}</div>`;
   return `<div style="font-family:Inter,Arial,sans-serif;color:#11191b;font-size:11.5px;line-height:1.45;width:720px;padding:6px">
-   <div style="border-bottom:3px solid #0b5d63;padding-bottom:8px"><div style="font-size:20px;font-weight:700">FaMed Station A – Auswertung ${esc(ST.label)}</div>
+   <div style="border-bottom:3px solid #0b5d63;padding-bottom:8px"><div style="font-size:20px;font-weight:700">FaMed – Auswertung ${esc(ST.label)}</div>
    <div style="color:#5b6b6e">${esc(evMeta(ev))}</div></div>
    <div style="display:flex;gap:16px;align-items:center;margin-top:12px"><div style="border:3px solid #0b5d63;border-radius:10px;padding:6px 14px;text-align:center"><div style="font-size:10px;color:#5b6b6e">Sprachniveau</div><div style="font-size:30px;font-weight:700;color:#0b5d63">${esc(ev.level)}</div><div style="font-size:10px;color:#5b6b6e">Ziel: C1</div></div>
    <div><div style="font-weight:700;font-size:14px">${esc(VDL(ev.verdict))}${sc.total!=null?' · Gesamt '+sc.total+' %':''}</div><div>${esc(ev.levelReason)}</div></div></div>
-   <table style="width:100%;border-collapse:separate;border-spacing:6px;margin-top:10px"><tr>${ev.has.a?kpi('Checkliste A · Anamnese',sc.a):''}${ev.has.b?kpi('Checkliste B · Aufklärung',sc.b)+kpi('Patient hat verstanden',sc.u):''}${kpi('Sprache · 8 Kriterien',sc.lang)}</tr></table>
-   ${box('👨‍⚕️ Chefarzt'+(sc.chief!=null?' · '+sc.chief+' %':''),`<p style="margin:6px 0 4px">${esc(ev.chief&&ev.chief.opinion)}</p>${ev.has.a?bar('A · Checkliste',sc.a):''}${ev.has.b?bar('B · Checkliste',sc.b)+bar('B · Verständnis',sc.u):''}${ev.has.b&&ev.understanding&&ev.understanding.note?`<p style="margin:6px 0"><b>Patientenverständnis:</b> ${esc(ev.understanding.note)}</p>`:''}${items(ev.chief&&ev.chief.mistakes)}`)}
+   <table style="width:100%;border-collapse:separate;border-spacing:6px;margin-top:10px"><tr>${ev.has.a?kpi('Checkliste A · Anamnese',sc.a):''}${ev.has.b?kpi('Checkliste B · Aufklärung',sc.b)+kpi('Patient hat verstanden',sc.u):''}${ev.has.c?kpi('Checkliste C · Vorstellung I',sc.c):''}${ev.has.d?kpi('Checkliste D · Vorstellung II',sc.d):''}${kpi('Sprache · 8 Kriterien',sc.lang)}</tr></table>
+   ${box('👨‍⚕️ Chefarzt'+(sc.chief!=null?' · '+sc.chief+' %':''),`<p style="margin:6px 0 4px">${esc(ev.chief&&ev.chief.opinion)}</p>${ev.has.a?bar('A · Checkliste',sc.a):''}${ev.has.b?bar('B · Checkliste',sc.b)+bar('B · Verständnis',sc.u):''}${ev.has.c?bar('C · Vorstellung I',sc.c):''}${ev.has.d?bar('D · Vorstellung II',sc.d):''}${ev.has.b&&ev.understanding&&ev.understanding.note?`<p style="margin:6px 0"><b>Patientenverständnis:</b> ${esc(ev.understanding.note)}</p>`:''}${(ev.has.c||ev.has.d)&&ev.pvNote?`<p style="margin:6px 0"><b>Patientenvorstellung:</b> ${esc(ev.pvNote)}</p>`:''}${items(ev.chief&&ev.chief.mistakes)}`)}
    ${box('🗣️ Sprachprüferin'+(sc.lang!=null?' · '+sc.lang+' %':''),`<p style="margin:6px 0 4px">${esc(ev.linguist&&ev.linguist.opinion)}</p>${ev.crit.map(c=>`<div style="page-break-inside:avoid">${bar(c.name+' '+(c.score?c.score+'/5':'n. b.'),c.score?c.score*20:null)}${c.comment?`<div style="color:#5b6b6e;margin:0 0 4px 158px">${esc(c.comment)}</div>`:''}</div>`).join('')}${items(ev.linguist&&ev.linguist.mistakes)}`)}
    ${ev.has.a?list('Checkliste A · Anamnese – '+sc.a+' %',ev.lists.a,ev.ra):''}
    ${ev.has.b?list('Checkliste B · Aufklärung '+esc(ST.b.t)+' – '+sc.b+' %',ev.lists.b,ev.rb):''}
+   ${ev.has.c?list('Checkliste C · Patientenvorstellung '+esc(ST.pc.dx)+' – '+sc.c+' %',ev.lists.c,ev.rc):''}
+   ${ev.has.d?list('Checkliste D · Patientenvorstellung '+esc(ST.pd.dx)+' – '+sc.d+' %',ev.lists.d,ev.rd):''}
    ${doneParts().filter(p=>p.msgs.length).map(p=>`<div style="margin-top:14px"><div style="font-size:14px;font-weight:700;color:#0b5d63">Mitschrift ${partCode(p.kind)} · ${PART_NAME[p.kind]}</div><div style="white-space:pre-line;margin-top:4px">${esc(transcriptOf(p))}</div></div>`).join('')}
   </div>`;
 }
@@ -1490,7 +2052,7 @@ async function savePDF(){
   const b=$('#pdf');const t=b.textContent;b.disabled=true;b.textContent='PDF wird erstellt…';
   const d=ST.date||new Date(),ev=S.ev;
   const slug=x=>String(x).replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,'-').replace(/^-|-$/g,'');
-  const name=`FaMed_${slug(ST.label)}_${[ev.has.a?slug(ST.a.title):'',ev.has.b?slug(ST.b.t):''].filter(Boolean).join('_')}_${d.toISOString().slice(0,10)}.pdf`;
+  const name=`FaMed_${slug(ST.label)}_${[ev.has.a?slug(ST.a.title):'',ev.has.b?slug(ST.b.t):'',ev.has.c?slug(ST.pc.dx.split(' (')[0]):'',ev.has.d?slug(ST.pd.dx.split(' (')[0]):''].filter(Boolean).slice(0,4).join('_').slice(0,120)}_${d.toISOString().slice(0,10)}.pdf`;
   try{
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
     window.scrollTo(0,0);
@@ -1517,12 +2079,15 @@ function avatar(c){
   const wr=old?`<g stroke="${shade(sk,.78)}" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M220 104Q240 100 260 104M224 111Q240 108 256 111"/><path d="M222 160Q218 172 224 180M258 160Q262 172 256 180"/></g>`:'';
   const gl=L.glasses?`<g fill="rgba(255,255,255,.08)" stroke="#232323" stroke-width="2.5"><rect x="207" y="127" width="28" height="22" rx="7"/><rect x="245" y="127" width="28" height="22" rx="7"/><path d="M235 136h10M207 134l-17-3M273 134l17-3" fill="none"/></g>`:'';
   const bd=L.beard?`<path d="M196 150C198 196 222 210 240 210C258 210 282 196 284 150C278 176 266 190 240 190C214 190 202 176 196 150Z" fill="${hr}" opacity=".92"/><path d="M226 172Q240 166 254 172Q240 176 226 172Z" fill="${hr}"/>`:'';
-  return `<svg class="av" viewBox="0 0 480 300" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Patient im Videoanruf: ${esc(c.anrede)}">
-  <defs><linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9e1dc"/><stop offset="1" stop-color="#aebdb6"/></linearGradient>
+  const doc=!!c.doc;
+  const coat=doc?`<path d="M196 216L240 268L224 300H150L170 236Z" fill="#e4e9ec"/><path d="M284 216L240 268L256 300H330L310 236Z" fill="#e4e9ec"/><path d="M218 214L240 268L262 214Z" fill="#8fb8d6"/><path d="M206 226C194 262 214 284 238 286M274 226C290 258 276 280 252 286" fill="none" stroke="#2f3d47" stroke-width="4" stroke-linecap="round"/><circle cx="244" cy="288" r="7" fill="#9aa6ae" stroke="#2f3d47" stroke-width="2"/><rect x="292" y="250" width="34" height="12" rx="3" fill="#ffffff" stroke="#c9d3d8"/><rect x="296" y="254" width="20" height="3" fill="#0b5d63"/>`:'';
+  const room=doc?`<g filter="url(#dof)" opacity=".9"><rect x="22" y="30" width="130" height="120" rx="4" fill="#eaf3f8" stroke="#b8c7cf" stroke-width="6"/><path d="M87 30V150M22 90H152" stroke="#b8c7cf" stroke-width="5"/><rect x="350" y="40" width="96" height="200" rx="4" fill="#d6dfe4" stroke="#b5c2c9" stroke-width="5"/><circle cx="436" cy="146" r="5" fill="#8a989f"/><rect x="0" y="236" width="480" height="64" fill="#c9d4d9"/><rect x="180" y="40" width="120" height="16" rx="3" fill="#0b5d63" opacity=".55"/></g>`:'';
+  return `<svg class="av" viewBox="0 0 480 300" preserveAspectRatio="xMidYMax slice" role="img" aria-label="${doc?esc(c.title)+': ':'Patient im Videoanruf: '}${esc(c.anrede)}">
+  <defs><linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${doc?'#f1f5f7':'#d9e1dc'}"/><stop offset="1" stop-color="${doc?'#c9d6dd':'#aebdb6'}"/></linearGradient>
   <radialGradient id="lamp" cx=".18" cy=".2" r=".6"><stop offset="0" stop-color="#fff6df" stop-opacity=".75"/><stop offset="1" stop-color="#fff6df" stop-opacity="0"/></radialGradient>
   <filter id="dof"><feGaussianBlur stdDeviation="2.4"/></filter></defs>
   <rect width="480" height="300" fill="url(#wall)"/>
-  <g filter="url(#dof)" opacity=".85"><rect x="18" y="40" width="120" height="150" fill="#8c7258"/><rect x="24" y="48" width="108" height="64" fill="#6d5844"/><rect x="24" y="120" width="108" height="64" fill="#6d5844"/>
+  ${room}<g filter="url(#dof)" opacity=".85"${doc?' display="none"':''}><rect x="18" y="40" width="120" height="150" fill="#8c7258"/><rect x="24" y="48" width="108" height="64" fill="#6d5844"/><rect x="24" y="120" width="108" height="64" fill="#6d5844"/>
    ${[0,1,2,3,4,5,6].map(i=>`<rect x="${28+i*14}" y="${58+(i%3)*4}" width="11" height="${50-(i%3)*4}" fill="${['#c2553f','#3f6b8c','#d8b45a','#5b8a5f','#9a6fa3','#e0dccf','#41605a'][i]}"/>`).join('')}
    ${[0,1,2,3].map(i=>`<rect x="${30+i*18}" y="${132+(i%2)*6}" width="14" height="${46-(i%2)*6}" fill="${['#e0dccf','#c2553f','#3f6b8c','#d8b45a'][i]}"/>`).join('')}
    <rect x="380" y="150" width="46" height="60" rx="6" fill="#c9b8a3"/><ellipse cx="403" cy="140" rx="40" ry="34" fill="#4f7d55"/><ellipse cx="388" cy="118" rx="22" ry="26" fill="#5f9466"/><ellipse cx="420" cy="122" rx="20" ry="24" fill="#456f4b"/></g>
@@ -1533,6 +2098,7 @@ function avatar(c){
    <path d="M108 300C116 236 170 214 240 214C310 214 364 236 372 300" fill="none" stroke="${shade(L.shirt,.75)}" stroke-width="3"/>
    <path d="M216 176H264V222C256 234 224 234 216 222Z" fill="${shade(sk,.86)}"/>
    <path d="M218 214L240 240L262 214" fill="none" stroke="${shade(L.shirt,.7)}" stroke-width="4"/>
+   ${coat}
    <ellipse cx="190" cy="140" rx="9" ry="14" fill="${shade(sk,.93)}"/><ellipse cx="290" cy="140" rx="9" ry="14" fill="${shade(sk,.93)}"/>
    <ellipse cx="240" cy="134" rx="51" ry="63" fill="${sk}"/>
    <ellipse cx="216" cy="162" rx="10" ry="6" fill="#e58b7b" opacity=".18"/><ellipse cx="264" cy="162" rx="10" ry="6" fill="#e58b7b" opacity=".18"/>
