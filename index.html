@@ -97,6 +97,7 @@ aside .glist{padding:2px 0 8px 6px}
 .call.b .controls .say{flex-basis:100%;order:3}
 .qbadge{position:absolute;right:14px;top:52px;color:#fff;font-size:13px;font-weight:600;background:var(--coral);padding:4px 10px;border-radius:20px}
 @media(max-width:980px){.call.b{grid-template-columns:minmax(0,1fr)}.call.b .side{min-height:60vh}.call.b .pane{max-height:70vh}}
+.prov{font-size:11px;color:#fff;background:rgba(0,0,0,.45);padding:3px 8px;border-radius:12px;letter-spacing:.02em}.prov.alt{background:#a86a00}
 .hist{width:100%;border-collapse:collapse;font-size:15px}.hist td,.hist th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}.hist .r{text-align:right;white-space:nowrap}
 /* reading */
 .task{max-width:720px;margin:6vh auto 0;background:var(--panel);border-radius:18px;padding:clamp(22px,4vw,40px);border-top:6px solid var(--teal)}
@@ -1196,11 +1197,72 @@ const IS_BRAVE=!!(navigator.brave&&navigator.brave.isBrave);
 const BRAVE_MSG=()=>L('Brave unterstützt die Spracherkennung nicht. Bitte die Seite in Google Chrome oder Microsoft Edge öffnen – oder hier tippen.','Brave does not support speech recognition. Please open this page in Google Chrome or Microsoft Edge – or type here.');
 const cfg=Object.assign({key:'',model:'gemini-3.6-flash',voice:'browser'},ls.get('famed-gemini',{}));
 const saveCfg=()=>ls.set('famed-gemini',cfg);
-const hasKey=()=>cfg.key.trim().length>20;
+const hasGemini=()=>cfg.key.trim().length>20;
+const hasGroq=()=>String(cfg.groq||'').trim().length>20;
+const hasKey=()=>hasGemini()||hasGroq();
 let rec=null,audio=null;
 const FAST_MODELS=['gemini-3.5-flash-lite','gemini-3.1-flash-lite'];
 let noThinkCfg=false;
-async function aiChat(messages,{json=false,signal,fast=false,think}={}){
+/* ---------- AI: Gemini first, Groq as automatic backup (slow, overloaded or limit reached) ---------- */
+const GROQ_MODELS=['openai/gpt-oss-120b','qwen/qwen3.8-27b','openai/gpt-oss-20b'];
+const GEMINI_WAIT={fast:6000,slow:60000};
+let geminiPauseUntil=0,lastProvider='';
+function showProvider(p){lastProvider=p;const e=document.getElementById('prov');if(e){e.textContent=p;e.classList.toggle('alt',p!=='Gemini')}}
+async function aiChat(messages,opts={}){
+  const ext=opts.signal;
+  if(!hasGemini()){const r=await groqChat(messages,opts);showProvider('Groq');return r}
+  if(hasGroq()&&Date.now()<geminiPauseUntil){
+    try{const r=await groqChat(messages,opts);showProvider('Groq');return r}catch(e){if(e&&e.name==='AbortError')throw e}
+  }
+  if(!hasGroq()){const r=await geminiChat(messages,opts);showProvider('Gemini');return r}
+  const ctrl=new AbortController();let timedOut=false;
+  const onExt=()=>ctrl.abort();if(ext){if(ext.aborted)ctrl.abort();else ext.addEventListener('abort',onExt,{once:true})}
+  const to=setTimeout(()=>{timedOut=true;ctrl.abort()},opts.fast?GEMINI_WAIT.fast:GEMINI_WAIT.slow);
+  try{const r=await geminiChat(messages,Object.assign({},opts,{signal:ctrl.signal}));showProvider('Gemini');return r}
+  catch(e){
+    if(ext&&ext.aborted)throw e;
+    if(!timedOut&&e&&e.status&&![429,500,502,503,504].includes(e.status)&&!/blockiert/.test(e.message||''))throw e;
+    if(!timedOut&&e&&e.status===429)geminiPauseUntil=Date.now()+60000;
+    else if(!timedOut&&e&&e.status>=500)geminiPauseUntil=Date.now()+20000;
+    else if(timedOut&&opts.fast)geminiPauseUntil=Date.now()+20000;
+    console.warn('Gemini → Groq',timedOut?'timeout':e);
+    const r=await groqChat(messages,opts);showProvider('Groq');return r;
+  }
+  finally{clearTimeout(to);if(ext)ext.removeEventListener('abort',onExt)}
+}
+async function groqChat(messages,{json=false,signal,fast=false}={}){
+  const msgs=[];
+  const sys=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
+  if(sys)msgs.push({role:'system',content:sys+(json?'\nAntworte ausschließlich mit gültigem JSON.':'')});
+  for(const m of messages.filter(m=>m.role!=='system')){const r=m.role==='assistant'?'assistant':'user';const l=msgs[msgs.length-1];
+    if(l&&l.role===r)l.content+='\n'+m.content;else msgs.push({role:r,content:m.content})}
+  if(!msgs.length||msgs[msgs.length-1].role==='system')msgs.push({role:'user',content:'(Gespräch beginnt)'});
+  if(json&&!sys)msgs.unshift({role:'system',content:'Antworte ausschließlich mit gültigem JSON.'});
+  let lastErr;
+  for(const model of GROQ_MODELS){
+    const body={model,messages:msgs,temperature:json?0.3:0.8,max_completion_tokens:fast?900:8000};
+    if(json)body.response_format={type:'json_object'};
+    if(/gpt-oss/.test(model)){body.reasoning_effort='low';body.include_reasoning=false}else body.reasoning_format='hidden';
+    let r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',signal,headers:{'Content-Type':'application/json','Authorization':'Bearer '+String(cfg.groq).trim()},body:JSON.stringify(body)});
+    let d=await r.json().catch(()=>({}));
+    if(!r.ok&&r.status===400&&/reason/i.test((d.error&&d.error.message)||'')){
+      delete body.reasoning_effort;delete body.include_reasoning;delete body.reasoning_format;
+      r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',signal,headers:{'Content-Type':'application/json','Authorization':'Bearer '+String(cfg.groq).trim()},body:JSON.stringify(body)});
+      d=await r.json().catch(()=>({}));
+    }
+    if(r.ok){
+      let text=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
+      text=text.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
+      if(text)return {text,provider:'Groq',model};
+      lastErr=new Error('Groq: leere Antwort');continue;
+    }
+    lastErr=new Error('Groq: '+((d.error&&d.error.message)||('HTTP '+r.status)));lastErr.status=r.status;lastErr.groq=true;
+    if([404,413,429,498,500,503].includes(r.status)||(r.status===400&&/model/i.test(lastErr.message)))continue;
+    break;
+  }
+  throw lastErr;
+}
+async function geminiChat(messages,{json=false,signal,fast=false,think}={}){
   const sys=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
   const contents=[];
   for(const m of messages.filter(m=>m.role!=='system')){const r=m.role==='assistant'?'model':'user';const l=contents[contents.length-1];
@@ -1238,6 +1300,8 @@ async function aiChat(messages,{json=false,signal,fast=false,think}={}){
 }
 function errText(e){
   if(!e)return 'Fehler';
+  if(e.groq){if(e.status===401)return L('Groq-Schlüssel ungültig','Invalid Groq key');if(e.status===429||e.status===413)return L('Groq-Limit kurz erreicht – 1 Minute warten','Groq limit reached for now – wait 1 minute');return e.message}
+  if(e instanceof TypeError&&/fetch/i.test(e.message))return L('Verbindung fehlgeschlagen (Internet oder Browser blockiert den Zugriff)','Connection failed (internet, or the browser blocks the request)');
   if(e.status===400&&/key/i.test(e.message)||e.status===401||e.status===403)return L('API-Schlüssel ungültig','Invalid API key');
   if(e.status===429)return L('Kostenloses Limit kurz erreicht – 1 Minute warten','Free limit reached for now – wait 1 minute');
   if(e.status===404||/model/i.test(e.message))return L('Modell nicht gefunden – Modellname in den Einstellungen prüfen','Model not found – check the model name on the start page');
@@ -1329,18 +1393,24 @@ function openSettings(after){
    <ol style="margin:12px 0 4px;padding-left:20px;font-size:15px">${L('<li>Öffne <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> und melde dich mit einem Google-Konto an.</li><li>Klicke auf „API-Schlüssel erstellen“ und kopiere ihn.</li><li>Füge ihn hier ein und klicke auf „Speichern & testen“.</li>','<li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with a Google account.</li><li>Click “Create API key” and copy it.</li><li>Paste it here and click “Save & test”.</li>')}</ol>
    <label class="fl">${L('Gemini-API-Schlüssel','Gemini API key')}<input id="k" type="password" autocomplete="off" placeholder="AIza…" value="${esc(cfg.key)}"></label>
    <label class="fl">${L('Modell','Model')}<input id="mdl" value="${esc(cfg.model)}"></label>
+   <h3 style="font-size:17px;margin:18px 0 4px">${L('Zweiter Anbieter (optional): Groq','Second provider (optional): Groq')}</h3>
+   <p class="hint" style="margin:0 0 6px">${L('Antwortet Gemini nicht innerhalb von 6 Sekunden, ist überlastet oder das Tageslimit erreicht, übernimmt automatisch Groq – mit dem ganzen bisherigen Gespräch. Kostenloser Schlüssel ohne Kreditkarte: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> → „Create API Key“.','If Gemini does not answer within 6 seconds, is overloaded or has reached its daily limit, Groq takes over automatically – with the whole conversation so far. Free key, no credit card: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> → “Create API Key”.')}</p>
+   <label class="fl">${L('Groq-API-Schlüssel','Groq API key')}<input id="gk" type="password" autocomplete="off" placeholder="gsk_…" value="${esc(cfg.groq||'')}"></label>
    <div class="acts" style="margin-top:14px"><button class="btn" id="save">${L('Speichern & testen','Save & test')}</button><span id="tst" class="lead" style="align-self:center;font-size:15px"></span></div>
    <p class="hint">${L('Der Schlüssel bleibt nur in diesem Browser. Mikrofon und Stimme: am besten Chrome oder Edge am Computer.','The key stays only in this browser. For microphone and voice, use Chrome or Edge on a computer.')}</p>
-   <div class="caps">${cap(hasKey(),L('Gemini-Schlüssel','Gemini key'))+cap(!!SR,L('Mikrofon','Microphone'))+cap(!!window.speechSynthesis,L('Stimme','Voice'))}</div>
+   <div class="caps">${cap(hasGemini(),L('Gemini-Schlüssel','Gemini key'))+cap(hasGroq(),L('Groq-Schlüssel (Reserve)','Groq key (backup)'))+cap(!!SR,L('Mikrofon','Microphone'))+cap(!!window.speechSynthesis,L('Stimme','Voice'))}</div>
   </div></div>`);
   $('#mclose').onclick=closeSettings;
   $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeSettings()});
-  $('#save').onclick=async()=>{cfg.key=$('#k').value.trim();cfg.model=$('#mdl').value.trim()||'gemini-3.6-flash';saveCfg();
-    const t=$('#tst');if(!hasKey()){t.textContent=L('Bitte den Schlüssel einfügen.','Please paste the key.');return}
+  $('#save').onclick=async()=>{cfg.key=$('#k').value.trim();cfg.model=$('#mdl').value.trim()||'gemini-3.6-flash';cfg.groq=$('#gk').value.trim();saveCfg();
+    const t=$('#tst');if(!hasKey()){t.textContent=L('Bitte einen Schlüssel einfügen.','Please paste a key.');return}
     t.textContent=L('Teste…','Testing…');
-    try{await aiChat([{role:'user',content:'Antworte nur mit: OK'}],{fast:true});t.textContent=L('✓ Verbunden (','✓ Connected (')+cfg.model+')';
-      setTimeout(()=>{const a=S&&S.after;closeSettings();if(a)a();else if(!S||S.view==='home')home()},900)}
-    catch(e){t.textContent='✗ '+errText(e)}};
+    const ping=[{role:'user',content:'Antworte nur mit: OK'}];
+    const res=[];let okAny=false;
+    if(hasGemini()){try{await geminiChat(ping,{fast:true});res.push('✓ Gemini ('+cfg.model+')');okAny=true}catch(e){res.push('✗ Gemini: '+errText(e))}}
+    if(hasGroq()){try{const r=await groqChat(ping,{fast:true});res.push('✓ Groq ('+r.model+')');okAny=true}catch(e){res.push('✗ Groq: '+errText(e))}}
+    t.innerHTML=res.map(esc).join('<br>');
+    if(okAny&&!res.some(x=>x.startsWith('✗')))setTimeout(()=>{const a=S&&S.after;closeSettings();if(a)a();else if(!S||S.view==='home')home()},1400)};
   setTimeout(()=>$('#k')&&$('#k').focus(),50);
 }
 function closeSettings(){const m=$('#modal');if(m)m.remove()}
@@ -1487,7 +1557,7 @@ function beginCall(){
   const isB=S.kind!=='anam';
   main.innerHTML=`<div class="call${isB?' b':''}"><div>
    <div class="stage">${avatar(c)}
-    <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span class="timer" id="tm">${fmtDur(S.total)}</span></div>
+    <div class="bar"><span class="rec"><span id="lbl-call">Videosprechstunde</span> · ${esc(c.anrede)}</span><span style="display:flex;gap:8px;align-items:center"><span id="prov" class="prov" title="${L('Welcher KI-Anbieter zuletzt geantwortet hat','Which AI provider answered last')}">${hasGemini()?'Gemini':'Groq'}</span><span class="timer" id="tm">${fmtDur(S.total)}</span></span></div>
     <div class="status" id="st"></div>
     <div class="self" id="self"></div>
    </div>
