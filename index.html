@@ -1221,12 +1221,13 @@ async function aiChat(messages,opts={}){
   try{const r=await geminiChat(messages,Object.assign({},opts,{signal:ctrl.signal}));showProvider('Gemini');return r}
   catch(e){
     if(ext&&ext.aborted)throw e;
-    if(!timedOut&&e&&e.status&&![429,500,502,503,504].includes(e.status)&&!/blockiert/.test(e.message||''))throw e;
+    if(!timedOut&&e&&(e.status===401||e.status===403||(e.status===400&&/api.?key/i.test(e.message||''))))throw e;
     if(!timedOut&&e&&e.status===429)geminiPauseUntil=Date.now()+60000;
     else if(!timedOut&&e&&e.status>=500)geminiPauseUntil=Date.now()+20000;
     else if(timedOut&&opts.fast)geminiPauseUntil=Date.now()+20000;
     console.warn('Gemini → Groq',timedOut?'timeout':e);
-    const r=await groqChat(messages,opts);showProvider('Groq');return r;
+    try{const r=await groqChat(messages,opts);showProvider('Groq');return r}
+    catch(g){if(e&&e.status===429&&!(g&&g.status===401))throw e;throw g}
   }
   finally{clearTimeout(to);if(ext)ext.removeEventListener('abort',onExt)}
 }
@@ -1268,13 +1269,13 @@ async function geminiChat(messages,{json=false,signal,fast=false,think}={}){
   for(const m of messages.filter(m=>m.role!=='system')){const r=m.role==='assistant'?'model':'user';const l=contents[contents.length-1];
     if(l&&l.role===r)l.parts[0].text+='\n'+m.content;else contents.push({role:r,parts:[{text:m.content}]})}
   if(!contents.length||contents[0].role!=='user')contents.unshift({role:'user',parts:[{text:'(Gespräch beginnt)'}]});
-  const gc={temperature:json?0.3:0.8};
+  const gc={};
   if(fast)gc.maxOutputTokens=300;
   if(json)gc.responseMimeType='application/json';
   const level=think||(fast?'minimal':null);
-  const main=[cfg.model.trim(),'gemini-3.6-flash','gemini-3.8-flash','gemini-flash-latest'];
+  const main=[cfg.model.trim(),'gemini-3.6-flash','gemini-3.7-flash','gemini-3.8-flash','gemini-3.5-flash','gemini-flash-latest'];
   const tryModels=(fast?[...FAST_MODELS,...main]:[...main,...FAST_MODELS]).filter((m,i,a)=>m&&a.indexOf(m)===i);
-  let d,lastErr;
+  let d,lastErr,errs=[];
   for(const model of tryModels){
     const body={contents,generationConfig:Object.assign({},gc)};
     if(sys)body.systemInstruction={parts:[{text:sys}]};
@@ -1288,11 +1289,18 @@ async function geminiChat(messages,{json=false,signal,fast=false,think}={}){
       d=await r.json().catch(()=>({}));
     }
     if(r.ok){if(!fast&&main.includes(model)&&model!==cfg.model){cfg.model=model;saveCfg()}lastErr=null;break}
-    lastErr=new Error((d.error&&d.error.message)||('HTTP '+r.status));lastErr.status=r.status;
-    if(r.status===404||r.status===429||r.status===503)continue;
-    break;
+    lastErr=new Error((d.error&&d.error.message)||('HTTP '+r.status));lastErr.status=r.status;lastErr.model=model;errs.push(lastErr);
+    if(r.status===401||r.status===403||(r.status===400&&/api.?key/i.test(lastErr.message)))break;
+    if(signal&&signal.aborted)break;
+    continue;
   }
-  if(lastErr)throw lastErr;
+  if(lastErr){
+    // report the most meaningful error, not simply the last one (a later "model not found" must not hide a quota error)
+    const rank=e=>e.status===401||e.status===403||(e.status===400&&/api.?key/i.test(e.message))?0:e.status===429?1:e.status>=500?2:e.status===400?3:4;
+    const best=errs.sort((x,y)=>rank(x)-rank(y))[0]||lastErr;
+    if(best.status===429&&errs.filter(e=>e.status===429).length>=2)best.daily=errs.some(e=>/per.?day|perday|daily/i.test(e.message));
+    throw best;
+  }
   const c=d.candidates&&d.candidates[0];
   const text=c&&c.content&&c.content.parts?c.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join(''):'';
   if(!text&&c&&c.finishReason&&c.finishReason!=='STOP'){const e=new Error('Antwort blockiert ('+c.finishReason+')');throw e}
@@ -1300,11 +1308,12 @@ async function geminiChat(messages,{json=false,signal,fast=false,think}={}){
 }
 function errText(e){
   if(!e)return 'Fehler';
-  if(e.groq){if(e.status===401)return L('Groq-Schlüssel ungültig','Invalid Groq key');if(e.status===429||e.status===413)return L('Groq-Limit kurz erreicht – 1 Minute warten','Groq limit reached for now – wait 1 minute');return e.message}
+  if(e.groq){if(e.status===401)return L('Groq-Schlüssel ungültig','Invalid Groq key');if(e.status===413||/too large|tokens per minute|TPM/i.test(e.message))return L('Für Groq ist diese Auswertung zu groß (kostenloses Limit 8.000 Tokens/Minute). Der Test ist gespeichert – später mit Gemini auswerten.','This evaluation is too large for Groq (free limit 8,000 tokens/minute). The test is saved – evaluate it later with Gemini.');if(e.status===429)return L('Groq-Limit kurz erreicht – 1 Minute warten','Groq limit reached for now – wait 1 minute');return e.message}
   if(e instanceof TypeError&&/fetch/i.test(e.message))return L('Verbindung fehlgeschlagen (Internet oder Browser blockiert den Zugriff)','Connection failed (internet, or the browser blocks the request)');
   if(e.status===400&&/key/i.test(e.message)||e.status===401||e.status===403)return L('API-Schlüssel ungültig','Invalid API key');
-  if(e.status===429)return L('Kostenloses Limit kurz erreicht – 1 Minute warten','Free limit reached for now – wait 1 minute');
-  if(e.status===404||/model/i.test(e.message))return L('Modell nicht gefunden – Modellname in den Einstellungen prüfen','Model not found – check the model name on the start page');
+  if(e.status===429&&(e.daily||/per.?day|perday|daily/i.test(e.message)))return L('Das kostenlose Gemini-Tageslimit ist aufgebraucht (Neustart um 9:00 Uhr). Der Test ist gespeichert – Sie können ihn später auf der Startseite auswerten.','The free daily Gemini limit is used up (resets at 9:00 German time). The test is saved – you can evaluate it later from the start page.');
+  if(e.status===429)return L('Kostenloses Limit kurz erreicht – 1 Minute warten und erneut versuchen','Free limit reached for now – wait 1 minute and try again');
+  if(e.status===404)return L('Modell nicht gefunden ('+(e.model||'')+') – in den Einstellungen das Feld „Modell“ leeren bzw. auf gemini-3.6-flash setzen','Model not found ('+(e.model||'')+') – in the settings, set “Model” to gemini-3.6-flash');
   return L('Verbindung gestört: ','Connection problem: ')+e.message;
 }
 function germanVoice(){
@@ -1432,9 +1441,12 @@ function home(){
   ${hasKey()?'':`<div class="card" style="max-width:680px;margin-bottom:22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span style="flex:1 1 260px">${L('Noch nicht eingerichtet: einmalig einen kostenlosen Gemini-Schlüssel eintragen.','Not set up yet: add a free Gemini key once.')}</span><button class="btn ghost" id="setup">⚙ ${L('Einrichten','Set up')}</button></div>`}
   <button class="btn" id="go1" style="font-size:18px;min-height:54px;padding:12px 28px">▶ ${L('Zufälligen Raum betreten','Enter a random room')}</button>
   <p class="hint">${L('Links: Prüfungsräume (Raum 1–'+ROOMS.length+', je Test A–D mit Pausen) oder einzelne Tests aus Teil 1 (Anamnese), Teil 2 (Aufklärung), Teil 3 und Teil 4 (Patientenvorstellung) gezielt üben.','On the left: exam rooms (Room 1–'+ROOMS.length+', each Tests A–D with breaks) or single tests from Part 1 (history), Part 2 (consent talk), Parts 3 and 4 (case presentation).')}</p>
+  ${(()=>{const P=ls.get('famed-pending',null);return P?`<div class="card" style="margin-top:28px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b>${L('Noch nicht ausgewertet:','Not evaluated yet:')} ${esc(P.label||'')}</b><div class="hint" style="margin:2px 0 0">${new Date(P.date).toLocaleString(L('de-DE','en-GB'),{dateStyle:'short',timeStyle:'short'})} · ${P.order.map(k=>'Test '+LETTER[k]).join(', ')}</div></div><div style="display:flex;gap:8px"><button class="btn" id="pend-ev">${L('Jetzt auswerten','Evaluate now')}</button><button class="btn ghost" id="pend-del">${L('Verwerfen','Discard')}</button></div></div>`:''})()}
   ${hist.length?`<h2 style="font-size:22px;margin:34px 0 10px">${L('Letzte Auswertungen','Recent evaluations')}</h2><table class="hist"><tbody>${hist.map(h=>{const c=CASES.find(x=>x.id===h.id),a=AUF.find(x=>x.id===h.auf);const pc=PV.find(x=>x.id===h.pc),pd=PV.find(x=>x.id===h.pd);const nm=[c?(lang==='en'?TITLE_EN[c.id]:c.title):'',a?a.t:'',pc?pc.dx:'',pd?pd.dx:''].filter(Boolean).join(' + ')||h.id;return `<tr><td>${h.label?esc(h.label)+' · ':''}${esc(nm)}</td><td>${new Date(h.t).toLocaleDateString(L('de-DE','en-GB'))}</td><td class="r">${h.pct!=null?h.pct+' % · ':''}<b>${esc(h.level)}</b></td></tr>`}).join('')}</tbody></table>`:''}`;
   $('#go1').onclick=()=>startExam();
   if($('#setup'))$('#setup').onclick=()=>openSettings();
+  if($('#pend-ev'))$('#pend-ev').onclick=()=>{if(loadPending())runEval()};
+  if($('#pend-del'))$('#pend-del').onclick=()=>{if(confirm(L('Diesen Test wirklich verwerfen?','Really discard this test?'))){localStorage.removeItem('famed-pending');home()}};
 }
 
 /* ---------- reading phase ---------- */
@@ -1926,6 +1938,7 @@ const partTitle=k=>k==='anam'?ctitle(ST.a):k==='auf'?(lang==='en'?ST.b.en+' · '
 const transcriptOf=p=>p.msgs.map(m=>(m.who==='doc'?L('Arzt','Doctor')+': ':whoOf(p.kind)+': ')+m.text).join('\n');
 function restartSame(){const {a,b,key,label,room,pc,pd}=ST;newStation(a,b,ST.order.slice(),{key,label,room,pc,pd})}
 function doneView(err){
+  savePending();
   const parts=doneParts(),ok=parts.some(p=>p.msgs.filter(m=>m.who==='doc').length>=2);
   main.innerHTML=`<div class="task" style="max-width:780px">
    <div style="color:var(--mute);font-size:14px">${esc(ST.label)}</div>
@@ -1943,14 +1956,26 @@ function doneView(err){
 const GENERAL=['Begrüßung & Vorstellung','Persönliche Daten','Hauptbeschwerde','Aktuelle Anamnese / Schmerzanamnese','Vegetative Anamnese','Gynäkologische Anamnese','Zusammenfassung der Beschwerden','Vorerkrankungen & Operationen','Medikation','Allergien','Impfungen','Noxen','Familienanamnese','Sozialanamnese','Psyche','Abschluss & nächste Schritte'];
 const CRIT=[['fluessig','Flüssigkeit','spontan und flüssig sprechen, selten nach Wörtern suchen'],['wortschatz','Wortschatz','großer Wortschatz; unbekannte Wörter problemlos umschreiben'],['spektrum','Spektrum','breites Spektrum sprachlicher Mittel, klar und nuanciert'],['aussprache','Aussprache','Akzent darf hörbar sein, stört die Verständlichkeit nicht; korrigiert sich selbst'],['fehler','Korrektheit','selten Fehler; sie fallen kaum auf und führen nicht zu Missverständnissen'],['kohaerenz','Kohärenz','klar und strukturiert, vielfältige Verbindungswörter'],['rechtschreibung','Rechtschreibung','Rechtschreibung und Zeichensetzung korrekt (nur bei getippten Beiträgen)'],['genauigkeit','Genauigkeit','auch detaillierte Informationen in anspruchsvollen Situationen korrekt vermitteln']];
 function anamList(c){return [...GENERAL.filter(g=>c.sex==='f'||!g.startsWith('Gyn')).map(g=>'Struktur: '+g),...TOPICS[c.topic]]}
+function savePending(){
+  try{if(!ST||!ST.parts.some(p=>p&&p.msgs&&p.msgs.some(m=>m.who==='doc')))return;
+    ls.set('famed-pending',{key:ST.key,label:ST.label,room:ST.room||null,order:ST.order,a:ST.a&&ST.a.id,b:ST.b&&ST.b.id,pc:ST.pc&&ST.pc.id,pd:ST.pd&&ST.pd.id,parts:ST.parts,date:+new Date(ST.date)})}catch(e){}
+}
+function loadPending(){
+  const P=ls.get('famed-pending',null);if(!P)return false;
+  const a=CASES.find(x=>x.id===P.a)||null,b=AUF.find(x=>x.id===P.b)||null;
+  ST={key:P.key,label:P.label,room:P.room,order:P.order,a,b,bp:b?aufPatient(b):null,pc:PV.find(x=>x.id===P.pc)||null,pd:PV.find(x=>x.id===P.pd)||null,parts:P.parts,i:P.order.length-1,date:new Date(P.date)};
+  S={view:'done',c:ST.a||ST.bp};return true;
+}
 async function runEval(){
   if(!hasKey()){openSettings(runEval);return}
+  savePending();
   S.view='eval';
   main.innerHTML=`<div style="text-align:center"><div class="spin"></div><h2 style="font-size:26px">Chefarzt und Sprachprüferin werten aus…</h2><p class="lead" style="margin:8px auto">Das dauert etwa 20–60 Sekunden.</p></div>`;
   try{
     const ev=await evaluate();if(ST)ev.label=ST.label;
     if(!ev||!ev.level)throw new Error('empty');
     scoreEval(ev);S.ev=ev;
+    localStorage.removeItem('famed-pending');
     const h=ls.get('famed-hist',[]);h.push({id:ev.has.a?ST.a.id:null,auf:ev.has.b?ST.b.id:null,pc:ev.has.c?ST.pc.id:null,pd:ev.has.d?ST.pd.id:null,key:ST.key,label:ST.label,level:ev.level,verdict:ev.verdict,pct:ev.sc.total,t:Date.now()});ls.set('famed-hist',h.slice(-80));nav();
     renderEval(ev);
   }catch(e){console.error(e);S.view='done';doneView(L('Auswertung fehlgeschlagen: ','Evaluation failed: ')+(e&&e.status?errText(e):L('bitte nochmal versuchen.','please try again.')))}
@@ -2184,7 +2209,7 @@ function avatar(c){
 }
 
 /* ---------- new version available? (GitHub Pages caches the page up to 10 min) ---------- */
-const APP_VERSION='2026-11-23c';
+const APP_VERSION='2026-11-23d';
 async function checkUpdate(){
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});if(!r.ok)return;
