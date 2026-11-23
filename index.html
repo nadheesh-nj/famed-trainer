@@ -1397,7 +1397,7 @@ function openSettings(after){
    <p class="hint" style="margin:0 0 6px">${L('Antwortet Gemini nicht innerhalb von 6 Sekunden, ist überlastet oder das Tageslimit erreicht, übernimmt automatisch Groq – mit dem ganzen bisherigen Gespräch. Kostenloser Schlüssel ohne Kreditkarte: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> → „Create API Key“.','If Gemini does not answer within 6 seconds, is overloaded or has reached its daily limit, Groq takes over automatically – with the whole conversation so far. Free key, no credit card: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> → “Create API Key”.')}</p>
    <label class="fl">${L('Groq-API-Schlüssel','Groq API key')}<input id="gk" type="password" autocomplete="off" placeholder="gsk_…" value="${esc(cfg.groq||'')}"></label>
    <div class="acts" style="margin-top:14px"><button class="btn" id="save">${L('Speichern & testen','Save & test')}</button><span id="tst" class="lead" style="align-self:center;font-size:15px"></span></div>
-   <p class="hint">${L('Der Schlüssel bleibt nur in diesem Browser. Mikrofon und Stimme: am besten Chrome oder Edge am Computer.','The key stays only in this browser. For microphone and voice, use Chrome or Edge on a computer.')}</p>
+   <p class="hint">Version ${APP_VERSION} · ${L('Der Schlüssel bleibt nur in diesem Browser. Mikrofon und Stimme: am besten Chrome oder Edge am Computer.','The key stays only in this browser. For microphone and voice, use Chrome or Edge on a computer.')}</p>
    <div class="caps">${cap(hasGemini(),L('Gemini-Schlüssel','Gemini key'))+cap(hasGroq(),L('Groq-Schlüssel (Reserve)','Groq key (backup)'))+cap(!!SR,L('Mikrofon','Microphone'))+cap(!!window.speechSynthesis,L('Stimme','Voice'))}</div>
   </div></div>`);
   $('#mclose').onclick=closeSettings;
@@ -1716,7 +1716,7 @@ async function patientRespond(){
       const reply=clean(res.text)||(S.kind==='pv'?'Wie bitte?':'Entschuldigung, wie bitte?');
       me.busy=false;
       if(S.kind==='pv'&&S.qStarted)S.qCount=(S.qCount||0)+1;
-      if(ende&&S.kind==='pv'){S.pvClosed=true;patientLine(reply,()=>{setTimeout(()=>{if(S===me&&me.view==='call')endCall(false)},1800)});return}
+      if(ende&&S.kind==='pv'&&S.qStarted&&(S.qCount||0)>=2){S.pvClosed=true;patientLine(reply,()=>{setTimeout(()=>{if(S===me&&me.view==='call')endCall(false)},1800)});return}
       patientLine(reply,()=>listen());return;
     }
   }catch(e){
@@ -1768,14 +1768,14 @@ function triggerQuestions(){
 function clean(t){return String(t||'').replace(/\*[^*]*\*/g,'').replace(/\[[^\]]*\]/g,'').replace(/^(Patient(in)?|[A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+)\s*:\s*/,'').replace(/^["„]|["“]$/g,'').trim()}
 /* ---------- Teil C/D: der Chefarzt hört zu, unterbricht nur bei Lücken/Fehlern, stellt am Ende Fragen ---------- */
 const PV_ASKQ=/(darf ich|haben sie (kurz |gerade )?(zeit|einen moment|eine minute)|soll ich|sollen wir|möchten sie|wollen sie|ist das in ordnung|sind sie einverstanden|was meinen sie|was denken sie|wie sehen sie das|stimmen sie|würden sie)/;
-const PV_END=/(noch fragen|irgendwelche fragen|haben sie fragen|rückfragen|anmerkungen|das wäre alles|das war alles|das wars|das war's|soweit (zu|von)|von meiner seite|danke für ihre aufmerksamkeit|vielen dank für ihre aufmerksamkeit|das ist alles)/;
+const PV_END=/(haben sie (noch )?(irgendwelche )?(fragen|rückfragen)|gibt es (noch )?(irgendwelche )?(fragen|rückfragen)|noch (irgendwelche )?(fragen|rückfragen)|danke? für ihre aufmerksamkeit|das wäre (alles|es)( von meiner seite)?$|das war (alles|es)( von meiner seite)?$|das wars$)/;
 const PV_OK=['Gut, danke. Fahren Sie bitte fort.','Okay, danke. Weiter bitte.','Verstehe. Bitte fahren Sie fort.','Gut. Weiter.'];
 function pvRoute(text){
   const t=String(text).toLowerCase().replace(/[.,!;:]/g,' ').replace(/\s+/g,' ').trim();
-  const tail=t.split(' ').slice(-12).join(' '),isQ=/\?\s*$/.test(text)||PV_ASKQ.test(tail);
+  const tail=t.split(' ').slice(-12).join(' '),end8=t.split(' ').slice(-8).join(' '),isQ=/\?\s*$/.test(text)||PV_ASKQ.test(tail);
   if(S.pvClosed)return {mode:'closed'};
   if(S.qStarted)return {mode:'qround'};
-  if(PV_END.test(tail)&&Date.now()-S.start>90000){S.qStarted=true;showQBadge();return {mode:'qstart'}}
+  if(PV_END.test(end8)&&Date.now()-S.start>120000){S.qStarted=true;showQBadge();return {mode:'qstart'}}
   if(S.awaitAns){S.awaitAns=false;S.lastMon=Date.now();return {mode:'local',say:PV_OK[Math.floor(Math.random()*PV_OK.length)]}}
   const docN=S.msgs.filter(m=>m.who==='doc').length;
   if(isQ&&docN<=2&&/(darf ich|zeit|moment|vorstellen)/.test(tail))return {mode:'local',say:'Ja, bitte. Legen Sie los.'};
@@ -1828,6 +1828,7 @@ REGELN:
 - Du stellst nur Fragen zu DIESEM Fall. Pro Beitrag genau EINE Frage.
 - Erzähle den Fall nie selbst und nenne keine Befunde, nach denen du fragst. Sagt der Kandidat etwas Falsches, korrigiere kurz und sachlich.
 - FRAGERUNDE: zuerst nach WICHTIGEN Punkten der Fallakte fragen, die der Kandidat ausgelassen oder falsch gesagt hat (vergleiche das Gespräch mit der Fallakte), danach Fragen aus der Liste "Mögliche Fragen" (Begründung der Diagnose, Differentialdiagnosen, nächste Schritte). Reagiere kurz auf jede Antwort (z. B. "Gut." / "Nicht ganz – …"), dann die nächste Frage.
+- Schreibe [ENDE] NIE während der Vorstellung, nur am Schluss der Fragerunde.
 - Höchstens 4 Fragen in der Fragerunde. Danach – oder wenn weniger als 30 Sekunden übrig sind – beende das Gespräch: kurzes kollegiales Feedback in 1–2 Sätzen (was gut war, was gefehlt hat) und "Dann schauen wir uns den Patienten gleich gemeinsam an." und schreibe am Ende genau: [ENDE]
 - Antworte ausschließlich mit dem gesprochenen Text: keine Regieanweisungen, Sternchen, Klammern oder Sprecher-Präfixe (einzige Ausnahme: [ENDE]).`;
   const arr=[{role:'system',content:sys}];
@@ -2182,6 +2183,18 @@ function avatar(c){
   </g></svg>`;
 }
 
+/* ---------- new version available? (GitHub Pages caches the page up to 10 min) ---------- */
+const APP_VERSION='2026-11-23c';
+async function checkUpdate(){
+  try{
+    const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});if(!r.ok)return;
+    const m=(await r.text()).match(/APP_VERSION='([^']+)'/);
+    if(!m||m[1]===APP_VERSION||document.getElementById('upd'))return;
+    document.body.insertAdjacentHTML('beforeend',`<div id="upd" style="position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:60;background:#0b5d63;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;gap:12px;align-items:center;font-size:15px">${L('Neue Version der Seite verfügbar.','A new version of the site is available.')}<button class="btn sm" style="margin:0;background:#fff;color:#0b5d63" id="updb">${L('Jetzt neu laden','Reload now')}</button></div>`);
+    document.getElementById('updb').onclick=()=>{if(S&&S.view==='call'&&!confirm(L('Der laufende Test wird abgebrochen. Trotzdem neu laden?','The running test will be cancelled. Reload anyway?')))return;location.replace(location.pathname+'?v='+m[1])};
+  }catch(e){}
+}
+setTimeout(checkUpdate,4000);setInterval(checkUpdate,5*60*1000);
 nav();home();
 }
 </script>
