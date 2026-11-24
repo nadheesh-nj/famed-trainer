@@ -1270,7 +1270,7 @@ async function geminiChat(messages,{json=false,signal,fast=false,think}={}){
     if(l&&l.role===r)l.parts[0].text+='\n'+m.content;else contents.push({role:r,parts:[{text:m.content}]})}
   if(!contents.length||contents[0].role!=='user')contents.unshift({role:'user',parts:[{text:'(Gespräch beginnt)'}]});
   const gc={};
-  if(fast)gc.maxOutputTokens=300;
+  if(fast)gc.maxOutputTokens=think&&think!=='minimal'?1600:300;
   if(json)gc.responseMimeType='application/json';
   const level=think||(fast?'minimal':null);
   const main=[cfg.model.trim(),'gemini-3.6-flash','gemini-3.7-flash','gemini-3.8-flash','gemini-3.5-flash','gemini-flash-latest'];
@@ -1706,6 +1706,7 @@ async function doctorSays(text,typed){
     S.aufMode=r.mode;S.aufTerm=r.term||'';
   }
   if(S.kind==='pv'){
+    if(!S.qStarted)pvTrack(text);
     const r=pvRoute(text);
     if(r.mode==='mhm'){if(r.bc)backchannel();listen();pvMonitor();return}
     if(r.mode==='local'){patientLine(r.say,()=>listen());return}
@@ -1721,7 +1722,7 @@ async function patientRespond(){
     while(true){
       const n=S.msgs.length;
       const ctrl=new AbortController();S.ctrl=ctrl;
-      const res=await aiChat(patientInput(),{signal:ctrl.signal,fast:true});
+      const res=await aiChat(patientInput(),{signal:ctrl.signal,fast:true,think:S.kind==='pv'&&(S.qStarted||S.pvMode==='qstart')?'low':undefined});
       if(S!==me||me.view!=='call')return;
       if(S.msgs.length!==n&&S.msgs[S.msgs.length-1].who==='doc')continue;
       const ende=/\[\s*ENDE\s*\]/i.test(res.text);
@@ -1795,35 +1796,71 @@ function pvRoute(text){
   return {mode:'mhm',bc:t.split(' ').length>=5&&Math.random()<0.6};
 }
 const pvConv=()=>S.msgs.map(m=>(m.who==='doc'?'KANDIDAT: ':'CHEFARZT: ')+m.text).join('\n');
+/* Where is the candidate in the presentation? (local, no AI) */
+const PV_SEC=[
+ {n:1,k:'Patient und Aufnahmeweg',re:/(jahre alt|jährige|jährigen|stellte sich|vorgestellt|aufgenommen|eingewiesen|überwiesen|notaufnahme|rettungsstelle|rettungsdienst|zna)/},
+ {n:2,k:'aktuelle Beschwerden',re:/(beschwerden|schmerz|klagt|berichte|übelkeit|erbrechen|fieber|atemnot|luftnot|dyspnoe|husten|schwindel|gestürzt|sturz|unfall)/},
+ {n:3,k:'Vorgeschichte, Medikation, Allergien, Noxen',re:/(vorerkrank|vorgeschichte|anamnestisch|allergi|medikation|medikament|dauermedikation|einnahme|raucher|nikotin|pack|alkohol|noxen|sozialanamnese|familienanamnese|zustand nach|vor \w+ jahren operiert)/},
+ {n:4,k:'Vitalparameter und körperliche Untersuchung',re:/(körperlich|untersuchung|vitalparameter|vitalzeichen|blutdruck|herzfrequenz|puls|temperatur|sättigung|atemfrequenz|auskultation|palpation|druckschmerz|abwehrspannung|neurostatus|neurologisch)/},
+ {n:5,k:'Labor',re:/(labor|crp|leukozyt|hämoglobin|troponin|kreatinin|lipase|amylase|blutgas|bga|elektrolyt|kalium|natrium|inr|quick|tsh|hba1c|urinstix|urinbefund|blutbild)/},
+ {n:6,k:'Bildgebung, EKG, Endoskopie',re:/(röntgen|sonograph|ultraschall|\bct\b|computertomograph|mrt|kernspin|ekg|echokardiograph|endoskop|koloskop|gastroskop|ögd|bildgebung|fast-sono|lungenfunktion|audiometrie|dix)/},
+ {n:7,k:'Verdachtsdiagnose und Differentialdiagnosen',re:/(verdachtsdiagnose|diagnose|differentialdiagnos|differenzialdiagnos|verdacht auf|am ehesten|wahrscheinlich(ste)? ursache)/},
+ {n:8,k:'Therapie und Procedere',re:/(therapie|procedere|prozedere|behandlung|weitere[sn]? vorgehen|geplant|angesetzt|verabreicht|erhielt|haben wir|operation|operativ|antibiose|antibiotik|aufgeklärt|aufklärung|entlassung|konsil)/}];
+function pvSecOf(t){t=String(t).toLowerCase();let m=0;for(const x of PV_SEC)if(x.re.test(t))m=x.n;return m}
+function pvTrack(text){
+  const sec=pvSecOf(text);if(!sec)return;
+  S.secHist=(S.secHist||[]);S.secHist.push(sec);
+  const h=S.secHist,prev=h.length>1?h[h.length-2]:sec;
+  // a single sentence with a "late" keyword does not count yet – the section must be confirmed by two utterances in a row
+  const cur=Math.min(sec,Math.max(prev,S.pvCur||1));
+  S.pvCur=Math.max(S.pvCur||1,cur);
+}
+const PV_BANNED=/(\bname\b|heißt|wie alt|alter de[rs]|geburtsdatum|aufnahmegrund|warum (ist|kam) (der|die)|weshalb (ist|kam)|wer ist (der|die) patient)/i;
 async function pvMonitor(){
   const me=S;
-  if(!me||me.view!=='call'||me.kind!=='pv'||me.qStarted||me.pvClosed||me.awaitAns||me.monBusy||(me.intCount||0)>=3)return;
-  if(Date.now()-(me.lastMon||0)<12000||Date.now()-(me.lastInt||0)<40000)return;
+  if(!me||me.view!=='call'||me.kind!=='pv'||me.qStarted||me.pvClosed||me.awaitAns||me.monBusy||(me.intCount||0)>=2)return;
+  if(Date.now()-(me.start||0)<60000||Date.now()-(me.lastMon||0)<12000||Date.now()-(me.lastInt||0)<60000)return;
+  const cur=me.pvCur||1;if(cur<3)return;           // nothing finished yet that could be missing
   const said=me.msgs.filter(m=>m.who==='doc').map(m=>m.text).join(' ');
-  if(said.split(/\s+/).length<40)return;
+  if(said.split(/\s+/).length<50)return;
   me.monBusy=true;me.lastMon=Date.now();
   const p=me.p,kol=role==='f'?'Frau Kollegin':'Herr Kollege';
-  const prompt=`Du bist ${me.c.name} (${me.c.title}) und hörst in der FaMed-Fachsprachprüfung (Arzt-Arzt-Gespräch) einer Patientenvorstellung zu. Der Kandidat (${role==='f'?'Ärztin':'Arzt'}, Deutsch nicht Muttersprache) stellt dir den Fall aus der FALLAKTE vor. Die Sätze kommen über Spracherkennung (kleine Erkennungsfehler ignorieren).
+  const done=PV_SEC.filter(x=>x.n<cur).map(x=>x.n+' '+x.k).join('; ');
+  const notYet=PV_SEC.filter(x=>x.n>=cur).map(x=>x.n+' '+x.k).join('; ');
+  const prompt=`Du bist ${me.c.name} (${me.c.title}) und hörst in der FaMed-Fachsprachprüfung (Arzt-Arzt-Gespräch) einer Patientenvorstellung zu. ${role==='f'?'Die Kandidatin':'Der Kandidat'} (Deutsch nicht Muttersprache) stellt dir den Fall aus der FALLAKTE vor. Der Text kommt über Spracherkennung: Namen, Zahlen und Fachwörter sind oft falsch geschrieben oder verstümmelt – sinngemäß Gesagtes gilt als gesagt.
 FALLAKTE (du kennst sie genau):
 ${pvSheetText(p)}
-ÜBLICHE REIHENFOLGE einer Vorstellung: 1 Patient/Aufnahmegrund → 2 aktuelle Beschwerden → 3 Vorgeschichte, Medikation, Allergien, Noxen → 4 Vitalparameter und Untersuchung → 5 Labor → 6 Bildgebung/EKG → 7 Verdachtsdiagnose und Differentialdiagnosen → 8 Therapie/Procedere.
-BISHER GESAGT:
+BISHER GESAGT (in dieser Reihenfolge):
 ${pvConv()}
+STAND DER VORSTELLUNG (vom System ermittelt, verbindlich):
+- Bereits abgeschlossene Abschnitte: ${done}
+- Aktueller Abschnitt und noch NICHT erreichte Abschnitte: ${notYet}
 ${me.asked.length?'SCHON NACHGEFRAGT (nicht wiederholen): '+me.asked.join(' | '):''}
-ENTSCHEIDE: Unterbrich NUR, wenn (a) der Kandidat einen klar FALSCHEN Fakt genannt hat (falscher Wert, falsche Seite, falsches Medikament, falsche Diagnose im Vergleich zur Fallakte), oder (b) er eindeutig schon zu einem SPÄTEREN Abschnitt übergegangen ist und dabei einen für diesen Fall WICHTIGEN Punkt eines früheren Abschnitts ausgelassen hat (z. B. Vitalparameter, entscheidender Labor- oder Bildbefund, Allergie, wichtige Medikation, wichtige Vorerkrankung). NICHT unterbrechen für Punkte des Abschnitts, in dem er gerade ist (er kann sie noch nennen), für Kleinigkeiten, für Sprachfehler oder für Diagnose/Therapie, solange er noch nicht dort angekommen ist. Im Zweifel NICHT unterbrechen.
-Wenn du unterbrichst: EINE kurze, natürliche, kollegiale Frage in Fachsprache, z. B. "Moment, ${kol} – wie waren denn die Vitalparameter?" oder "Entschuldigung, sagten Sie links? Ich habe rechts gelesen." Nenne die Antwort nicht selbst.
-Antworte NUR mit JSON: {"interrupt":false} oder {"interrupt":true,"say":"..."}`;
+ENTSCHEIDE wie ein erfahrener ${me.c.title}, der den Redefluss nur im Notfall stört. Unterbrich NUR in einem dieser zwei Fälle:
+(a) "falsch": ${role==='f'?'Sie':'Er'} hat eindeutig einen FALSCHEN Fakt gesagt, der für den Fall relevant ist (falsche Seite, falsches Medikament, falsche Diagnose, ein Wert, der klar und nicht nur durch Spracherkennung abweicht).
+(b) "fehlt": In einem BEREITS ABGESCHLOSSENEN Abschnitt fehlt ein Befund, der für DIESEN Fall klinisch entscheidend ist (z. B. ein schwer veränderter Vitalparameter, der führende Labor- oder Bildbefund, eine für die Therapie wichtige Allergie oder Dauermedikation).
+STRENG VERBOTEN:
+- Fragen zum aktuellen Abschnitt oder zu noch nicht erreichten Abschnitten (${role==='f'?'sie':'er'} kommt noch dazu!), also auch NICHT nach Diagnose, Differentialdiagnosen oder Therapie fragen, solange diese nicht abgeschlossen sind.
+- Fragen nach Name, Alter, Aufnahmegrund oder anderen Stammdaten.
+- Fragen nach etwas, das sinngemäß schon gesagt wurde, auch wenn es anders formuliert oder falsch erkannt wurde.
+- Kleinigkeiten, Sprachfehler, Formulierungen. Im Zweifel NICHT unterbrechen.
+Wenn du unterbrichst: EIN kurzer, natürlicher, kollegialer Satz in Fachsprache, so wie ein Chefarzt bei der Visite, z. B. "Moment, ${kol} – wie war denn der Kreislauf bei Aufnahme?" oder "Sie sagten links – laut Akte ist es die rechte Seite, oder?". Nenne die gesuchte Antwort nicht selbst.
+Antworte NUR mit JSON: {"interrupt":false} oder {"interrupt":true,"art":"falsch|fehlt","abschnitt":<Nummer des Abschnitts, um den es geht>,"say":"..."}`;
   try{
-    const r=await aiChat([{role:'user',content:prompt}],{json:true,fast:true});
+    const r=await aiChat([{role:'user',content:prompt}],{json:true,fast:true,think:'low'});
     const m=r.text.match(/\{[\s\S]*\}/);const j=JSON.parse(m?m[0]:r.text);
     if(S!==me||me.view!=='call'||me.qStarted||me.pvClosed||me.awaitAns||me.busy||me.phase==='speaking'||me.phase==='thinking')return;
-    if(j&&j.interrupt&&j.say&&String(j.say).trim().length>4){
-      const say=clean(j.say);
-      const t=(me.buf+' '+(me.partial||'')).trim();stopListening();me.buf='';me.partial='';const tx=$('#txt');if(tx)tx.value='';
-      if(t&&!isFiller(t)){me.msgs.push({who:'doc',text:t});logMsg('doc',t)}
-      me.intCount=(me.intCount||0)+1;me.lastInt=Date.now();me.awaitAns=true;me.asked.push(say);
-      patientLine(say,()=>listen());
-    }
+    if(!(j&&j.interrupt&&j.say&&String(j.say).trim().length>4))return;
+    const sec=parseInt(j.abschnitt,10),art=String(j.art||'').toLowerCase();
+    const curNow=me.pvCur||cur;
+    // hard rules, independent of the AI: only finished sections, never basic data
+    if(art!=='falsch'&&!(sec>=1&&sec<curNow)){console.info('PV: interruption blocked (section not finished yet)',j);return}
+    if(PV_BANNED.test(j.say)){console.info('PV: interruption blocked (basic data)',j);return}
+    const say=clean(j.say);
+    const t=(me.buf+' '+(me.partial||'')).trim();stopListening();me.buf='';me.partial='';const tx=$('#txt');if(tx)tx.value='';
+    if(t&&!isFiller(t)){me.msgs.push({who:'doc',text:t});logMsg('doc',t)}
+    me.intCount=(me.intCount||0)+1;me.lastInt=Date.now();me.awaitAns=true;me.asked.push(say);
+    patientLine(say,()=>listen());
   }catch(e){console.warn('monitor',e)}
   finally{me.monBusy=false}
 }
@@ -1837,9 +1874,11 @@ Mögliche Fragen zum Fall: ${p.qs.join(' | ')}
 Wichtige Inhalte: ${p.kern.join(' | ')}
 REGELN:
 - Bleib immer in der Rolle: erfahrene/r, freundliche/r, aber anspruchsvolle/r ${ch.title}. Gesprochenes Deutsch, Fachsprache, sehr kurz (1–2 Sätze).
-- Du stellst nur Fragen zu DIESEM Fall. Pro Beitrag genau EINE Frage.
+- Denke wie ein erfahrener ${ch.title} bei der Visite, der wissen will, ob der Assistenzarzt den Patienten verstanden hat und sicher behandelt – nicht wie ein Quiz-Programm. Du stellst nur Fragen zu DIESEM Patienten und DIESER Fallakte, nie allgemeine Lehrbuchfragen ohne Bezug zum Fall. Pro Beitrag genau EINE Frage.
+- GUTE Chefarzt-Fragen (Beispiele für Arten): Begründung ("Was spricht bei ihm konkret für die Verdachtsdiagnose?"), Differentialdiagnosen ("Was müssen wir bei diesem Befund noch ausschließen?"), Interpretation eines Befundes aus der Akte ("Wie bewerten Sie das Kalium von 5,9?"), nächster Schritt ("Was machen Sie heute als Nächstes?"), Therapie konkret (Wirkstoff, Dosis, Dauer, Ziel), patientenspezifische Fallstricke (Allergie → welches Antibiotikum? Antikoagulation vor OP? Metformin vor Kontrastmittel? Nüchternheit? Einwilligung bei Minderjährigen?), Risiken und Komplikationen, Überwachung, Scores (z. B. CRB-65, CHA₂DS₂-VASc), Entlassung und Nachsorge.
+- VERBOTEN: Fragen nach Name, Alter, Aufnahmegrund oder anderen Stammdaten; Fragen nach etwas, das der Kandidat schon gesagt hat (prüfe das Gespräch – auch sinngemäß oder durch Spracherkennung verstümmelt Gesagtes zählt als gesagt); reine Wiederholungsfragen ("Können Sie das wiederholen?"); allgemeine Fragen ohne Fallbezug.
 - Erzähle den Fall nie selbst und nenne keine Befunde, nach denen du fragst. Sagt der Kandidat etwas Falsches, korrigiere kurz und sachlich.
-- FRAGERUNDE: zuerst nach WICHTIGEN Punkten der Fallakte fragen, die der Kandidat ausgelassen oder falsch gesagt hat (vergleiche das Gespräch mit der Fallakte), danach Fragen aus der Liste "Mögliche Fragen" (Begründung der Diagnose, Differentialdiagnosen, nächste Schritte). Reagiere kurz auf jede Antwort (z. B. "Gut." / "Nicht ganz – …"), dann die nächste Frage.
+- FRAGERUNDE: Hat der Kandidat einen klinisch ENTSCHEIDENDEN Befund der Akte ausgelassen, frag gezielt danach und nach seiner Bedeutung ("Was hat denn die Sonographie gezeigt – und was folgt daraus?"). Danach Fragen aus der Liste "Mögliche Fragen" und eigene Fragen der oben genannten Art. Reagiere kurz und ehrlich auf jede Antwort (z. B. "Richtig." / "Nicht ganz – wir müssen auch an … denken."), dann die nächste Frage.
 - Schreibe [ENDE] NIE während der Vorstellung, nur am Schluss der Fragerunde.
 - Höchstens 4 Fragen in der Fragerunde. Danach – oder wenn weniger als 30 Sekunden übrig sind – beende das Gespräch: kurzes kollegiales Feedback in 1–2 Sätzen (was gut war, was gefehlt hat) und "Dann schauen wir uns den Patienten gleich gemeinsam an." und schreibe am Ende genau: [ENDE]
 - Antworte ausschließlich mit dem gesprochenen Text: keine Regieanweisungen, Sternchen, Klammern oder Sprecher-Präfixe (einzige Ausnahme: [ENDE]).`;
@@ -2209,7 +2248,7 @@ function avatar(c){
 }
 
 /* ---------- new version available? (GitHub Pages caches the page up to 10 min) ---------- */
-const APP_VERSION='2026-11-23d';
+const APP_VERSION='2026-11-24a';
 async function checkUpdate(){
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});if(!r.ok)return;
